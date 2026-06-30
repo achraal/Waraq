@@ -1,0 +1,72 @@
+@startuml marocao_usecases_styled
+!theme plain
+
+' Style pour les cas d'utilisation (Bleu clair)
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1976D2
+}
+
+' Style pour les acteurs (Orange clair)
+skinparam actor {
+  BackgroundColor #FFF3E0
+  BorderColor #F57C00
+}
+
+' Style pour le conteneur du système
+skinparam rectangle {
+  BackgroundColor white
+}
+
+title **MarocAO** - Diagramme de Cas d'Utilisation
+
+left to right direction
+
+' Déclaration des Acteurs
+actor "Visiteur" as vis
+actor "Entreprise Candidate" as cand
+actor "Administrateur" as admin
+
+rectangle "Plateforme MarocAO" {
+
+  ' Cas d'utilisation Visiteur
+  usecase "Consulter la\nLanding Page" as UC_landing
+  usecase "S'inscrire / Se Connecter\n(JWT + Argon2)" as UC_auth
+
+  ' Cas d'utilisation Entreprise Candidate
+  usecase "Rechercher des\nmarchés publics" as UC_search
+  usecase "Consulter l'Analyse IA\n(Caution, Budget)" as UC_view_ia
+  usecase "Renseigner son Profil Structure\n(ICE, RC, CNSS)" as UC_profile
+  usecase "Télécharger le Dossier\nde Réponse (.docx)" as UC_download
+
+  ' Cas d'utilisation Administrateur
+  usecase "Superviser le Scraper" as UC_scrap_admin
+  usecase "Ajuster les Prompts\ndu LLM" as UC_prompt_admin
+}
+
+' Relations Visiteur
+vis --> UC_landing
+
+' Relations Entreprise Candidate (Fonctionnalités principales)
+cand --> UC_search
+cand --> UC_view_ia
+cand --> UC_profile
+cand --> UC_download
+
+' Relations Administrateur
+admin --> UC_scrap_admin
+admin --> UC_prompt_admin
+
+' Dépendances d'Authentification (Inclusions)
+' L'accès à ces fonctionnalités déclenche ou nécessite obligatoirement l'authentification
+UC_search ..> UC_auth : <<include>>
+UC_view_ia ..> UC_auth : <<include>>
+UC_profile ..> UC_auth : <<include>>
+UC_scrap_admin ..> UC_auth : <<include>>
+UC_prompt_admin ..> UC_auth : <<include>>
+
+' Inclusions / Dépendances Métier
+UC_download ..> UC_profile : <<include>>
+UC_download ..> UC_view_ia : <<include>>
+
+@enduml

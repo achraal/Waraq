@@ -1,0 +1,54 @@
+marocao-platform/
+│
+├── .env                         # Variables d'environnement critiques (JWT_SECRET, DB_URL)
+├── .python-version              # Version cible de Python gérée par uv
+├── pyproject.toml               # Métadonnées du projet et dépendances gérées par uv
+├── uv.lock                      # Fichier de verrouillage ultra-précis des paquets uv
+│
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py              # Point d'entrée de l'API FastAPI
+│   │   │
+│   │   ├── auth/                # Authentification & Sécurité
+│   │   │   ├── __init__.py
+│   │   │   ├── routes.py        # Endpoints (/login, /register)
+│   │   │   └── security.py      # Hachage Argon2id et cycle de vie JWT
+│   │   │
+│   │   ├── database/            # Persistance des données
+│   │   │   ├── __init__.py
+│   │   │   ├── connection.py    # Configuration du pool SQLAlchemy
+│   │   │   └── models.py        # Modèles ORM (Joined Table Inheritance)
+│   │   │
+│   │   ├── modules/             # Cœur métier de l'application
+│   │   │   ├── ai_processor/    # Traitement Intelligent des Documents (IDP)
+│   │   │   │   ├── llm_analyzer.py
+│   │   │   │   └── ocr_engine.py
+│   │   │   │
+│   │   │   ├── scraper/         # Collecte amont (Appels d'Offres)
+│   │   │   │   ├── parser.py
+│   │   │   │   └── portal_scraper.py
+│   │   │   │
+│   │   │   └── workflows/       # Automatisation et génération
+│   │   │       └── doc_generator.py
+│   │   │
+│   │   └── config.py            # Chargement des variables d'environnement (Pydantic Settings)
+│   │
+│   └── data_storage/            # Volume persistant (Artefacts & Documents)
+│       ├── archives/            # Fichiers .zip bruts téléchargés
+│       │   └── ao_04_2026.zip
+│       │
+│       ├── extracted/           # Pièces décompressées (Avis, RC, CPS)
+│       │   └── ao_04_2026/
+│       │       ├── avis.pdf
+│       │       ├── cps.pdf
+│       │       └── rc.pdf
+│       │
+│       └── generated/           # Livrables .docx générés par utilisateur
+│           └── user_uuid_ao_04_2026/
+│               ├── acte_engagement.docx
+│               └── declaration_honneur.docx
+│
+└── frontend/                    # Interface utilisateur (React)
+    ├── public/
+    └── src/

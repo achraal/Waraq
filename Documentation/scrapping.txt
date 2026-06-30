@@ -1,0 +1,43 @@
+<input type="submit" name="ctl0$CONTENU_PAGE$AdvancedSearch$lancerRecherche" value="Lancer la recherche" id="ctl0_CONTENU_PAGE_AdvancedSearch_lancerRecherche" class="bouton-moyen-120 float-right" title="Lancer la recherche">
+
+<input name="ctl0$CONTENU_PAGE$AdvancedSearch$dateMiseEnLigneCalculeStart" type="text" value="29/12/2025" id="ctl0_CONTENU_PAGE_AdvancedSearch_dateMiseEnLigneCalculeStart" class="heure" onchange="supprimerEspace(this);" title="Entre le">
+
+<input name="ctl0$CONTENU_PAGE$AdvancedSearch$dateMiseEnLigneCalculeEnd" type="text" value="29/06/2026" id="ctl0_CONTENU_PAGE_AdvancedSearch_dateMiseEnLigneCalculeEnd" class="heure" onchange="supprimerEspace(this);" title="et le">
+##############################################
+
+<img src="themes/images/picto-acces-consultation.gif" alt="Accéder à la consultation">
+
+<img src="themes/images/fleche-suivant.gif" alt="Aller à la page suivante" title="Aller à la page suivante">
+
+###################################################
+
+<a id="ctl0_CONTENU_PAGE_linkDownloadDce" href="index.php?page=entreprise.EntrepriseDemandeTelechargementDce&amp;refConsultation=1015145&amp;orgAcronyme=d4q">Dossier de consultation - 1,31 Mo</a>
+
+###################################################
+
+
+<input name="ctl0$CONTENU_PAGE$EntrepriseFormulaireDemande$nom" type="text" id="ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_nom" class="input-185" title="Nom">
+
+<input name="ctl0$CONTENU_PAGE$EntrepriseFormulaireDemande$email" type="text" id="ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_email" class="input-185" title="Adresse électronique">
+
+<input name="ctl0$CONTENU_PAGE$EntrepriseFormulaireDemande$prenom" type="text" id="ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_prenom" class="input-185" title="Prénom">
+
+<input title="J'accepte les conditions générales d'utilisation" id="ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_accepterConditions" type="checkbox" name="ctl0$CONTENU_PAGE$EntrepriseFormulaireDemande$accepterConditions">
+
+<input type="submit" name="ctl0$CONTENU_PAGE$validateButton" value="Valider" id="ctl0_CONTENU_PAGE_validateButton" title="Valider" class="bouton-moyen float-right" onclick="javascript:document.getElementById('ctl0_CONTENU_PAGE_validateButton').style.display='none';">
+
+#############################################################
+
+<a id="ctl0_CONTENU_PAGE_EntrepriseDownloadDce_completeDownload" class="bouton-telecharger-long230" onclick="document.getElementById('ctl0_CONTENU_PAGE_EntrepriseDownloadDce_completeDownload').style.display='none';document.getElementById('ctl0_CONTENU_PAGE_EntrepriseDownloadDce_lienNouveauTelechargement').style.display='';" href="javascript:;//ctl0_CONTENU_PAGE_EntrepriseDownloadDce_completeDownload">Télécharger le Dossier de consultation 
+				 </a>
+
+<a class="title-toggle" onclick="togglePanel(this,'infosPrincipales');" href="javascript:void(0);">&nbsp;</a>
+
+<div class="form-bloc recap-infos-consultation" id="recap-consultation">
+			
+
+
+
+
+
+

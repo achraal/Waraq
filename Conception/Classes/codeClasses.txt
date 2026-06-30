@@ -1,0 +1,87 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+enum StructureType {
+    INDIVIDUAL_PROPER
+    AUTO_ENTREPRENEUR
+    COMPANY
+    PUBLIC_INSTITUTION
+    COOPERATIVE
+}
+
+enum UserRole {
+    CANDIDATE
+    ADMIN
+}
+
+class User {
+    - id: UUID
+    - email: String
+    - password_hash: String
+    - role: UserRole
+    - created_at: DateTime
+}
+
+class AuthManager {
+    + hash_password_argon2(password: String): String
+    + verify_password(password: String, hash: String): Boolean
+    + generate_jwt_token(user: User): String
+}
+
+abstract class CompanyProfile {
+    - id: UUID
+    - structure_type: StructureType
+    - manager_name: String
+    - address: String
+    - phone: String
+    - email_contact: String
+    - ice: String
+    - tax_professionnelle: String
+    - rib: String
+    - bank_name: String
+}
+
+class PhysicalPersonProfile extends CompanyProfile {
+    - cin_number: String
+    - auto_entrepreneur_card_number: String
+    - rc_number: String
+    - rc_locality: String
+}
+
+class LegalPersonProfile extends CompanyProfile {
+    - company_name: String
+    - rc_number: String
+    - rc_locality: String
+    - cnss_number: String
+    - cooperative_register_number: String
+}
+
+class Tender {
+    - id: UUID
+    - reference: String
+    - title: String
+    - buyer: String
+    - deadline: DateTime
+    - estimated_budget: Float
+    - provisional_caution: Float
+    - local_zip_path: String
+}
+
+class TenderDocument {
+    - id: UUID
+    - file_name: String
+    - file_type: String
+    - extracted_text: String
+}
+
+class DocumentWorkflow {
+    + generate_engagement_act(profile: CompanyProfile, tender: Tender): String
+    + generate_honor_declaration(profile: CompanyProfile, tender: Tender): String
+}
+
+User "1" -- "0..1" CompanyProfile : "gère"
+Tender "1" *-- "0..*" TenderDocument : "contient"
+DocumentWorkflow ..> CompanyProfile : "lit"
+DocumentWorkflow ..> Tender : "lit"
+AuthManager ..> User : "authentifie"
+@endum()

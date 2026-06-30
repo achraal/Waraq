@@ -1,0 +1,178 @@
+POST /api/auth/register
+
+1. INDIVIDUAL_PROPER
+{
+    "email": "hamza.idrissi@pro.ma",
+    "password": "Password123!"
+}
+
+2. AUTO_ENTREPRENEUR
+{
+    "email": "yassine.auto@ae-maroc.ma",
+    "password": "Password123!"
+}
+
+3. COMPANY
+{
+    "email": "contact@sigma-digital.ma",
+    "password": "Password123!"
+}
+
+4. PUBLIC_INSTITUTION
+
+{
+    "email": "gestion.marches@office-public.gov.ma",
+    "password": "Password123!"
+}
+
+5. COOPERATIVE
+{
+    "email": "direction@coop-artisanale.coop",
+    "password": "Password123!"
+}
+
+
+
+POST /api/auth/login
+
+{
+    "email": "direction@coop-artisanale.coop",
+    "password": "Password123!"
+}
+
+
+POST /api/auth/profile
+
+
+1. 
+
+{
+  "structure_type": "INDIVIDUAL_PROPER",
+  "profile_data": {
+    "manager_name": "Hamza Idrissi",
+    "address": "Casablanca, Maroc",
+    "phone": "0600000000",
+    "email_contact": "hamza.idrissi@pro.ma",
+    "tax_professionnelle": "TP12345",
+    "rib": "123456789012345678901234",
+    "bank_name": "BMCE",
+    "cin_number": "BK12345",
+    "rc_number": "RC111",
+    "rc_locality": "Casablanca"
+  }
+}
+
+2.
+
+{
+  "structure_type": "AUTO_ENTREPRENEUR",
+  "profile_data": {
+    "manager_name": "Yassine Auto",
+    "address": "Rabat, Maroc",
+    "tax_professionnelle": "TP54321",
+    "rib": "987654321098765432109876",
+    "bank_name": "CIH",
+    "cin_number": "A555666",
+    "auto_entrepreneur_card_number": "AE999888"
+  }
+}
+
+
+3.
+
+{
+  "structure_type": "COMPANY",
+  "profile_data": {
+    "manager_name": "Sara Direction",
+    "address": "Tanger",
+    "tax_professionnelle": "TP999",
+    "rib": "000000000000000000000001",
+    "bank_name": "Attijari",
+    "capital_social": 500000.0,
+    "company_name": "Sigma Tech SARL",
+    "rc_number": "RC444555",
+    "rc_locality": "Tanger"
+  }
+}
+
+
+4.
+
+{
+  "structure_type": "PUBLIC_INSTITUTION",
+  "profile_data": {
+    "manager_name": "Directeur Office",
+    "address": "Rabat",
+    "tax_professionnelle": "TP0001",
+    "rib": "111122223333444455556666",
+    "bank_name": "TGR",
+    "capital_social": 0.0,
+    "company_name": "Office Public de l'Eau",
+    "rc_number": "RC-OFFICE",
+    "rc_locality": "Rabat",
+    "legal_authorization_text": "Décret n°2-XX-XXX du 15 mai 2020 habilitant l'Office à gérer l'eau"
+  }
+}
+
+
+5.
+
+{
+  "structure_type": "COOPERATIVE",
+  "profile_data": {
+    "manager_name": "Ahmed Coop",
+    "address": "Fès",
+    "tax_professionnelle": "TP888",
+    "rib": "222233334444555566667777",
+    "bank_name": "Crédit Agricole",
+    "capital_social": 100000.0,
+    "company_name": "Coopérative Artisanale Fès",
+    "rc_number": "RC-COOP-77",
+    "rc_locality": "Fès",
+    "cooperative_register_number": "COOP-REG-123"
+  }
+}
+
+
+GET http://localhost:8000/api/auth/admin/users
+
+GET http://localhost:8000/api/auth/admin/users/{user_id}
+
+PUT http://localhost:8000/api/auth/admin/users/{user_id}/profile
+
+{
+"structure_type": "COMPANY",
+"profile_data": {
+"manager_name": "Admin Modifié",
+"address": "Nouvelle adresse test",
+"phone": "0699999999",
+"email_contact": "test@admin.ma",
+"tax_professionnelle": "TP9999",
+"rib": "111111111111111111111111",
+"bank_name": "Banque Admin",
+"capital_social": 1000000.0,
+"company_name": "Société Modifiée par Admin",
+"rc_number": "RC-MODIF",
+"rc_locality": "Casablanca"
+}
+}
+
+PATCH http://localhost:8000/api/auth/admin/users/{user_id}/password
+
+{
+"new_password": "NewPassword2026!"
+}
+
+DELETE http://127.0.0.1:8000/api/auth/admin/users/{user_id} 
+
+
+###################################################################
+
+
+
+
+
+
+
+
+
