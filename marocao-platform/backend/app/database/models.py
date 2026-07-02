@@ -2,7 +2,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey, Text, JSON, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from backend.app.database.connection import Base
@@ -101,21 +101,45 @@ class LegalPersonProfile(CompanyProfile):
         "polymorphic_identity": "legal_person",
     }
 
-
 # --- TABLES : APPELS D'OFFRES ET DOCUMENTS ---
 class Tender(Base):
     __tablename__ = "tenders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    reference = Column(String, unique=True, nullable=False, index=True) # Ex: 04/2026
-    title = Column(String, nullable=False)                              # Objet du marché
-    buyer = Column(String, nullable=False)                              # Administration
-    deadline = Column(DateTime, nullable=False)                         # Date limite dépôt
-    estimated_budget = Column(Float, nullable=True)                     # Estimation globale
-    provisional_caution = Column(Float, nullable=True)                  # Cautionnement provisoire
-    local_zip_path = Column(String, nullable=True)                      # Path local vers le dossier DCE .zip
+    reference = Column(String, unique=True, nullable=False, index=True)
+    title = Column(Text, nullable=False)                               # Correspond à "objet"
+    buyer = Column(String, nullable=False)                               # Correspond à "acheteur"
+    
+    # --- TOUS LES CHAMPS DE TES MÉTADONNÉES MAROCAINES ---
+    type_annonce = Column(Text, nullable=True)
+    procedure = Column(Text, nullable=True)
+    categorie = Column(Text, nullable=True)
+    allotissement = Column(Text, nullable=True)
+    lieu_execution = Column(Text, nullable=True)
+    estimated_budget = Column(Text, nullable=True)                   # Correspond à "budget"
+    reserve_pme = Column(Text, nullable=True)
+    domaines_activite = Column(Text, nullable=True)
+    adresse_retrait = Column(Text, nullable=True)
+    adresse_depot = Column(Text, nullable=True)
+    lieu_ouverture = Column(Text, nullable=True)
+    prix_acquisition = Column(String, nullable=True)
+    provisional_caution = Column(Text, nullable=True)                # Correspond à "caution"
+    qualifications = Column(Text, nullable=True)
+    agrements = Column(Text, nullable=True)
+    variante = Column(String, nullable=True)
+    deadline = Column(String, nullable=True)
+    prospectus_notices = Column(Text, nullable=True)
+    reunion = Column(Text, nullable=True)
+    visite_lieux = Column(Text, nullable=True)
+    contact_administratif = Column(Text, nullable=True) 
+    
+    # Métriques système
+    local_zip_path = Column(String, nullable=True)
+    metadata_json = Column(JSON, nullable=True)                          # Copie de sauvegarde brute
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    extraction_date = Column(DateTime) # Date réelle d'extraction du site web
+    is_consulted = Column(Boolean, default=False, nullable=False, index=True)
+ 
     documents = relationship("TenderDocument", back_populates="tender", cascade="all, delete-orphan")
 
 
@@ -124,8 +148,9 @@ class TenderDocument(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tender_id = Column(UUID(as_uuid=True), ForeignKey("tenders.id"), nullable=False)
-    file_name = Column(String, nullable=False)                          # Ex: CPS.pdf, RC.pdf
-    file_type = Column(String, nullable=False)                          # CPS, RC, AVIS
-    extracted_text = Column(String, nullable=True)                      # Texte brut récupéré par l'OCR
+    file_name = Column(Text, nullable=False)
+    file_type = Column(String, nullable=False)                           # CPS, RC, AVIS ou Nom/Extension dynamique
+    file_path = Column(Text, nullable=False)
+    extracted_text = Column(Text, nullable=True)                         # Réservé pour ton moteur OCR / RAG
 
-    tender = relationship("Tender", back_populates="documents")
+    tender = relationship("Tender", back_populates="documents") 

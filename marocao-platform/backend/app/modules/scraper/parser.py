@@ -11,13 +11,35 @@ def parse_tender_metadata(html_content):
         return None
 
     def get_val(label):
-        # Utilisation d'une fonction lambda pour cibler le texte exact ou partiel du label
+        # 1. Trouve le texte du label
         element = recap.find(string=lambda text: text and label in text)
         if element:
-            # Récupération de l'élément frère ou suivant contenant la valeur
+            # 2. On remonte au parent (le container de la ligne)
+            parent = element.find_parent(['td', 'tr', 'div'])
+            if parent:
+                # 3. On cherche spécifiquement le span qui porte la classe "content-bloc"
+                # C'est là que le site met la vraie valeur !
+                val_span = parent.find("span", class_="content-bloc")
+                if val_span:
+                    return val_span.text.strip()
+            
+            # Secours : si pas de classe "content-bloc", on prend le premier texte non vide suivant
             next_node = element.find_next()
-            return next_node.text.strip() if next_node else None
+            while next_node:
+                text_val = next_node.text.strip()
+                if text_val and text_val != label and text_val not in ["*", ":", "* :"]:
+                    return text_val.lstrip('*').lstrip(':').strip()
+                next_node = next_node.find_next()
         return None
+
+    # def get_val(label):
+    #     # Utilisation d'une fonction lambda pour cibler le texte exact ou partiel du label
+    #     element = recap.find(string=lambda text: text and label in text)
+    #     if element:
+    #         # Récupération de l'élément frère ou suivant contenant la valeur
+    #         next_node = element.find_next()
+    #         return next_node.text.strip() if next_node else None
+    #     return None
 
     data = {
         "reference": get_val("Référence"),
@@ -28,8 +50,8 @@ def parse_tender_metadata(html_content):
         "categorie": get_val("Catégorie principale"),
         "allotissement": get_val("Allotissement"),
         "lieu_execution": get_val("Lieu d'exécution"),
-        "budget": get_val("Estimation"),
-        "reserve_pme": get_val("Réservé à la TPE et PME"),
+        "budget": get_val("Estimation (en Dhs TTC)"),
+        "reserve_pme": get_val("Réservé à la TPE et PME installées au Maroc"),
         "domaines_activite": get_val("Domaines d'activité"),
         "adresse_retrait": get_val("Adresse de retrait"),
         "adresse_depot": get_val("Adresse de dépôt"),
