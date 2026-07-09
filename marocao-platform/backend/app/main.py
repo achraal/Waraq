@@ -57,7 +57,6 @@ async def lifespan(app: FastAPI):
             export_all_tenders_to_excel(db)
     finally:
         db.close()
-
     yield
 
 app = FastAPI(

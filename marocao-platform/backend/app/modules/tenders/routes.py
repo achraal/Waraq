@@ -1,3 +1,4 @@
+from unicodedata import category
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import cast, Date, Time
@@ -20,7 +21,8 @@ def get_tenders(
     limit: Optional[int] = None, 
     db: Session = Depends(get_db)
 ):
-    query = db.query(Tender).options(joinedload(Tender.documents)).order_by(Tender.created_at.desc())
+    query = db.query(Tender).options(joinedload(Tender.documents), 
+        joinedload(Tender.lots)).order_by(Tender.created_at.desc())
     
     # Si limit est fourni, on pagine
     if limit is not None:
@@ -36,16 +38,21 @@ def get_tenders(
     }
 
 # 2. POST : Filtrage des offres complètes
-# 2. POST : Filtrage des offres complètes
 @router.post("/filter")
 def filter_tenders(filters: TenderFilter, db: Session = Depends(get_db)):
-    query = db.query(Tender).options(joinedload(Tender.documents))
+    query = db.query(Tender).options(joinedload(Tender.documents), 
+        joinedload(Tender.lots))
 
     if filters.is_consulted is not None:
         query = query.filter(Tender.is_consulted == filters.is_consulted)
     
     if filters.deadline: 
         query = query.filter(Tender.deadline.contains(filters.deadline))
+
+    if filters.category:
+        # On utilise .ilike pour une recherche insensible à la casse 
+        # (ex: "Travaux" trouvera aussi "TRAVAUX")
+        query = query.filter(Tender.categorie.ilike(f"%{filters.category}%"))
         
     if filters.extraction_date:
         try:
@@ -74,7 +81,7 @@ def get_tenders_minimal(
     limit: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Tender.id, Tender.reference, Tender.title, Tender.buyer, Tender.deadline)
+    query = db.query(Tender.id, Tender.reference, Tender.title, Tender.categorie, Tender.buyer, Tender.deadline)
     
     # Si limit est fourni, on applique la pagination
     if limit is not None:
@@ -82,7 +89,7 @@ def get_tenders_minimal(
         
     tenders = query.all()
     # On reconstruit les dictionnaires
-    data = [{"id": t.id, "reference": t.reference, "title": t.title, "buyer": t.buyer, "deadline": t.deadline} for t in tenders]
+    data = [{"id": t.id, "reference": t.reference, "title": t.title, "categorie": t.categorie, "buyer": t.buyer, "deadline": t.deadline} for t in tenders]
     
     return {"count": len(data), "data": data}
 
@@ -96,6 +103,11 @@ def filter_tenders_minimal(filters: TenderFilter, db: Session = Depends(get_db))
     
     if filters.deadline: 
         query = query.filter(Tender.deadline.contains(filters.deadline))
+
+    if filters.category:
+        # On utilise .ilike pour une recherche insensible à la casse 
+        # (ex: "Travaux" trouvera aussi "TRAVAUX")
+        query = query.filter(Tender.categorie.ilike(f"%{filters.category}%"))
         
     if filters.extraction_date:
         try:
@@ -125,7 +137,8 @@ def filter_tenders_minimal(filters: TenderFilter, db: Session = Depends(get_db))
 # GET : Une offre spécifique avec ses documents
 @router.get("/{tender_id}")
 def get_tender(tender_id: str, db: Session = Depends(get_db)):
-    tender = db.query(Tender).options(joinedload(Tender.documents)).filter(Tender.id == tender_id).first()
+    tender = db.query(Tender).options(joinedload(Tender.documents), 
+        joinedload(Tender.lots)).filter(Tender.id == tender_id).first()
     if not tender:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     return tender
@@ -133,7 +146,7 @@ def get_tender(tender_id: str, db: Session = Depends(get_db)):
 # PATCH : Modification d'un champ
 @router.patch("/{tender_id}")
 def update_tender(tender_id: str, update_data: dict, db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
-    tender = db.query(Tender).filter(Tender.id == tender_id).first()
+    tender = db.query(Tender).options(joinedload(Tender.lots)).filter(Tender.id == tender_id).first()
     if not tender:
         raise HTTPException(status_code=404, detail="Offre non trouvée")
     

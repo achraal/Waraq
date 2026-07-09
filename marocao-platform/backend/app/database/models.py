@@ -2,7 +2,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey, Text, JSON, Boolean
+from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey, Text, JSON, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from backend.app.database.connection import Base
@@ -132,6 +132,7 @@ class Tender(Base):
     reunion = Column(Text, nullable=True)
     visite_lieux = Column(Text, nullable=True)
     contact_administratif = Column(Text, nullable=True) 
+    nbr_lots = Column(Integer, default=0)
     
     # Métriques système
     local_zip_path = Column(String, nullable=True)
@@ -140,6 +141,7 @@ class Tender(Base):
     extraction_date = Column(DateTime) # Date réelle d'extraction du site web
     is_consulted = Column(Boolean, default=False, nullable=False, index=True)
  
+    lots = relationship("TenderLot", back_populates="tender", cascade="all, delete-orphan")
     documents = relationship("TenderDocument", back_populates="tender", cascade="all, delete-orphan")
 
 
@@ -154,3 +156,33 @@ class TenderDocument(Base):
     extracted_text = Column(Text, nullable=True)                         # Réservé pour ton moteur OCR / RAG
 
     tender = relationship("Tender", back_populates="documents") 
+
+
+class TenderLot(Base):
+    __tablename__ = "tender_lots"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tender_id = Column(UUID(as_uuid=True), ForeignKey("tenders.id"), nullable=False)
+    
+    # Identifiants et description
+    lot_number = Column(String, nullable=True) 
+    title = Column(Text, nullable=True)        # "Gares de : ..."
+    description = Column(Text, nullable=True)  # La description détaillée
+    
+    # Données financières et conditions
+    estimated_budget = Column(String, nullable=True)
+    provisional_caution = Column(String, nullable=True)
+    variante = Column(String, nullable=True)
+    
+    # Champs spécifiques manquants
+    qualifications = Column(Text, nullable=True)
+    agrements = Column(Text, nullable=True)
+    prospectus_notices = Column(Text, nullable=True)
+    reunion = Column(Text, nullable=True)
+    visite_lieux = Column(Text, nullable=True)
+    
+    # Autres
+    env_considerations = Column(Text, nullable=True)
+    reserve_pme = Column(String, nullable=True)
+
+    tender = relationship("Tender", back_populates="lots")
