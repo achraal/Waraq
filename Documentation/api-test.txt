@@ -168,11 +168,55 @@ DELETE http://127.0.0.1:8000/api/auth/admin/users/{user_id}
 
 ###################################################################
 
+POST http://localhost:8000/api/scraper/sync
+
+POST http://localhost:8000/api/scraper/export-excel
+
+GET  http://localhost:8000/api/tenders/minimal
+
+GET  http://localhost:8000/api/tenders/
+
+PATCH  http://localhost:8000/api/tenders/{id_offre}
+
+{
+    "title": "Nouveau titre modifié",
+    "contact_administratif": "0600000000"
+}
+
+POST  http://localhost:8000/api/tenders/delete-multiple
+
+{
+    "ids": [
+        "b6439d19-38aa-47e7-861b-feb9e40f041c"
+    ]
+}
 
 
+POST  http://localhost:8000/api/tenders/minimal/filter
 
+{
+    {"extraction_date": "12:00:00"} 
+}
 
+POST http://localhost:8000/api/tenders/filter
 
+{
+    "deadline": "13/08/2026 09:00"
+}
+
+GET  http://localhost:8000/api/tenders/{id_offre}
+
+PATCH http://localhost:8000/api/tenders/{tender_id}/mark-unconsulted
+
+PATCH http://localhost:8000/api/tenders/{tender_id}/mark-consulted
+
+POST http://localhost:8000/api/scraper/start-scraping
+
+GET http://localhost:8000/api/scraper/scraper-status
+
+POST http://localhost:8000/api/scraper/run-pipeline
+
+##############################################################################
 
 
 

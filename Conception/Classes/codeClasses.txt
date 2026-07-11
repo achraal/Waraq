@@ -1,5 +1,7 @@
 @startuml
+skinparam handwritten false
 skinparam classAttributeIconSize 0
+allowmixing
 
 enum StructureType {
     INDIVIDUAL_PROPER
@@ -22,38 +24,44 @@ class User {
     - created_at: DateTime
 }
 
-class AuthManager {
-    + hash_password_argon2(password: String): String
-    + verify_password(password: String, hash: String): Boolean
-    + generate_jwt_token(user: User): String
+class SecurityManager {
+    {static} + hash_password(password: str): str
+    {static} + verify_password(plain_password: str, hashed_password: str): bool
+    {static} + create_access_token(data: dict, expires_delta: Optional[timedelta]): str
+    {static} + decode_access_token(token: str): Optional[dict]
 }
 
 abstract class CompanyProfile {
     - id: UUID
+    - user_id: UUID
     - structure_type: StructureType
     - manager_name: String
     - address: String
     - phone: String
+    - fax: String
     - email_contact: String
     - ice: String
     - tax_professionnelle: String
     - rib: String
     - bank_name: String
+    - type_discriminator: String
+    - capital_social: Float
 }
 
-class PhysicalPersonProfile extends CompanyProfile {
+class PhysicalPersonProfile {
     - cin_number: String
     - auto_entrepreneur_card_number: String
     - rc_number: String
     - rc_locality: String
 }
 
-class LegalPersonProfile extends CompanyProfile {
+class LegalPersonProfile {
     - company_name: String
     - rc_number: String
     - rc_locality: String
     - cnss_number: String
     - cooperative_register_number: String
+    - legal_authorization_text: String
 }
 
 class Tender {
@@ -61,16 +69,59 @@ class Tender {
     - reference: String
     - title: String
     - buyer: String
-    - deadline: DateTime
-    - estimated_budget: Float
-    - provisional_caution: Float
+    - type_annonce: String
+    - procedure: String
+    - categorie: String
+    - allotment: String
+    - lieu_execution: String
+    - estimated_budget: String
+    - reserve_pme: String
+    - domaines_activite: String
+    - adresse_retrait: String
+    - adresse_depot: String
+    - lieu_ouverture: String
+    - prix_acquisition: String
+    - provisional_caution: String
+    - qualifications: String
+    - agrements: String
+    - variante: String
+    - deadline: String
+    - prospectus_notices: String
+    - reunion: String
+    - visite_lieux: String
+    - contact_administratif: String
+    - nbr_lots: Integer
     - local_zip_path: String
+    - metadata_json: JSON
+    - created_at: DateTime
+    - extraction_date: DateTime
+    - is_consulted: Boolean
+}
+
+class TenderLot {
+    - id: UUID
+    - tender_id: UUID
+    - lot_number: String
+    - title: String
+    - description: String
+    - estimated_budget: String
+    - provisional_caution: String
+    - variante: String
+    - qualifications: String
+    - agrements: String
+    - prospectus_notices: String
+    - reunion: String
+    - visite_lieux: String
+    - env_considerations: String
+    - reserve_pme: String
 }
 
 class TenderDocument {
     - id: UUID
+    - tender_id: UUID
     - file_name: String
     - file_type: String
+    - file_path: String
     - extracted_text: String
 }
 
@@ -79,9 +130,94 @@ class DocumentWorkflow {
     + generate_honor_declaration(profile: CompanyProfile, tender: Tender): String
 }
 
-User "1" -- "0..1" CompanyProfile : "gère"
-Tender "1" *-- "0..*" TenderDocument : "contient"
-DocumentWorkflow ..> CompanyProfile : "lit"
-DocumentWorkflow ..> Tender : "lit"
-AuthManager ..> User : "authentifie"
-@endum()
+' --- ACTEUR & ROUTE D'API DE SCRAPING ---
+actor "Client / User" as Client
+class ScraperRoutes <<control>> {
+    - scraper_status: dict
+    + trigger_sync(db: Session): dict
+    + trigger_excel_export(db: Session): dict
+    + start_scraping(background_tasks: BackgroundTasks): dict
+    + get_status(): dict
+    + run_full_pipeline(background_tasks: BackgroundTasks, db: Session): dict
+}
+
+' --- BLOC CONFIGURÉ : SCRAPING ENGINE ---
+package "Scraping Engine" {
+    class Scraper {
+        - config_path : String
+        - config : Map
+        - download_dir : String
+        - driver : WebDriver
+        - wait : WebDriverWait
+        - db : Session
+        - tender_manager : TenderManager
+        - processed : int
+        - current_page_index : int
+        --
+        + run_scraper() : void
+        - _load_config() : Map
+        - _init_driver() : void
+        - _remove_overlay() : void
+        - _extract_all_recursive(zip_path : String, destination_folder : String) : void
+        - _wait_for_download(timeout : int) : String
+        - _cleanup_temp_files() : void
+        - _fill_search_dates() : void
+    }
+
+    class Parser <<utility>> {
+        + parse_tender_metadata(html_content: str): dict
+        + parse_tender_lots(html_content: str): list
+        + save_metadata(data: dict, save_path: str): void
+    }
+
+    class TenderManager {
+        - db: Session
+        - data_dir: String
+        + __init__(db_session: Session, data_dir: String)
+        + is_already_processed(ref: str): bool
+    }
+    
+    class PipelineUtils <<utility>> {
+        {static} + extract_date_from_path(root_path: str): datetime
+        {static} + get_storage_paths(tender_reference: str): dict
+        {static} + normalize_text(text: str): str
+        {static} + get_file_type(filename: str): str
+        {static} + sync_local_tenders_to_db(db: Session): dict
+        {static} + append_to_excel_fast(meta_data: dict, sync_date: str, extraction_date: datetime): void
+        {static} + export_all_tenders_to_excel(db: Session): void
+        {static} + apply_professional_style(ws: Worksheet): void
+    }
+}
+
+' Relations d'héritage & Typage
+CompanyProfile <|-- PhysicalPersonProfile
+CompanyProfile <|-- LegalPersonProfile
+CompanyProfile "1" o-- "1" StructureType : typé par >
+User "1" o-- "1" UserRole : possède >
+
+' Associations et Compositions
+User "1" -- "0..1" CompanyProfile : gère >
+Tender *-- "0..*" TenderLot : comporte >
+Tender *-- "0..*" TenderDocument : contient >
+
+' Dépendances transverses
+SecurityManager ..> User : sécurise >
+DocumentWorkflow ..> CompanyProfile : lit >
+DocumentWorkflow ..> Tender : lit >
+
+' --- INVOCATIONS DE L'ARCHITECTURE SCRAPER ---
+Client ..> ScraperRoutes : appelle endpoint HTTP >
+ScraperRoutes ..> Scraper : instancie & démarre >
+ScraperRoutes ..> PipelineUtils : appelle pour exports & synchro DB >
+
+' Dépendances et Associations internes au Scraping Engine
+Scraper "1" --> "1" TenderManager : interroge >
+Scraper ..> Parser : utilise pour parser le HTML >
+Scraper ..> PipelineUtils : obtient les chemins via get_storage_paths() >
+
+' Persistence de la donnée synchro
+PipelineUtils ..> Tender : mappe & écrit >
+PipelineUtils ..> TenderLot : mappe & écrit >
+PipelineUtils ..> TenderDocument : mappe & écrit >
+
+@enduml

@@ -34,10 +34,11 @@
 <a class="title-toggle" onclick="togglePanel(this,'infosPrincipales');" href="javascript:void(0);">&nbsp;</a>
 
 <div class="form-bloc recap-infos-consultation" id="recap-consultation">
-			
+###############################################################
+
+<a id="ctl0_CONTENU_PAGE_ctl5_linkDetailLots" href="javascript:popUp('index.php?page=commun.PopUpDetailLots&amp;orgAccronyme=j4k&amp;refConsultation=1010786&amp;lang=fr','yes')"><img src="themes/images/picto-details.gif" alt="Détail des lots"></a>
+
+<input type="button" class="bouton-moyen-120 float-left" value="Fermer la fenêtre" title="Fermer la fenêtre" onclick="window.close();">
 
 
-
-
-
-
+<span id="ctl0_CONTENU_PAGE_ctl5_nbrLots">2 Lots </span>

@@ -85,6 +85,8 @@ def run_full_pipeline(background_tasks: BackgroundTasks, db: Session = Depends(g
 
     def execute_pipeline():
         scraper_status["is_running"] = True
+        # On crée une session propre à ce thread d'arrière-plan
+        db = SessionLocal()
         try:
             print("--- Étape 1 : Démarrage du Scraper ---")
             run_scraper()
@@ -99,6 +101,7 @@ def run_full_pipeline(background_tasks: BackgroundTasks, db: Session = Depends(g
         except Exception as e:
             print(f"--- Erreur dans le pipeline : {e} ---")
         finally:
+            db.close() # Important : On ferme la session manuellement ici
             scraper_status["is_running"] = False
 
     background_tasks.add_task(execute_pipeline)

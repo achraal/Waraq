@@ -4,6 +4,10 @@ marocao-platform/
 ├── .python-version              # Version cible de Python gérée par uv
 ├── pyproject.toml               # Métadonnées du projet et dépendances gérées par uv
 ├── uv.lock                      # Fichier de verrouillage ultra-précis des paquets uv
+├── alembic.ini					 # Configuration globale d'Alembic (connexion et logs de migration)
+├── alembic/                     # Gestion des migrations de base de données
+│   ├── versions/                # Scripts de migration incrémentiels générés (fichiers de révision)
+│   └── env.py                   # Script d'exécution des migrations (configuration du contexte et de target_metadata)
 │
 ├── backend/
 │   ├── app/
@@ -18,6 +22,7 @@ marocao-platform/
 │   │   ├── database/            # Persistance des données
 │   │   │   ├── __init__.py
 │   │   │   ├── connection.py    # Configuration du pool SQLAlchemy
+│   │   │   ├── schemas.py		  # Schémas Pydantic globaux pour la validation des données d'infrastructure
 │   │   │   └── models.py        # Modèles ORM (Joined Table Inheritance)
 │   │   │
 │   │   ├── modules/             # Cœur métier de l'application
@@ -26,8 +31,15 @@ marocao-platform/
 │   │   │   │   └── ocr_engine.py
 │   │   │   │
 │   │   │   ├── scraper/         # Collecte amont (Appels d'Offres)
-│   │   │   │   ├── parser.py
-│   │   │   │   └── portal_scraper.py
+│   │   │   │   ├── config.json  # Paramètres du scraper (email, nom, prenom, date mise en ligne)
+│   │   │   │   ├── parser.py    # Extraction et structuration des données HTML/données brutes
+│   │   │   │   ├── portal_scraper.py # Logique de navigation et orchestration des tâches de scraping
+│   │   │   │   ├── routes.py    # Endpoints pour piloter ou inspecter l'état du scraper
+│   │   │   │   └── utils.py     # Fonctions d'aide (nettoyage de texte, stockage base de données)
+│   │   │   │
+│   │   │   ├── tenders/         # Gestion et cycle de vie des appels d'offres
+│   │   │   │   ├── routes.py    # Endpoints de gestion des dossiers d'AO (CRUD, filtrage)
+│   │   │   │   └── schemas.py   # Schémas Pydantic dédiés à la validation et sérialisation des dossiers d'AO
 │   │   │   │
 │   │   │   └── workflows/       # Automatisation et génération
 │   │   │       └── doc_generator.py
@@ -35,20 +47,57 @@ marocao-platform/
 │   │   └── config.py            # Chargement des variables d'environnement (Pydantic Settings)
 │   │
 │   └── data_storage/            # Volume persistant (Artefacts & Documents)
-│       ├── archives/            # Fichiers .zip bruts téléchargés
-│       │   └── ao_04_2026.zip
+│       ├── archives/            # Fichiers .zip bruts (Organisés par date)
+│       │   └── 2026/
+│       │       └── 07/
+│       │           └── 08/
+│       │               └── ao_04_2026.zip
 │       │
-│       ├── extracted/           # Pièces décompressées (Avis, RC, CPS)
-│       │   └── ao_04_2026/
-│       │       ├── avis.pdf
-│       │       ├── cps.pdf
-│       │       └── rc.pdf
+│       ├── extracted/           # Pièces décompressées (Organisées par date)
+│       │   └── 2026/
+│       │       └── 07/
+│       │           └── 08/
+│       │               └── ao_04_2026/
+│       │                   ├── avis.pdf
+│       │                   ├── cps.pdf
+│       │                   └── rc.pdf
 │       │
-│       └── generated/           # Livrables .docx générés par utilisateur
-│           └── user_uuid_ao_04_2026/
-│               ├── acte_engagement.docx
-│               └── declaration_honneur.docx
+│       ├── generated/           # Livrables .docx générés par utilisateur
+│       │   └── user_uuid_ao_04_2026/
+│       │       ├── acte_engagement.docx
+│       │       └── declaration_honneur.docx
+│       │
+│       └── metadata/            # Métadonnées associées (Organisées par date)
+│           └── 2026/
+│               └── 07/
+│                   └── 08/
+│                       └── ao_04_2026.json
 │
 └── frontend/                    # Interface utilisateur (React)
     ├── public/
     └── src/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[routes.py] ────(Déclenche)────► [scraper.py]
+                                       │
+                                (Télécharge le HTML)
+                                       ▼
+[utils.py]  ◄────(Enregistre)─── [parser.py] (Extrait les JSON)
