@@ -32,15 +32,6 @@ def parse_tender_metadata(html_content):
                 next_node = next_node.find_next()
         return None
 
-    # def get_val(label):
-    #     # Utilisation d'une fonction lambda pour cibler le texte exact ou partiel du label
-    #     element = recap.find(string=lambda text: text and label in text)
-    #     if element:
-    #         # Récupération de l'élément frère ou suivant contenant la valeur
-    #         next_node = element.find_next()
-    #         return next_node.text.strip() if next_node else None
-    #     return None
-
     data = {
         "reference": get_val("Référence"),
         "objet": get_val("Objet"),
@@ -69,98 +60,6 @@ def parse_tender_metadata(html_content):
     }
     return data
 
-# def parse_tender_lots(html_content):
-#     soup = BeautifulSoup(html_content, 'html.parser')
-#     parts = html_content.split('<div class="separator"></div>')
-#     lots = []
-
-#     # On cherche les conteneurs de lots. 
-#     # Note : Ajustez 'div.bloc-lot' selon le vrai nom de classe dans votre popup
-#     lot_blocks = soup.find_all("div", class_=lambda x: x and "lot" in x.lower())
-    
-#     for block in lot_blocks:
-#         # Fonction utilitaire locale pour nettoyer le texte
-#         def get_field(label_text):
-#             label = block.find(string=lambda text: text and label_text in text)
-#             if label:
-#                 # On cherche après le label, souvent dans le prochain élément
-#                 val = label.find_next()
-#                 return val.text.strip() if val else None
-#             return None
-
-#         # Extraction des données du lot
-#         lot = {
-#             "lot_number": block.find("h3").text.strip() if block.find("h3") else "N/A",
-#             "title": get_field("Lot"),
-#             "description": get_field("Description"),
-#             "estimated_budget": get_field("Estimation"),
-#             "provisional_caution": get_field("Caution provisoire"),
-#             "qualifications": get_field("Qualifications"),
-#             "agrements": get_field("Agréments"),
-#             "prospectus_notices": get_field("Prospectus"),
-#             "reunion": get_field("Réunion"),
-#             "visite_lieux": get_field("Visites des lieux"),
-#             "variante": get_field("Variante"),
-#             "env_considerations": get_field("Considérations environnementales"),
-#             "reserve_pme": get_field("Réservé à")
-#         }
-#         lots.append(lot)
-    
-#     return lots
-
-
-# def parse_tender_lots(html_content):
-#     # 1. On découpe par le séparateur fiable
-#     parts = html_content.split('<div class="separator"></div>')
-#     lots = []
-    
-#     # 2. On boucle sur les parties (on ignore la dernière si elle est vide)
-#     for part in parts:
-#         # Création d'une soupe locale pour le lot courant
-#         block = BeautifulSoup(part, 'html.parser')
-        
-#         # On vérifie si ce bloc contient réellement des infos de lot 
-#         # (évite les erreurs sur les parties vides)
-#         if not block.get_text(strip=True):
-#             continue
-            
-#         # Fonction locale améliorée pour nettoyer le texte
-#         def get_field(label_text):
-#             label = block.find(string=lambda text: text and label_text in text)
-#             if label:
-#                 # Chercher le contenu après le label
-#                 val = label.find_next()
-#                 if val:
-#                     text_val = val.get_text(strip=True)
-#                     # Nettoyage des caractères parasites '*' et ':'
-#                     clean_val = text_val.replace('*', '').replace(':', '').strip()
-#                     return clean_val if clean_val else None
-#             return None
-
-#         # 3. Extraction des données
-#         # On utilise une logique de repli pour le titre et le numéro
-#         lot = {
-#             "lot_number": get_field("Lot"), 
-#             "title": get_field("Gares de") or get_field("Technicentres de") or "N/A",
-#             "description": get_field("Description"),
-#             "estimated_budget": get_field("Estimation (en Dhs TTC)"),
-#             "provisional_caution": get_field("Caution provisoire"),
-#             "qualifications": get_field("Qualifications"),
-#             "agrements": get_field("Agréments"),
-#             "prospectus_notices": get_field("Prospectus"),
-#             "reunion": get_field("Réunion"),
-#             "visite_lieux": get_field("Visites des lieux"),
-#             "variante": get_field("Variante"),
-#             "env_considerations": get_field("Considérations environnementales"),
-#             "reserve_pme": get_field("Réservé à la TPE et PME installées au Maroc")
-#         }
-        
-#         # On n'ajoute que si on a trouvé au moins une donnée significative
-#         if any(v is not None for v in lot.values()):
-#             lots.append(lot)
-    
-#     return lots
-
 def parse_tender_lots(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     
@@ -183,14 +82,6 @@ def parse_tender_lots(html_content):
             "env_considerations": None, "reserve_pme": None
         }
 
-        # On cherche chaque champ en naviguant dans le bloc
-        # On cible les divs "intitule-bloc" et leurs voisins "content-bloc"
-        # def extract(label_keyword):
-        #     label_tag = block.find("div", class_="intitule-bloc", string=lambda s: s and label_keyword in s)
-        #     if label_tag:
-        #         val_div = label_tag.find_next_sibling("div", class_="content-bloc")
-        #         return val_div.get_text(strip=True) if val_div else None
-        #     return None
         def extract(label_keyword):
             # 1. Cherche le label (le nœud de texte)
             label_tag = block.find(string=lambda s: s and label_keyword in s)
@@ -226,11 +117,6 @@ def parse_tender_lots(html_content):
 
         # On récupère le texte restant
             lot["title"] = temp_div.get_text(strip=True).strip()
-        
-        # Pour le titre, on prend le texte dans le d-flex
-        # title_div = block.find("div", class_="d-flex")
-        # if title_div:
-        #     lot["title"] = title_div.get_text(strip=True).replace("Gares de :", "").replace("Technicentres de :", "").strip()
 
         lot["description"] = extract("Description")
         lot["estimated_budget"] = extract("Estimation")

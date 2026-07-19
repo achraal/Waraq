@@ -20,4 +20,13 @@ class Settings:
     # Durée de validité d'un token d'accès (ex: 1440 minutes = 24 heures)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 
 
+    # Scraping & Messagerie
+    EMAIL_USER: str = os.getenv("EMAIL_USER")
+    EMAIL_PASSWORD: str = os.getenv("EMAIL_PASSWORD")
+    EMAIL_IMAP_SERVER: str = os.getenv("EMAIL_IMAP_SERVER")
+
+    # Infrastructure Locale (Ollama)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL")
+
 settings = Settings()

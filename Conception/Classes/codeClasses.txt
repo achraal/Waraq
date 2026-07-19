@@ -219,5 +219,6 @@ Scraper ..> PipelineUtils : obtient les chemins via get_storage_paths() >
 PipelineUtils ..> Tender : mappe & écrit >
 PipelineUtils ..> TenderLot : mappe & écrit >
 PipelineUtils ..> TenderDocument : mappe & écrit >
+PipelineUtils ..> Parser : utilise la structure de données >
 
 @enduml

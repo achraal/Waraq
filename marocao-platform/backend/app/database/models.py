@@ -1,11 +1,10 @@
-# backend/app/database/models.py
-import enum
-import uuid
+import enum, uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey, Text, JSON, Boolean, Integer
+from sqlalchemy import Column, String, Float, DateTime, Enum, ForeignKey, Text, JSON, Boolean, Integer, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from backend.app.database.connection import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 # --- ENUMS (Héritant de str pour une parfaite compatibilité JSON/PostgreSQL) ---
 class UserRole(str, enum.Enum):
@@ -113,7 +112,7 @@ class Tender(Base):
     # --- TOUS LES CHAMPS DE TES MÉTADONNÉES MAROCAINES ---
     type_annonce = Column(Text, nullable=True)
     procedure = Column(Text, nullable=True)
-    categorie = Column(Text, nullable=True)
+    categorie = Column(Text, nullable=True, index=True)
     allotissement = Column(Text, nullable=True)
     lieu_execution = Column(Text, nullable=True)
     estimated_budget = Column(Text, nullable=True)                   # Correspond à "budget"
@@ -127,7 +126,7 @@ class Tender(Base):
     qualifications = Column(Text, nullable=True)
     agrements = Column(Text, nullable=True)
     variante = Column(String, nullable=True)
-    deadline = Column(String, nullable=True)
+    deadline = Column(String, nullable=True, index=True)
     prospectus_notices = Column(Text, nullable=True)
     reunion = Column(Text, nullable=True)
     visite_lieux = Column(Text, nullable=True)
@@ -138,8 +137,9 @@ class Tender(Base):
     local_zip_path = Column(String, nullable=True)
     metadata_json = Column(JSON, nullable=True)                          # Copie de sauvegarde brute
     created_at = Column(DateTime, default=datetime.utcnow)
-    extraction_date = Column(DateTime) # Date réelle d'extraction du site web
+    extraction_date = Column(DateTime, index=True) # Date réelle d'extraction du site web
     is_consulted = Column(Boolean, default=False, nullable=False, index=True)
+    nbr_documents = Column(Integer, default=0, nullable=False)
  
     lots = relationship("TenderLot", back_populates="tender", cascade="all, delete-orphan")
     documents = relationship("TenderDocument", back_populates="tender", cascade="all, delete-orphan")
@@ -154,6 +154,13 @@ class TenderDocument(Base):
     file_type = Column(String, nullable=False)                           # CPS, RC, AVIS ou Nom/Extension dynamique
     file_path = Column(Text, nullable=False)
     extracted_text = Column(Text, nullable=True)                         # Réservé pour ton moteur OCR / RAG
+    is_classified = Column(Boolean, default=False, nullable=False, index=True)
+    classification_reason = Column(Text, nullable=True)
+    classification_description = Column(Text, nullable=True)  # Text permet de stocker de longues phrases d'explications de l'IA
+    classified_at = Column(DateTime, nullable=True)
+    classified_file_path = Column(Text, nullable=True)
+    response_time = Column(Float, nullable=True, comment="Temps de traitement/réponse en secondes")
+    analysis_metadata = Column(JSON, nullable=True, comment="Métriques et détails techniques de la classification IA")
 
     tender = relationship("Tender", back_populates="documents") 
 
@@ -186,3 +193,26 @@ class TenderLot(Base):
     reserve_pme = Column(String, nullable=True)
 
     tender = relationship("Tender", back_populates="lots")
+    
+
+class EmailNotification(Base):
+    __tablename__ = "email_notifications"
+    id = Column(Integer, primary_key=True, index=True)
+    mail_uid = Column(String, unique=True) # ID unique fourni par le serveur IMAP
+    subject = Column(String)
+    sender = Column(String, default="noreply-marchespublics@tgr.gov.ma")
+    content = Column(Text) # Le corps de l'email
+    received_at = Column(DateTime)
+    is_read = Column(Boolean, default=False)
+
+class SystemMetric(Base):
+    __tablename__ = "system_metrics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, server_default=func.now(), index=True)
+    
+    # Nos 4 blocs logiques flexibles
+    server_and_hardware_health = Column(JSONB, nullable=False)
+    database_status = Column(JSONB, nullable=False)
+    scraping_metrics = Column(JSONB, nullable=False)
+    ai_metrics = Column(JSONB, nullable=False)

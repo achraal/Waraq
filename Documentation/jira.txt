@@ -1,0 +1,167 @@
+Module 1 : Web Scraping & Ingestion de Données
+US-01 : Collecte automatique des avis - Description : En tant qu'administrateur, je veux que le système navigue automatiquement sur le portail d'État et télécharge les archives brutes pour collecter les nouveaux appels d'offres sans intervention manuelle.  
+US-02 : Extraction des métadonnées - Description : En tant qu'administrateur, je veux que le système extrait les métadonnées visibles (Référence, Objet, Acheteur, Date limite) des appels d'offres afin de peupler automatiquement la base de données.  
+
+Module 2 : Authentification & Profiling Juridique
+US-03 : Sécurisation de l'accès compte - Description : En tant qu'utilisateur, je veux m'inscrire et me connecter de manière sécurisée pour protéger l'accès à mes dossiers d'affaires.  
+US-04 : Profil personnalisé Personne Physique - Description : En tant qu'auto-entrepreneur ou personne physique, je veux renseigner un formulaire adapté à mon statut juridique (CIN, Patente) afin de configurer mon profil de soumission.  
+US-05 : Profil personnalisé Personne Morale - Description : En tant que représentant d'une société, je veux renseigner un formulaire adapté à mon entreprise (Raison sociale, RC, ICE, CNSS) afin de centraliser mes pièces administratives légales.  
+
+Module 3 : Intelligent Document Processing (IDP) par l'IA
+US-06 : Lecture automatisée des documents PDF - Description : En tant que soumissionnaire, je veux que l'IA lise et extrait automatiquement le texte brut de mes fichiers PDF (Avis, RC, CPS) pour m'éviter une saisie manuelle fastidieuse.  
+US-07 : Classification automatique des types de documents - Description : En tant que soumissionnaire, je veux que le système identifie et classifie automatiquement mes documents importés (CPS, RC, BDP, Acte d'engagement, etc.) afin d'organiser instantanément mon dossier de soumission sans tri manuel.
+US-08 : Extraction contextuelle des métriques clés - Description : En tant que soumissionnaire, je veux que l'IA identifie et résume instantanément les critères critiques (Montant de la caution, estimation globale TTC, date limite) pour évaluer rapidement la faisabilité d'un marché.  
+
+Module 4 : Génération Automatique de Documents (Workflows)
+US-09 : Production des livrables de soumission - Description : En tant que soumissionnaire, je veux générer instantanément mon Acte d'engagement et ma Déclaration sur l'honneur au format . pré-remplis pour finaliser mon dossier de candidature en un clic.  
+
+Module 5 : Interface Utilisateur & Tableau de Bord
+US-10 : Recherche et filtrage des opportunités - Description : En tant que soumissionnaire, je veux accéder à une vue tabulaire moderne pour filtrer les appels d'offres par budget, mot-clé, région ou date d'échéance afin de cibler les meilleurs marchés.  
+US-11 : Espace documentaire dédié - Description : En tant que soumissionnaire, je veux visualiser les rapports d'analyse de l'IA et télécharger les fichiers Word générés pour gérer efficacement mes pièces de réponse.  Mode Démo (Visiteurs)
+US-12 : Accès à la vitrine et démonstration - Description : En tant que visiteur, je veux accéder à la vitrine marketing et à un mode de démonstration restreint afin de comprendre la valeur ajoutée du produit avant de m'inscrire.  
+
+
+
+
+
+
+Task 1 : Modélisation et Spécifications Techniques  (Type : Task 🟦 | Estimation : 3 jours) 
+Description : Réaliser l'analyse conceptuelle globale du système MarocAO afin de structurer les bases de données et les flux de données avant le codage.  
+Sous-tâches (Sub-tasks ┖) :
+[UML] Conception du diagramme de cas d’utilisation (Use Case) détaillant les interactions des acteurs (Candidat, Administrateur, Visiteur).  
+[UML] Conception du diagramme de classes pour modéliser l'héritage des profils juridiques (Personne Physique vs Personne Morale).  
+[UML] Conception du diagramme de séquence pour le flux d'ingestion de données (Scraping -> Parsing -> Insertion PostgreSQL).  
+[Doc] Validation des spécifications et dictionnaire des données (types de champs, contraintes de clés primaires/étrangères).
+  
+Task 2 : Initialisation de l'environnement de développement Backend  (Type : Task 🟦 | Estimation : 2 jours)
+Description : Mettre en place le workspace Python avec les outils de gestion de dépendances modernes et la structure de l'API FastAPI.  
+Sous-tâches (Sub-tasks ┖) :
+[Backend] Initialiser le projet backend à l'aide du gestionnaire de paquets uv pour garantir des dépendances reproductibles.  
+[Backend] [Backend] Configurer l'arborescence globale du projet FastAPI (dossiers app/, auth/, database/, models/, modules/). 
+[Backend] Mettre en place le fichier .env pour la gestion locale sécurisée des variables d'environnement (identifiants de base de données, clés secrètes JWT).  
+[Backend] Configurer le fichier .gitignore pour exclure l'environnement virtuel et les fichiers sensibles (.env).
+
+Task 3 : Configuration de la Base de Données et ORM  (Type : Task 🟦 | Estimation : 2 jours)
+Description : Initialiser la base de données relationnelle et mettre en place la couche de persistance avec SQLAlchemy.  
+Sous-tâches (Sub-tasks ┖) :
+[Database] Créer la base de données locale marocao_db sous PostgreSQL et configurer l'accès via pgAdmin 4.  
+[Backend] Établir le script de connexion à la base de données (fichier connection.py pour gérer la session et le moteur SQLAlchemy).
+[Backend] Écrire les modèles ORM de base et valider le script d'initialisation des tables.
+
+Task 4 : Initialisation de l'environnement Frontend React  (Type : Task 🟦 | Estimation : 2 jours)
+Description : Initialiser l'application cliente et configurer le framework CSS pour un développement fluide de l'interface.  
+Sous-tâches (Sub-tasks ┖) :
+[Frontend] Initialiser le projet React.js (via Vite).
+[Frontend] Intégrer et configurer Tailwind CSS pour le stylisage de l'interface utilisateur.  
+[Frontend] Configurer l'arborescence des dossiers frontend (src/components/, src/pages/, src/services/).
+
+
+
+
+EPIC-1 : Conception & ArchitectureDescription : Phase d'initialisation, modélisation UML, configuration de l'environnement de développement (uv, PostgreSQL, etc.) et structure du projet.  
+EPIC-2 : Web Scraping & Ingestion de Données (le fameux Module 1 corrigé !)  Description : Automatisation de la navigation sur le portail d'État, extraction des données avec Selenium / BeautifulSoup et enregistrement en base de données.  
+EPIC-3 : Authentification & Profiling JuridiqueDescription : Sécurisation des accès (JWT, Argon2id) et formulaires d'inscription dynamiques selon le type d'entreprise (Personne Physique vs Morale).  
+EPIC-4 : Intelligent Document Processing (IDP) & IADescription : Lecture OCR (PyMuPDF), classification automatique des documents (CPS, RC, etc.) et extraction contextuelle locale via Ollama.  
+EPIC-5 : Génération Automatique & WorkflowsDescription : Moteur de fusion dynamique pour générer les livrables de soumission (Acte d'engagement, Déclaration sur l'honneur) au format .docx.  
+EPIC-6 : Interface React & DashboardDescription : Tableau de bord interactif pour filtrer les marchés, espace documentaire et liaison avec l'API FastAPI. 
+
+
+
+Sprint 1 : Design, Scrap & Auth
+3 semaines 
+Initialiser l'architecture globale de MarocAO, implémenter la base de données PostgreSQL, concevoir un module complet d'authentification et de gestion de profils, et automatiser la collecte ainsi que l'ingestion récursive des appels d'offres du portail d'État avec gestion des marchés multi-lots.
+
+
+
+
+🟩 USER STORIES (Stories) à glisser dans le Sprint 1(Assure-toi de les lier à leurs Epics respectives)  
+US-01 (Scraping) : Collecte et téléchargement automatique des dossiers d'appels d'offres  Description : En tant qu'administrateur, je veux que le scraper navigue sur le portail, télécharge les archives brutes et extrait récursivement tous les sous-dossiers et documents afin de centraliser l'ensemble des pièces d'un marché.  
+US-02 (Scraping) : Extraction des métadonnées et gestion des marchés multi-lots  Description : En tant qu'administrateur, je veux extraire les métadonnées de l'offre (référence, acheteur, date limite, nombre de lots) et structurer les lots associés afin d'avoir une vision granulaire de chaque marché.  
+US-03 (Authentification) : Gestion des profils et administration  Description : En tant qu'utilisateur, je veux un module d'authentification et de gestion de profil (Admin / Candidat) pour sécuriser mon espace de travail.  
+
+🟦 TÂCHES TECHNIQUES (Tasks)(À créer en tant que "Tasks" indépendantes ou en tant que "Sub-tasks" rattachées à tes Stories)  
+📁 EPIC : Conception & Architecture
+MAO-TASK-01 : Élaboration du Cahier des Charges et Spécifications  
+Description : Cadrage initial et rédaction du Cahier des Charges du projet MarocAO.  
+
+MAO-TASK-02 : Modélisation UML & Respect des principes SOLID  
+Description : Concevoir le diagramme de cas d'utilisation, le diagramme de classes orienté objet (respectant SOLID et le génie logiciel) et modéliser l'architecture système globale.  
+
+MAO-TASK-03 : Initialisation de Jira et gestion de projet  
+Description : Configuration initiale de l'espace Jira, création des Epics, des User Stories et planification du premier sprint.  
+
+MAO-TASK-04 : Rédaction du mini-rapport de conception
+Description : Documenter l'architecture logicielle retenue et les choix techniques structurants pour le système MarocAO.
+
+🌐 EPIC : Web Scraping & Ingestion de Données
+MAO-TASK-05 : Encapsulation et initialisation du Scraper
+Description : Développer la classe Scraper (connection.py et structures associées) pour automatiser la navigation sur le portail des marchés publics.  
+Sous-tâches : Encapsuler la logique de scraping dans une classe Python dédiée pour une meilleure maintenance.
+			  Limiter le nombre d'appels d'offres récupérés via un paramètre dynamique.
+			  Ajouter les métadonnées de date et d'heure d'extraction lors de la collecte.  
+
+MAO-TASK-06 : Gestion du stockage des documents et extraction récursive  Description : Gérer le stockage physique des dossiers de consultation téléchargés.  
+Sous-tâches : Traiter le cas d'inexistance du dossier local data_storage (création automatique).
+			  Implémenter l'extraction récursive des documents : extraire également les sous-dossiers en cas de fichier .zip imbriqué dans l'archive principale.  
+			  Enregistrer les documents extraits récursivement dans la table tender_documents (avec type de fichier).  
+
+MAO-TASK-07 : Implémentation du modèle Multi-Lots (Database & Endpoints)  
+Description : Adapter l'architecture pour supporter les marchés contenant plusieurs lots.  
+Sous-tâches : Créer le nouveau modèle SQL TenderLot et exécuter la migration de base de données via Alembic.  
+			  Ajouter le champ nbr_lots au modèle principal.  
+			  Modifier la logique pour mettre à NULL les champs du modèle parent (Tenders) qui se trouvent désormais dispatchés dans les lots.
+			  Adapter les endpoints FastAPI et les exports pour inclure la structure multi-lots.
+
+MAO-TASK-08 : Export de données Excel stylisé
+Description : Générer un fichier Excel propre contenant les métadonnées des appels d'offres et les lots associés, avec une mise en forme soignée.  
+
+MAO-TASK-09 : Développement des endpoints CRUD et Filtres de l'API  
+Description : Créer l'ensemble des routes FastAPI pour manipuler les données des appels d'offres.  
+Sous-tâches : C : Synchroniser le scraper avec la base de données.  
+			  R : Endpoints de lecture globale, par ID (readbyid) et par référence (findbyref).  
+			  U : Logique de mise à jour en cas d'incohérence des données.  
+			  D : Suppression unitaire et suppressions multiples.  
+			  Filtres : Filtrage avancé par date d'extraction, deadline, catégorie, et statut de consultation (is_consulted). 
+			  [Test] Tester et valider les endpoints de lecture (readall, readbyid, findbyref) face aux structures de données multi-lots.
+              [Test] Vérifier l'intégrité et la cohérence des données dans PostgreSQL après l'extraction récursive et le transfert des documents.			  
+
+🔐 EPIC : Authentification & Profiling Juridique  
+MAO-TASK-10 : Développement du module d'Authentification  
+Description : Coder la logique d'inscription et de connexion, avec gestion des rôles administrateurs et profils utilisateurs.  
+
+🔴 LES BUGS À AJOUTER AU SPRINT 1(Ce sont tes "Fix error de ca" !)
+MAO-BUG-01 : Bug de pagination et de saut de page impair du scraper
+Description : Corriger le scraper qui saute deux pages d'un coup (comportement impair) et l'erreur d'élément introuvable lors de l'accès à la page suivante.
+
+MAO-BUG-02 : Erreur critique "Index out of range" sur les sélecteurs
+Description : Fixer l'exception IndexError: list index out of range lors du parsing des métadonnées de certaines pages spécifiques.  
+
+MAO-BUG-03 : Gestion des doublons et des références existantes  
+Description : Empêcher les plantages de l'API lors de l'ingestion d'une référence déjà existante. Implémenter un mécanisme de fusion (merge) et intercepter l'exception de duplication pour renvoyer un message d'erreur HTTP propre et explicite à l'utilisateur au lieu d'un crash 500.
+
+MAO-BUG-04 : Problème de métadonnées nulles et références temporaires  
+Description : Gérer le cas où certains champs de métadonnées du portail sont vides (null) ou contiennent des références temporaires non valides.
+
+MAO-BUG-05 : Problème de typage de champs de documents  
+Description : Résoudre les bugs de typage sur le champ file_type dans tenders_doc et le chemin local_zip dans la table tenders.  
+
+MAO-BUG-06 : Correction de la latence sur les endpoints de filtrage
+Description : Optimiser les requêtes SQL/PostgreSQL pour réduire la latence lors de l'utilisation des filtres cumulatifs (catégories, dates, etc.).  
+
+MAO-BUG-07 : Rectification de l'arborescence des fichiers ZIP hors du dossier /archives  Epic : Web Scraping & Ingestion de Données
+Description : Corriger le comportement du scraper et du module de gestion de fichiers qui dépose ou extrait certains fichiers .zip en dehors du répertoire cible /archives. Réaligner le flux de stockage pour forcer le respect de l'architecture physique définie dans le projet et gérer proprement le fallback si data_storage est manquant.
+
+
+MAO-TASK-11 : Initialisation du module de classification et premier rapport
+Epic : IDP & IA (ou Intelligence Artificielle)
+Description : Mettre en place la structure du module de classification des appels d'offres et rédiger le rapport d'analyse sur la stratégie de classification automatique des documents.
+Sous-tâches (Sub-tasks ┖) :
+[Classification] Initialiser l'arborescence et les scripts de base du module de classification.
+[Doc] Rédiger le mini-rapport détaillant l'approche de classification (heuristiques, NLP ou modèles locaux envisagés).
+
+MAO-TASK-12 : Intégration et visualisation des notifications Gmail PMMP
+Epic : Automatisation & Notifications (ou une Epic transverse de monitoring)
+Description : Mettre en place un système de lecture et de parsing des emails de notifications spécifiques à PMMP. Développer le composant de visualisation sur l'interface pour afficher l'état de ces alertes et suivre les détections de nouveaux marchés.
+Sous-tâches (Sub-tasks ┖) :
+[Notification] Configurer l'API Gmail ou le service de lecture de boite mail.
+[Notification] Développer le composant de visualisation pour afficher les alertes reçues.

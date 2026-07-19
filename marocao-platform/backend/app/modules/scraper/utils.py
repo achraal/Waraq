@@ -114,7 +114,7 @@ def sync_local_tenders_to_db(db: Session):
     
     if not os.path.exists(metadata_root):
         print("-> [Sync] Aucun dossier metadata trouvé.")
-        return {"processed": 0, "inserted": 0}
+        return {"processed": 0, "inserted": 0, "documents_inserted": 0}
 
     # --- OPTIMISATION : Indexation des chemins d'archives ---
     # On stocke { "nom_dossier": "chemin_complet" } 
@@ -129,6 +129,7 @@ def sync_local_tenders_to_db(db: Session):
 
     inserted_count = 0
     processed_count = 0
+    total_docs_count = 0
 
     registry = {}
     
@@ -210,7 +211,8 @@ def sync_local_tenders_to_db(db: Session):
                         contact_administratif=meta_data.get("contact_administratif"),
                         local_zip_path=local_zip_path,
                         extraction_date=extraction_dt,
-                        nbr_lots=len(lots_data),
+                        #nbr_lots=len(lots_data),
+                        nbr_lots=len(lots_data) if len(lots_data) > 0 else 1,
                         metadata_json=meta_data,
                     )
                     # 4. Association des LOTS (Nouveau !)
@@ -246,6 +248,8 @@ def sync_local_tenders_to_db(db: Session):
                 date_dir = os.path.dirname(date_path)
                 specific_extracted_dir = os.path.join(extracted_root, date_dir, folder_name)
 
+                tender_docs_count = 0
+
                 if os.path.exists(specific_extracted_dir):  
                     for root_doc, _, files_doc in os.walk(specific_extracted_dir):
                         for filename in files_doc:
@@ -259,7 +263,11 @@ def sync_local_tenders_to_db(db: Session):
                                 file_type=file_type,
                                 file_path=full_file_path.replace("\\", "/"),
                             )
-                            new_tender.documents.append(new_doc)  
+                            new_tender.documents.append(new_doc) 
+                            tender_docs_count += 1 
+                            total_docs_count += 1 
+
+                            new_tender.nbr_documents = tender_docs_count
 
                 #db.add(new_tender)
                 #inserted_count += 1
@@ -280,8 +288,8 @@ def sync_local_tenders_to_db(db: Session):
     if inserted_count > 0:
         db.commit()
         
-    print(f"-> [Sync BDD] Fini. {inserted_count} offres ajoutées.")
-    return {"processed": processed_count, "inserted": inserted_count}
+    print(f"-> [Sync BDD] Fini. {inserted_count} offres et {total_docs_count} documents ajoutés.")
+    return {"processed": processed_count, "inserted": inserted_count, "documents_inserted": total_docs_count}
 
 
 def append_to_excel_fast(meta_data: dict, sync_date: str, extraction_date: datetime):
@@ -326,78 +334,7 @@ def append_to_excel_fast(meta_data: dict, sync_date: str, extraction_date: datet
         wb.save(EXCEL_PATH) 
     except PermissionError:
         print("!!! ERREUR : Fermez le fichier Excel pour permettre la mise à jour.")
-
-# def export_all_tenders_to_excel(db: Session):
-#     """
-#     Exporte TOUTES les offres de la base de données vers le fichier Excel.
-#     À utiliser pour initialiser votre fichier Excel.
-#     """
-#     tenders = db.query(Tender).all()
-#     print(f"-> [Excel] Export de {len(tenders)} offres vers Excel...")  
-    
-#     for tender in tenders:
-#         # On utilise le même dictionnaire que dans votre sync
-#         # On suppose que vous avez stocké le metadata original dans Tender.metadata_json
-#         meta_data = tender.metadata_json 
-#         extraction_dt = tender.extraction_date if tender.extraction_date else datetime.now()
-        
-#         # Appel de votre fonction de mise à jour
-#         append_to_excel_fast(meta_data, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), extraction_dt)
-    
-#     print("-> [Excel] Export terminé.")
-
-
-
-# def export_all_tenders_to_excel(db: Session):
-#     """
-#     Exporte TOUTES les offres de la base de données vers le fichier Excel.
-#     Remplace le fichier existant pour éviter les doublons.
-#     """
-#     print(f"-> [Excel] Export complet de la base vers Excel...")
-    
-#     # 1. Créer un nouveau classeur propre
-#     wb = Workbook()
-#     ws = wb.active
-    
-#     # 2. Ajouter les en-têtes
-#     headers = [
-#         "Date d'importation", "Date d'extraction", "Référence", "Objet", "Acheteur public", 
-#         "Type d'annonce", "Procédure", "Catégorie principale", "Allotissement", 
-#         "Lieu d'exécution", "Estimation (en Dhs TTC)", "Réservé à la TPE et PME installées au Maroc", 
-#         "Domaines d'activité", "Adresse de retrait", "Adresse de dépôt", 
-#         "Lieu d'ouverture", "Prix d'acquisition", "Caution provisoire", 
-#         "Qualifications", "Agréments", "Variante", 
-#         "Date et heure limite de remise des plis", "Prospectus, notices", 
-#         "Réunion", "Visites des lieux", "Contact Administratif"
-#     ]
-#     ws.append(headers)
-    
-#     # 3. Récupérer toutes les données
-#     tenders = db.query(Tender).all()
-#     sync_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-#     for tender in tenders:
-#         meta_data = tender.metadata_json or {}
-#         extraction_dt = tender.extraction_date if tender.extraction_date else datetime.now()
-        
-#         row_data = [
-#             sync_date, 
-#             extraction_dt.strftime("%Y-%m-%d %H:%M:%S"),
-#             meta_data.get("reference"), meta_data.get("objet"), meta_data.get("acheteur"),
-#             meta_data.get("type_annonce"), meta_data.get("procedure"), meta_data.get("categorie"),
-#             meta_data.get("allotissement"), meta_data.get("lieu_execution"), meta_data.get("budget"),
-#             meta_data.get("reserve_pme"), meta_data.get("domaines_activite"), meta_data.get("adresse_retrait"),
-#             meta_data.get("adresse_depot"), meta_data.get("lieu_ouverture"), meta_data.get("prix_acquisition"),
-#             meta_data.get("caution"), meta_data.get("qualifications"), meta_data.get("agrements"),
-#             meta_data.get("variante"), meta_data.get("deadline"), meta_data.get("prospectus_notices"),
-#             meta_data.get("reunion"), meta_data.get("visite_lieux"), meta_data.get("contact_administratif")
-#         ]
-#         ws.append(row_data)
-    
-#     # 4. Appliquer le style et sauvegarder (écrase le fichier précédent)
-#     apply_professional_style(ws)
-#     wb.save(EXCEL_PATH)
-#     print(f"-> [Excel] Export terminé. {len(tenders)} offres exportées.")  
+ 
 
 def export_all_tenders_to_excel(db: Session):
     print(f"-> [Excel] Export complet de la base vers Excel...")

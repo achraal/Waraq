@@ -1,12 +1,15 @@
 # backend/app/modules/scraper/routes.py
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Body
 from sqlalchemy.orm import Session
+from typing import List
 from backend.app.database.connection import get_db
-from backend.app.database.models import Tender
+from backend.app.database.models import Tender, EmailNotification
 from backend.app.modules.scraper.utils import sync_local_tenders_to_db, export_all_tenders_to_excel
 from openpyxl import load_workbook
 import os, threading
 from backend.app.modules.scraper.portal_scraper import run_scraper 
+from backend.app.modules.scraper.email_monitor import fetch_marche_publics, save_emails_to_db
+from backend.app.database.connection import SessionLocal
 
 # État global pour suivre le scraper (optionnel, pour éviter les doublons)
 scraper_status = {"is_running": False}
@@ -106,3 +109,76 @@ def run_full_pipeline(background_tasks: BackgroundTasks, db: Session = Depends(g
 
     background_tasks.add_task(execute_pipeline)
     return {"status": "success", "message": "Le pipeline complet a été lancé en arrière-plan."}
+
+@router.post("/scraper/refresh-emails")
+def refresh_emails(db: Session = Depends(get_db)):
+    # 1. Récupération depuis le serveur mail
+    raw_emails = fetch_marche_publics()
+    
+    # 2. Sauvegarde dans ta base SQL
+    inserted_count = save_emails_to_db(db, raw_emails)
+    
+    print(f"Sync terminée : {inserted_count} nouveaux messages ajoutés.")
+    return {"status": "success", "added": inserted_count}
+
+@router.get("/notifications")
+def get_notifications(db: Session = Depends(get_db)):
+    # 1. On récupère la liste triée
+    notifications = db.query(EmailNotification).order_by(
+        EmailNotification.received_at.desc()
+    ).all()
+    
+    # 2. On retourne un dictionnaire avec le compteur et la liste
+    return {
+        "total": len(notifications),
+        "data": notifications
+    }
+
+# 1. Marquer une sélection (ou un seul) comme lu
+@router.post("/scraper/notifications/mark-read")
+def mark_notifications_read(
+    ids: List[int] = Body(...), 
+    db: Session = Depends(get_db)
+):
+    """Reçoit une liste d'IDs et les marque comme lus."""
+    db.query(EmailNotification).filter(EmailNotification.id.in_(ids)).update(
+        {"is_read": True}, synchronize_session=False
+    )
+    db.commit()
+    return {"status": "success", "updated_count": len(ids)}
+
+# 2. Marquer TOUT comme lu
+@router.post("/scraper/notifications/mark-all-read")
+def mark_all_read(db: Session = Depends(get_db)):
+    """Marque toutes les notifications non lues comme lues."""
+    db.query(EmailNotification).filter(EmailNotification.is_read == False).update(
+        {"is_read": True}, synchronize_session=False
+    )
+    db.commit()
+    return {"status": "success"}
+
+@router.get("/notifications/unread")
+def get_unread_notifications(db: Session = Depends(get_db)):
+    """Récupère uniquement les notifications non lues."""
+    unread_notifications = db.query(EmailNotification)\
+        .filter(EmailNotification.is_read == False)\
+        .order_by(EmailNotification.received_at.desc())\
+        .all()
+        
+    return {
+        "total": len(unread_notifications),
+        "data": unread_notifications
+    }
+
+@router.get("/notifications/read")
+def get_read_notifications(db: Session = Depends(get_db)):
+    """Récupère uniquement les notifications déjà lues."""
+    read_notifications = db.query(EmailNotification)\
+        .filter(EmailNotification.is_read == True)\
+        .order_by(EmailNotification.received_at.desc())\
+        .all()
+        
+    return {
+        "total": len(read_notifications),
+        "data": read_notifications
+    }

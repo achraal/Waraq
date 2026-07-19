@@ -1,6 +1,6 @@
 from unicodedata import category
 from fastapi import APIRouter, Depends, HTTPException, Body
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import cast, Date, Time
 from typing import List, Optional
 from datetime import datetime
@@ -21,8 +21,8 @@ def get_tenders(
     limit: Optional[int] = None, 
     db: Session = Depends(get_db)
 ):
-    query = db.query(Tender).options(joinedload(Tender.documents), 
-        joinedload(Tender.lots)).order_by(Tender.created_at.desc())
+    query = db.query(Tender).options(selectinload(Tender.documents), 
+        selectinload(Tender.lots)).order_by(Tender.created_at.desc())
     
     # Si limit est fourni, on pagine
     if limit is not None:
@@ -208,3 +208,22 @@ def mark_tender_as_unconsulted(tender_id: str, db: Session = Depends(get_db), ad
     db.commit()
     db.refresh(tender)
     return {"status": "success", "is_consulted": False}
+
+# GET : Rechercher une offre par sa référence (recherche exacte ou partielle)
+@router.get("/search/reference")
+def search_by_reference(
+    payload: dict = Body(...), 
+    db: Session = Depends(get_db)
+):
+    ref = payload.get("reference")
+    # Utilisation de .ilike pour une recherche insensible à la casse
+    # On retourne la première correspondance trouvée
+    tender = db.query(Tender).options(
+        joinedload(Tender.documents), 
+        joinedload(Tender.lots)
+    ).filter(Tender.reference.ilike(f"%{ref}%")).first()
+    
+    if not tender:
+        raise HTTPException(status_code=404, detail="Aucune offre trouvée avec cette référence")
+    
+    return tender

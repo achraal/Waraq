@@ -28,6 +28,9 @@ marocao-platform/
 │   │   ├── modules/             # Cœur métier de l'application
 │   │   │   ├── ai_processor/    # Traitement Intelligent des Documents (IDP)
 │   │   │   │   ├── llm_analyzer.py
+│   │   │   │   ├── routes.py
+│   │   │   │   ├── schemas.py
+│   │   │   │   ├── classification_service.py
 │   │   │   │   └── ocr_engine.py
 │   │   │   │
 │   │   │   ├── scraper/         # Collecte amont (Appels d'Offres)
@@ -35,11 +38,17 @@ marocao-platform/
 │   │   │   │   ├── parser.py    # Extraction et structuration des données HTML/données brutes
 │   │   │   │   ├── portal_scraper.py # Logique de navigation et orchestration des tâches de scraping
 │   │   │   │   ├── routes.py    # Endpoints pour piloter ou inspecter l'état du scraper
+│   │   │   │   ├── email_monitor.py    # 
 │   │   │   │   └── utils.py     # Fonctions d'aide (nettoyage de texte, stockage base de données)
 │   │   │   │
 │   │   │   ├── tenders/         # Gestion et cycle de vie des appels d'offres
 │   │   │   │   ├── routes.py    # Endpoints de gestion des dossiers d'AO (CRUD, filtrage)
 │   │   │   │   └── schemas.py   # Schémas Pydantic dédiés à la validation et sérialisation des dossiers d'AO
+│   │   │   │
+│   │   │   ├── telemetry/       #
+│   │   │   │   ├── __init__.py 
+│   │   │   │   ├── routes.py    # 
+│   │   │   │   └── metrics_service.py   # 
 │   │   │   │
 │   │   │   └── workflows/       # Automatisation et génération
 │   │   │       └── doc_generator.py
@@ -52,6 +61,12 @@ marocao-platform/
 │       │       └── 07/
 │       │           └── 08/
 │       │               └── ao_04_2026.zip
+│       ├── classified/            # Fichiers .zip bruts (Organisés par date)
+│       │   └── 2026/
+│       │       └── 07/
+│       │           └── 08/
+│       │               └── TYPE/			# RC, CPS, BDR ...
+│       │					└── fichiers	# les fichiers pdf doc ou excel ...
 │       │
 │       ├── extracted/           # Pièces décompressées (Organisées par date)
 │       │   └── 2026/

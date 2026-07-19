@@ -216,7 +216,49 @@ GET http://localhost:8000/api/scraper/scraper-status
 
 POST http://localhost:8000/api/scraper/run-pipeline
 
+GET http://localhost:8000/api/tenders/search/reference
+
+{ "reference" : "02/DRAICS/BH/2026" }
+
+
+POST http://localhost:8000/api/scraper/scraper/refresh-emails
+
+GET http://localhost:8000/api/scraper/notifications
+
+POST http://localhost:8000/api/scraper/notifications/mark-read
+
+[1, 2, 5]
+
+POST http://localhost:8000/api/scraper/notifications/mark-all-read
+
+GET  http://localhost:8000/api/scraper/notifications/unread
+
+GET  http://localhost:8000/api/scraper/notifications/read
+
 ##############################################################################
 
+POST http://localhost:8000/api/classifier/classify-documents
 
+GET http://localhost:11434/
 
+GET http://localhost:8000/api/classifier/status
+
+GET http://localhost:8000/api/classifier/stats
+
+POST http://localhost:8000/api/classifier/documents/{id}/validate
+
+GET http://localhost:8000/api/classifier/documents
+
+GET http://localhost:8000/api/classifier/documents/{document_id}
+
+PATCH http://localhost:8000/api/classifier/documents/{document_id}
+
+GET http://localhost:8000/api/classifier/learning/few-shot-prompt
+
+POST http://localhost:8000/api/classifier/learning/export-dataset
+
+POST http://localhost:8000/api/classifier/learning/train-local
+
+##############################################################################
+
+POST  http://localhost:8000/api/telemetry/collect-now
