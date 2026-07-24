@@ -21,10 +21,6 @@ US-11 : Espace documentaire dédié - Description : En tant que soumissionnaire,
 US-12 : Accès à la vitrine et démonstration - Description : En tant que visiteur, je veux accéder à la vitrine marketing et à un mode de démonstration restreint afin de comprendre la valeur ajoutée du produit avant de m'inscrire.  
 
 
-
-
-
-
 Task 1 : Modélisation et Spécifications Techniques  (Type : Task 🟦 | Estimation : 3 jours) 
 Description : Réaliser l'analyse conceptuelle globale du système MarocAO afin de structurer les bases de données et les flux de données avant le codage.  
 Sous-tâches (Sub-tasks ┖) :
@@ -57,7 +53,6 @@ Sous-tâches (Sub-tasks ┖) :
 
 
 
-
 EPIC-1 : Conception & ArchitectureDescription : Phase d'initialisation, modélisation UML, configuration de l'environnement de développement (uv, PostgreSQL, etc.) et structure du projet.  
 EPIC-2 : Web Scraping & Ingestion de Données (le fameux Module 1 corrigé !)  Description : Automatisation de la navigation sur le portail d'État, extraction des données avec Selenium / BeautifulSoup et enregistrement en base de données.  
 EPIC-3 : Authentification & Profiling JuridiqueDescription : Sécurisation des accès (JWT, Argon2id) et formulaires d'inscription dynamiques selon le type d'entreprise (Personne Physique vs Morale).  
@@ -66,12 +61,9 @@ EPIC-5 : Génération Automatique & WorkflowsDescription : Moteur de fusion dyna
 EPIC-6 : Interface React & DashboardDescription : Tableau de bord interactif pour filtrer les marchés, espace documentaire et liaison avec l'API FastAPI. 
 
 
-
 Sprint 1 : Design, Scrap & Auth
 3 semaines 
 Initialiser l'architecture globale de MarocAO, implémenter la base de données PostgreSQL, concevoir un module complet d'authentification et de gestion de profils, et automatiser la collecte ainsi que l'ingestion récursive des appels d'offres du portail d'État avec gestion des marchés multi-lots.
-
-
 
 
 🟩 USER STORIES (Stories) à glisser dans le Sprint 1(Assure-toi de les lier à leurs Epics respectives)  
@@ -165,3 +157,594 @@ Description : Mettre en place un système de lecture et de parsing des emails de
 Sous-tâches (Sub-tasks ┖) :
 [Notification] Configurer l'API Gmail ou le service de lecture de boite mail.
 [Notification] Développer le composant de visualisation pour afficher les alertes reçues.
+
+
+
+
+17/07
+
+* debut du module classification 
+* comprehension
+* Compréhension du module classification. Mise en place des contraintes et limitations et directives (Exemple file_type avec type primitif seulement. Vérification et is classified = true. Autre que type primitif LLM classifier et is classified = true. data storage/classified/AAAA/MM/DD/ref_HH_MM_SS/type Stockage selon cette arborescence. Découpage si plusieurs types dans un seul document selon l'extension. 
+* Architecture ajoute routes.py et classification_service.py. 
+* Ajout de is_classified et classification_type, (LLM ou pre-LLM) dans tender_documents. 
+* Installation et run de Queen 2.5:7b via Ollama. 
+* Préparation du module extraction danc ocr_engine.py et installation des bibliotheques.
+* Définition du type de lia qu'on a utilisé (IDP). 
+* Définition des logs pour traçabilité et aide à la décision et tolérance de panne. 
+* Ajout du champ classification_reason et un champ de description de classification classification_description dans tender documents. 
+* Ajout dans les logs nombre d'itérations et nom du dossier Architecturer selon cette définition. 
+* Bug : emplacement erroné de classified backend/data_storage/classified mais dans data_storage/classified .
+* Ajout du champ classified_at (date et heure). 
+* Ne pas diviser le nom du sous-dossier la référence (ref_HH_MM_SS exemple ...). 
+* Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents). 
+* WinError syntax. 
+* Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+* Ajout d'estimation de temps dans json response de l'endpoint. 
+* Ajout du champ classified_file_paths. 
+* Bug classified_file_path null et bug timeout, changement en None pour laisser la décision de classification. 
+* Bug de chemin de stockage car référence contient '/'. 
+* Erreur critique shutil.move, shutil.copy2, récupérer les fichiers à leur place immédiatement. 
+* Revérification des données dans tenders (tender documents) et réextraction des dossiers manuellement. Récupération de données critique, ultime tâche. 
+* Suppression des splits inconnus. 
+* Bug "Le fichier physique n'existe pas sur le disque à l'emplacement..." + "La syntaxe du nom de fichier, de répertoire ou de volume est incorrecte."
+
+
+18/07 - 20/07
+
+* Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents).
+* Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+* Ajout d'estimation de temps dans json response de l'endpoint. 
+* notification avec ai, scraping et health serveur ordi et base de donnees et tables
+* traiter les autres extensions 
+* Vérification des données de la classification. 
+* Donner un taux de réussite. 
+* Reconstituer les contraintes de classification. 
+* Retester avec des exemplaires de Nachit. 
+* Est-ce qu'il ignore les is_classified = true ? 
+* Les splits inconnus ont été enregistrés en base. Suppression et pourquoi ? 
+* Ajout d'une table system_metrics. Modification de l'architecture en ajoutant dans modules le dossier telemetry avec des .py comme routes.py, metrics_service.py, __init__.py. 
+* Bug, échec de l'appel à la main, http connection pool, read timeout. 
+* tester : 1 Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents).
+2 Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+3 Ajout d'estimation de temps dans json response de l'endpoint. 
+4 notification avec ai, scraping et health serveur ordi et base de donnees et tables
+* Les contraintes de classification mises en place. Premièrement, prendre en considération les documents de n'importe quelle extension, les documents scannés ou décalés et les documents en arabe. Deuxièmement, prendre tous les documents dans le dossier extracted et les documents dans les sous-dossiers de extracted dans le dossier classified en respectant l'arborescence classified/AAAA/MM/DD/ref_HH_MM_SS/type/doc. Troisièmement, copier les documents et non les déplacer. Quatrièmement, découpage si nécessaire et ajoute dans tender_documents. Cinquièmement, classifier les documents qui sont non déjà pré-classifiés par les types primitifs lors de leur stockage dans tender_documents seulement vérification. Sixièmement, mentionner la raison de classification et la date de classification et aussi la description.
+* Ajoute du champ nbr_documents dans tenders. Changer nombre par défaut lot_number en 1 au lieu de 0. Ajout du champ response_time dans tender_documents pour chaque ligne traitées et temps global de la classification dans les logs. Ajout du champ analysis_metadata qui contient les métriques et plusieurs infos sur chaque classification. 
+* Ajoute du modèle system_metrics qui contient un timestamp et qui est déclenché chaque heure pour envoyer une notification qui contient database_status (infos sur la base et tables) AI_metrics (classification) scrapping_metrics et server_and_hardware_health. 
+* Ajoute d'une endpoint qui appelle system_metrics si on veut pas attendre une heure et aussi ajoute d'une endpoint de classification_status, classifier_stats, validation_de_classifier, get_all_documents, get_tenders_documents_by_id et patch_champ_du_tender_documents. classifier_status pour retourner la progression en temps réel. classifier_stats pour générer des insights sur la performance IA et type de docs. et validate_de_classifier permet de valider ou corriger manuellement la classification. 
+* Ajoute d'estimation du temps dans le retour du json response lors de l'appel du /classify_documents et retourner metrics. 
+* Possibilité de rectifier la classification et enhancement du modèle. Option A: Dynamic few-shot, injection du correctif humain de la database directement dans le prompt. Option B: Fine-tuning déporté, utilisation GPU de Google Colab, export jsonl. Option C: Fine-tuning local, script d'entraînement pour changer le poids du modèle, nécessite une GPU. 
+* Ajoute d'un champ is_recursive si il y a des documents récursifs dans tenders. 
+* Traitement des autres extensions pour pouvoir les classifier comme dwg, png, jpg, etc. Supprimer les splits inconnus, ne pas lire qu'une seule page mais lire jusqu'à être sûr du type de document. 
+* BUG : correction erreur endpint collect_now ("{"detail": "Erreur lors de la collecte manuelle des métriques : type object 'TenderDocument' has no attribute 'created_at'" }") et ajout du count dans endpoint getalldocuments
+* diagramme de sequence scraper
+* TEST ET VALIDATION de :
+	champ nbr de documents   [VALIDE]
+    changer nombre par defaut des lots en 1 au lieu de 0 [VALIDE]
+    ajout du calcul de temps a la fin et de combien de lignes traitees (champs temps de rps pour chaque document ligne dans tender documents) [VALIDE]
+    ajout d'estimation de temps dans json response de lendpoint et ajoute plusieurs autres infos si c'est possible [VALIDE]
+    ajouter autre endpoint  [VALIDE]
+    notification avec metriques ai, scraping base de donnees nombres ded donnees jealth ..... stocker dans une table et le faire chaque heure [VALIDE]
+    get update pour tender documents [VALIDE]
+    ajout de champs donnees recursives si presentes [VALIDE]
+    est ce qu'il ignore les is_classified = true donc si y a des nouveaux il classifier seulement les nouveaux et is_classified = false [VALIDE]
+    getters system metrics [VALIDE]
+* changement de ocr_engine et de ses methodes pour traiter les autres extensisons, ne pas lire une seule page et ajout d'un dossier pour eliminer les split inconnu
+* initialisation de la procedure de possibilite de rectifier la classification et endurer le model et son entrainement plus que tester
+* Extraction intégrale multi-formats : Le contenu de l'ensemble des pages est extrait sans limitation, avec prise en charge automatique de Tesseract OCR pour les scans/images (.jpg, .png), de la lecture intégrale des tableurs Excel (.xlsx), des documents Word (.docx), et même d'un typage dédié pour les fichiers CAO/DAO (.dwg, .dxf).
+
+Élimination définitive des split_0_INCONNU : En cas de doute ou de page illisible lors du découpage, le segment hérite du type global du document parent au lieu d'écrire la valeur fallback INCONNU. Aucun fichier parasite split_*_INCONNU ne sera plus généré ni ré-indexé dans la base de données.
+
+Capture des pièces imbriquées : Même si un Bordereau de Prix (BDR) ne fait qu'une seule page à la fin d'un CPS volumineux, le scan page par page du PDF le détectera, l'isolera et le classifiera séparément.
+
+
+21-07
+
+* ajouter count dans les endpoints telemetry /history et /all et test
+* Démarrage du sprint 2, mini-rapport fine-tuning. 
+* Modification du diagramme de classe, élaboration des diagrammes de séquence.
+* TEST ET VALIDATION de :
+	y a des splits inconnu qui ont ete enregistre en base il faut les supprimer et pourquoi ils sont la
+	ne pas lire qu'une seule page des fichiers mais plusieurs pages jusque ce quil soit sur (IA_FALLBACK)
+	ajout des metriques du model et precisions et de classification (inseertion dans un champs)
+    traiter les autres extension pour pouvoir les classifier si jpg dwg etc
+    tester du calcul de temps a la fin
+* BUG creation des png dans extracted
+* BUG SAWarning: Coercing Subquery object into a select() for use in IN(); please pass a select() construct explicitly
+  .filter(Tender.id.in_(subquery))
+* BUG Erreur OCR Page 0 sur C:/Users/achra/Desktop/Intern/Project/marocao-platform/data_storage/extracted/2026/07/08/04-2026-MDJS_14-56-24/CPS 64.pdf: PaddleOCR.predict() got an unexpected keyword argument 'cls'
+* BUG ConvertPirAttribute2RuntimeAttribute not support [pir::ArrayAttribute<pir::DoubleAttribute>]
+* si y a dossier classified ?
+* mini rapport fine tuning
+* BUG paddleOCR
+* endpoint pour voir les documents sous leur format pour les inspecter et appeler validate pour la validation humaine
+* probleme telemtry bug 2026-07-21 17:43:40,332 - [WARNING] - Run time of job "execute_cron_telemetrie (trigger: interval[1:00:00], next run at: 2026-07-21 17:43:20 +01)" was missed by 0:00:20.318062
+* estimtation de temps n'est pas bien precis dans /classify_documents
+* estimtation de temps n'est pas bien precis
+* si on garde la meme structure qu'avant et pour alleger on ajouter le systeme de streaming comme redis ca ameliorera ca ? 
+* probleme analysis metadata des champs sont :
+{
+  "model": "qwen2.5:7b",
+  "confidence_score": 5,
+  "extracted_keywords": [
+    "déclaration",
+    "honneur",
+    "personnes physiques",
+    "appel d'offres"
+  ],
+  "detected_language": "fr",
+  "text_length_chars": 9138,
+  "text_word_count": 768,
+  "is_short_text": false,
+  "has_uncertainty_keywords": false,
+  "ollama_total_duration": 39045854100,
+  "load_duration": 871227000,
+  "prompt_tokens": 1074,
+  "generated_tokens": 94,
+  "validation_status": "PENDING",
+  "is_correct": null,
+  "corrected_type": null
+}
+
+et des champs classifies contiennet que pour decoupage automatique et regles primitives et aussi pour les autres types que les types primitives {}
+
+22-07
+
+* verifier analysis metadata
+* estimtation de temps n'est pas bien precis
+
+
+
+
+🌐 1. EPIC-4 : Intelligent Document Processing (IDP) & IA
+🟩 USER STORIES (Stories)
+US-13 : Traitement Avancé et Classification Multi-formats des Documents
+Type : Story 🟩
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Highest
+
+Story Points : 8 SP
+
+Description : En tant que soumissionnaire, je veux que le système lise et classifie tous mes documents importés quel que soit leur format (.pdf, .docx, .xlsx, .jpg, .png, .dwg, .dxf), même s'il s'agit de documents scannés, décalés ou rédigés en arabe, afin de supprimer toute contrainte de formatage.
+
+US-14 : Validation Humaine (Human-in-the-Loop) et Correction de Classification
+Type : Story 🟩
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : En tant qu'administrateur, je veux pouvoir inspecter visuellement les documents sous leur format d'origine et valider ou corriger manuellement leur type de classification afin de maintenir un contrôle qualité et alimenter l'apprentissage continu de l'IA.
+
+US-15 : Découpage Intelligent et Isolation des Pièces Imbriquées
+Type : Story 🟩
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Medium
+
+Story Points : 5 SP
+
+Description : En tant que soumissionnaire, je veux que l'IA scanne page par page les PDF volumineux pour détecter et isoler automatiquement les pièces imbriquées (ex: un Bordereau de Prix de 1 page caché dans un CPS) afin de les classer séparément.
+
+🟦 TÂCHES TECHNIQUES (Tasks & Sub-tasks)
+MAO-TASK-13 : Refonte de l'Architecture de Classification (Routes & Service)
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Création et structuration des modules de classification backend.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Backend] Implémenter l'architecture modulaire avec routes.py et classification_service.py.
+
+┖ [Database] Mettre à jour le modèle TenderDocument en ajoutant les champs : is_classified, classification_type (LLM ou pré-LLM), classification_reason, classification_description, classified_at, response_time, classified_file_paths et analysis_metadata.
+
+┖ [Database] Ajouter le champ is_recursive (détection de dossiers imbriqués) et nbr_documents dans la table Tenders.
+
+┖ [Database] Modifier la valeur par défaut de lot_number de 0 à 1.
+
+MAO-TASK-14 : Déploiement et Intégration du Modèle LLM Local (Qwen 2.5:7b)
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Highest
+
+Story Points : 5 SP
+
+Description : Configuration et exécution du modèle LLM local pour la classification intelligente hors pré-règles.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [IA] Installer et configurer le modèle Qwen 2.5:7b exécuté en local via Ollama.
+
+┖ [IA] Implémenter la logique de classification hybride : vérification des types primitifs par règles -> Fallback LLM si hors types primitifs.
+
+┖ [IA] Intégrer l'option Dynamic Few-Shot (injection directe des corrections humaines de la DB dans le prompt).
+
+MAO-TASK-15 : Arborescence Physique de Stockage /classified et Règle d'Immutabilité
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Gestion de la réorganisation physique des fichiers classifiés sur le disque.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Storage] Forcer l'arborescence physique : data_storage/classified/AAAA/MM/DD/ref_HH_MM_SS/type/doc.
+
+┖ [Storage] Remplacer la logique de déplacement (shutil.move) par une copie de sécurité (shutil.copy2) pour préserver les fichiers sources dans data_storage/extracted.
+
+┖ [Storage] Nettoyer et normaliser le format du sous-dossier de référence (ex: élimination des carcatères / problématiques dans les chemins Windows).
+
+MAO-TASK-16 : Refonte du Moteur OCR Multi-formats (ocr_engine.py)
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Étendre les capacités d'extraction du texte brut à tous les formats de fichiers.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [OCR/Parsing] Intégrer Tesseract OCR / PaddleOCR pour l'extraction sur images (.jpg, .png) et scans.
+
+┖ [Parsing] Ajouter la lecture intégrale des fichiers Word (.docx) et tableurs Excel (.xlsx).
+
+┖ [Parsing] Ajouter la prise en charge et le typage dédié pour les fichiers CAO/DAO (.dwg, .dxf).
+
+┖ [Parsing] Modifier la stratégie de lecture multi-pages pour lire plusieurs pages jusqu'à certitude absolue au lieu d'une seule page.
+
+MAO-TASK-17 : Élimination Définitive des Fallbacks split_*_INCONNU
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Medium
+
+Story Points : 3 SP
+
+Description : Correction du comportement de découpage pour éviter de polluer la base de données.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [IDP] Faire hériter les segments illisibles du type global du document parent.
+
+┖ [Database] Nettoyer les enregistrements obsolètes split_*_INCONNU existants en BDD.
+
+MAO-TASK-18 : Développement des Endpoints API de Classification et Inspection
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Création du jeu d'API complet pour manipuler et suivre l'état du moteur de classification.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [API] Endpoint /classify_documents avec estimation dynamique du temps restant dans le JSON de réponse.
+
+┖ [API] Endpoint /classifier_status pour suivre la progression du job en temps réel.
+
+┖ [API] Endpoint /classifier_stats pour la génération d'insights de performance.
+
+┖ [API] Endpoints de consultation et mise à jour : /get_all_documents, /get_tenders_documents_by_id, et PATCH de modification rapide d'un document.
+
+┖ [API] Endpoint /validate_de_classifier pour enregistrer les corrections humaines.
+
+┖ [API] Endpoint de prévisualisation/inspection directe des documents dans leur format natif.
+
+MAO-TASK-19 : Rédaction du Mini-Rapport sur le Fine-Tuning du Modèle
+Type : Task 🟦
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Low
+
+Story Points : 2 SP
+
+Description : Étude théorique et comparative des stratégies d'amélioration continue du LLM (Option A: Dynamic few-shot, Option B: Fine-tuning déporté Colab via JSONL, Option C: Fine-tuning local avec GPU).
+
+📊 2. EPIC : Télémétrie, Monitoring & Observabilité (Nouvelle Epic Transverse)
+🟦 TÂCHES TECHNIQUES (Tasks)
+MAO-TASK-20 : Implémentation du Module de Télémétrie (telemetry)
+Type : Task 🟦
+
+Epic : EPIC-Télémétrie & Monitoring
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Création du module de collecte automatique de la santé du système et métriques de performance.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Backend] Structurer le dossier app/modules/telemetry/ (routes.py, metrics_service.py, __init__.py).
+
+┖ [Database] Créer le modèle SQLAlchemy SystemMetrics.
+
+┖ [Cron] Implémenter un scheduler (toutes les heures) pour capturer : database_status, AI_metrics, scraping_metrics, server_and_hardware_health.
+
+┖ [API] Développer les endpoints /telemetry/collect_now, /telemetry/history et /telemetry/all avec support du paramètre count.
+
+🔴 3. CORRECTIONS DE BUGS & OPTIMISATIONS (Sprint 2)
+MAO-BUG-08 : Correction de la gestion des chemins de stockage sous Windows (WinError)
+Type : Bug 🔴
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Highest
+
+Story Points : 2 SP
+
+Description : Résolution des erreurs WinError et syntaxe de répertoire dues à la présence du caractère / dans les références d'appels d'offres lors de la création du sous-dossier classified.
+
+MAO-BUG-09 : Correction du crash "Fichier physique introuvable" et échec shutil.move
+Type : Bug 🔴
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Highest
+
+Story Points : 3 SP
+
+Description : Correction de la perte de fichiers physiques lors du déplacement direct. Basculement complet sur de la copie explicite (shutil.copy2) et sécurisation des vérifications d'existence de fichier sur disque.
+
+MAO-BUG-10 : Correction de l'exception PaddleOCR (unexpected keyword argument 'cls')
+Type : Bug 🔴
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Résolution du bug d'incompatibilité de signature d'API sur PaddleOCR.predict() provoquant des échecs de lecture OCR dès la page 0.
+
+MAO-BUG-11 : Correction du Warning SQLAlchemy SAWarning: Coercing Subquery object into a select()
+Type : Bug 🔴
+
+Epic : EPIC-1 : Conception & Architecture
+
+Priorité : Medium
+
+Story Points : 1 SP
+
+Description : Correction du warning SQLAlchemy émis lors de la requête .filter(Tender.id.in_(subquery)) en passant explicitement un constructeur select().
+
+MAO-BUG-12 : Fix de l'attribut manquant created_at sur la collecte de métriques
+Type : Bug 🔴
+
+Epic : EPIC-Télémétrie & Monitoring
+
+Priorité : High
+
+Story Points : 1 SP
+
+Description : Résolution de l'erreur 500 sur l'endpoint /collect_now (type object 'TenderDocument' has no attribute 'created_at').
+
+MAO-BUG-13 : Correction du comportement de saut de cron sous APScheduler
+Type : Bug 🔴
+
+Epic : EPIC-Télémétrie & Monitoring
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Ajustement du misfire_grace_time de la tâche programmée execute_cron_telemetrie pour empêcher les avertissements du type "Run time of job was missed by...".
+
+MAO-BUG-14 : Incohérence des champs analysis_metadata sur la pré-classification
+Type : Bug 🔴
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Corriger le fait que le dictionnaire JSON analysis_metadata retournait {} (vide) pour les classifications par règles/heuristiques primitives au lieu d'y mettre la raison du découpage.
+
+MAO-BUG-15 : Traitement des Timeout d'appel Ollama (ReadTimeout)
+Type : Bug 🔴
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Attraper l'exception HTTP Connection Read Timeout lors des réponses du LLM, attribuer la valeur None temporaire à classified_file_path et laisser une opportunité de retry sans interrompre la boucle principale.
+
+💡 4. DETTE TECHNIQUE & AMÉLIORATIONS FUTURES (Backlog / Sprint 3)
+MAO-ENH-01 : Optimisation de l'estimation de temps et intégration d'un Bus de Streaming (Redis/Celery)
+Type : Improvement 🟡
+
+Epic : EPIC-4 : Intelligent Document Processing (IDP) & IA
+
+Priorité : Medium
+
+Story Points : 5 SP
+
+Description : L'estimation du temps dans l'endpoint /classify_documents manque actuellement de précision. Étudier et ajouter un système de file d'attente/streaming (type Redis / Celery ou Server-Sent Events) pour alléger l'exécution synchrone de FastAPI lors des opérations lourdes sur le LLM.
+
+
+2. Le détail complet avec Priorités et Estimations (Story Points / Jours) pour TOUTES les Sous-Tâches
+Voici la déclinaison exacte pour chaque sous-tâche :
+
+📁 MAO-TASK-13 : Refonte de l'Architecture de Classification (Routes & Service)
+(Task globale : High | 5 SP)
+
+┖ [Backend] Implémenter l'architecture modulaire (routes.py, classification_service.py)
+
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+
+┖ [Database] Migration modèle TenderDocument (is_classified, classification_type, analysis_metadata, etc.)
+
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+
+┖ [Database] Ajout des champs is_recursive et nbr_documents dans Tenders
+
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+
+┖ [Database] Modification de la valeur par défaut lot_number (0 -> 1)
+
+👉 Priorité : Low | Estimation : 0.5 jour (0.5 SP)
+
+📁 MAO-TASK-14 : Déploiement et Intégration du Modèle LLM Local (Qwen 2.5:7b)
+(Task globale : Highest | 5 SP)
+
+┖ [IA] Installation, configuration et execution de Qwen 2.5:7b via Ollama
+
+👉 Priorité : Highest | Estimation : 1 jour (1 SP)
+
+┖ [IA] Implémentation de la logique hybride (Vérification pré-LLM -> Fallback Qwen)
+
+👉 Priorité : High | Estimation : 1.5 jours (2 SP)
+
+┖ [IA] Configuration du système Dynamic Few-Shot (injection des corrections BDD dans le prompt)
+
+👉 Priorité : Medium | Estimation : 1 jour (1 SP)
+
+📁 MAO-TASK-15 : Arborescence Physique de Stockage /classified et Règle d'Immutabilité
+(Task globale : High | 3 SP)
+
+┖ [Storage] Implémentation de la structure /classified/AAAA/MM/DD/ref_HH_MM_SS/type/
+
+👉 Priorité : High | Estimation : 0.5 jour (0.5 SP)
+
+┖ [Storage] Remplacement de shutil.move par shutil.copy2 (sécurisation des fichiers source)
+
+👉 Priorité : Highest | Estimation : 0.5 jour (0.5 SP)
+
+┖ [Storage] Nettoyage et normalisation des chemins de référence (caractères / sous Windows)
+
+👉 Priorité : High | Estimation : 0.5 jour (0.5 SP)
+
+📁 MAO-TASK-16 : Refonte du Moteur OCR Multi-formats (ocr_engine.py)
+(Task globale : High | 5 SP)
+
+┖ [OCR/Parsing] Intégration de Tesseract / PaddleOCR pour les images (.jpg, .png) et scans
+
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+
+┖ [Parsing] Extraction du contenu texte des fichiers Word (.docx) et Excel (.xlsx)
+
+👉 Priorité : Medium | Estimation : 1 jour (1 SP)
+
+┖ [Parsing] Support et typage dédié pour les fichiers CAO/DAO (.dwg, .dxf)
+
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+
+┖ [Parsing] Modification de la stratégie multi-pages (lecture étendue au lieu d'une seule page)
+
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+
+📁 MAO-TASK-17 : Élimination Définitive des Fallbacks split_*_INCONNU
+(Task globale : Medium | 3 SP)
+
+┖ [IDP] Héritage du type global du document parent pour les segments illisibles
+
+👉 Priorité : Medium | Estimation : 1 jour (1 SP)
+
+┖ [Database] Script de nettoyage des enregistrements split_*_INCONNU parasites en BDD
+
+👉 Priorité : Low | Estimation : 0.5 jour (0.5 SP)
+
+📁 MAO-TASK-18 : Développement des Endpoints API de Classification et Inspection
+(Task globale : High | 3 SP)
+
+┖ [API] Endpoint /classify_documents avec estimation dynamique de durée
+
+👉 Priorité : High | Estimation : 0.5 jour (0.5 SP)
+
+┖ [API] Endpoints de suivi et métriques (/classifier_status, /classifier_stats)
+
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+
+┖ [API] Endpoints de gestion (/get_all_documents, /get_tenders_documents_by_id, PATCH)
+
+👉 Priorité : High | Estimation : 0.5 jour (0.5 SP)
+
+┖ [API] Endpoint /validate_de_classifier pour l'apprentissage/correction humaine
+
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+
+┖ [API] Endpoint d'inspection/visualisation directe des documents dans leur format d'origine
+
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+
+📁 MAO-TASK-20 : Implémentation du Module de Télémétrie (telemetry)
+(Task globale : High | 5 SP)
+
+┖ [Backend] Structuration de l'arborescence app/modules/telemetry/
+👉 Priorité : Medium | Estimation : 0.5 jour (0.5 SP)
+┖ [Database] Création de la table SystemMetrics
+👉 Priorité : High | Estimation : 0.5 jour (0.5 SP)
+┖ [Cron] Mise en place du scheduler horaire (DB, IA, Scraper, Server Health)
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+┖ [API] Développement des endpoints /telemetry/collect_now, /history et /all
+👉 Priorité : High | Estimation : 1 jour (1 SP)
+
+3. Descriptions des Nouvelles Epics
+Voici les descriptions prêtes à copier-coller pour tes nouvelles Epics dans Jira :
+
+📁 EPIC : Télémétrie, Monitoring & Observabilité
+Description : Mise en place d'un système centralisé de collecte et d'analyse des métriques en temps réel (santé du serveur, état de la base de données PostgreSQL, performances des classifications IA et statistiques du scraper). Ce module inclut la planification de tâches chronométrées (cron hourly), la persistance dans la table SystemMetrics et l'exposition d'endpoints d'historique et de contrôle immédiat.
+
+📁 EPIC : Automatisation & Notifications
+Description : Conception et intégration des services d'alerte et de communication automatisée du système. Ce module gère la lecture et le parsing autonome des emails (notamment les alertes PMMP/Gmail), l'envoi de synthèses périodiques basées sur l'IA et le suivi des événements critiques de la plateforme afin d'informer l'utilisateur des nouveaux marchés et de l'état des traitements.
+
+
+
+* Les .jgw / .tfw ne passeront plus par l'IA et seront traités en 0.00s dans les règles primitives.Les images géantes (.jpg, .png) qui échappent aux primitives seront redimensionnées automatiquement avant que PaddleOCR ou Qwen ne tentent de les analyser, évitant les crashs mémoire et réduisant la durée de traitement à moins de $1\text{s}$.
+* BUG ameliorer metadata analisys pas toujours language fr pour avis arabe c'est ar
+* BUG Resized image size (10258x9679) exceeds max_side_limit of 4000. Resizing to fit within limit.
+* BUG IA_FALLBACK pour .doc utilisation de libreoffice pour convertion
+* pourquoi pas sauvegarder tout les logs de la classification dans une table ajout de ClassificationAuditLog
+* tester /validate
+
+
+23-07
+
+* taux de reussite de la classification
+* get classification_audit_logs avec filtrage validation_status et pagination /latest avec limite optionnel et /stats
+* changement des types primitifs et amelioration
+* si jappele /validate et le document n'etait pas decoupe comment lhumain va le decouper et corriger ceci ? deja jai une endpoint qui retourne le document il faut que comment decouper un pdf doc et pour les splits il faut les supprimer pour redecouper avec lhumain si jamais les pslits sans errones et afficher le document pere
+* ajout de /documents/latest-classified
+* dans /validate ajoute de traitement de plusieurs cas : Cas 1 : Validation simple (L'IA avait raison)
+Cas 2 : Correction simple du type (Mauvaise classification, mais pas de découpage)
+Cas 3 : Annulation du découpage IA (undo_split)
+Cas 4 : Découpage manuel ou ré-ajustement des splits
+* tests de tous ces endpoints ajoutes 
+* utiliser police geist dans le front end
+
+24-07
+
+* ajouter deux champs is_validated et validation_status
+* validate cas 3, cas 4, cas 2
+* on ajoute comme type CPS les documents CCATP et CCFTP
+* reverifiction dans classification_service implementer decoupage suivie des pages
+* on ajoute un endpoint qui agrège à la fois les compteurs par classification_reason et les documents associés /documents/stats/classification-reasons

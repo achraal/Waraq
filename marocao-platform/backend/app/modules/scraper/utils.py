@@ -182,6 +182,40 @@ def sync_local_tenders_to_db(db: Session):
                     meta_data["reunion"] = None
                     meta_data["visite_lieux"] = None
 
+                             
+                # 5. Association des documents extraits
+                # Le dossier correspondant dans 'extracted' a le même nom que le dossier contenant metadata.json
+                folder_name = os.path.basename(root)
+                date_path = os.path.relpath(root, metadata_root) # ex: 2026/06/30/REF_...
+                date_dir = os.path.dirname(date_path)
+                specific_extracted_dir = os.path.join(extracted_root, date_dir, folder_name)
+
+                # tender_docs_count = 0
+                temp_docs = []
+                has_nested_zip = False
+
+                if os.path.exists(specific_extracted_dir):  
+                    for root_doc, _, files_doc in os.walk(specific_extracted_dir):
+                        for filename in files_doc:
+                            if filename.lower().endswith('.zip'):
+                                has_nested_zip = True
+                                continue # On ignore les fichiers ZIP dans la base de documents
+                            full_file_path = os.path.join(root_doc, filename)
+                            file_type = get_file_type(filename)
+
+                            new_doc = TenderDocument(
+                                file_name=filename,
+                                file_type=file_type,
+                                file_path=full_file_path.replace("\\", "/"),
+                            )
+                            temp_docs.append(new_doc)
+                    #         new_tender.documents.append(new_doc) 
+                    #         tender_docs_count += 1 
+                    #         total_docs_count += 1 
+
+                    # new_tender.nbr_documents = tender_docs_count
+
+
                 # 3. Création de l'objet Tender
                 if ref not in registry:
                     new_tender = Tender(
@@ -213,6 +247,8 @@ def sync_local_tenders_to_db(db: Session):
                         extraction_date=extraction_dt,
                         #nbr_lots=len(lots_data),
                         nbr_lots=len(lots_data) if len(lots_data) > 0 else 1,
+                        nbr_documents=len(temp_docs),
+                        is_recursive=meta_data.get('is_recursive', has_nested_zip),
                         metadata_json=meta_data,
                     )
                     # 4. Association des LOTS (Nouveau !)
@@ -239,35 +275,15 @@ def sync_local_tenders_to_db(db: Session):
                 else:
                     # Si on l'a déjà vu, on récupère l'instance existante pour y ajouter des docs
                     new_tender = registry[ref]["tender"]
+                    if has_nested_zip:
+                        new_tender.is_recursive = True
 
-                
                 # 5. Association des documents extraits
-                # Le dossier correspondant dans 'extracted' a le même nom que le dossier contenant metadata.json
-                folder_name = os.path.basename(root)
-                date_path = os.path.relpath(root, metadata_root) # ex: 2026/06/30/REF_...
-                date_dir = os.path.dirname(date_path)
-                specific_extracted_dir = os.path.join(extracted_root, date_dir, folder_name)
+                for doc in temp_docs:
+                    new_tender.documents.append(doc)
+                    total_docs_count += 1
 
-                tender_docs_count = 0
-
-                if os.path.exists(specific_extracted_dir):  
-                    for root_doc, _, files_doc in os.walk(specific_extracted_dir):
-                        for filename in files_doc:
-                            if filename.lower().endswith('.zip'):
-                                continue # On ignore les fichiers ZIP dans la base de documents
-                            full_file_path = os.path.join(root_doc, filename)
-                            file_type = get_file_type(filename)
-
-                            new_doc = TenderDocument(
-                                file_name=filename,
-                                file_type=file_type,
-                                file_path=full_file_path.replace("\\", "/"),
-                            )
-                            new_tender.documents.append(new_doc) 
-                            tender_docs_count += 1 
-                            total_docs_count += 1 
-
-                            new_tender.nbr_documents = tender_docs_count
+                new_tender.nbr_documents = len(new_tender.documents)
 
                 #db.add(new_tender)
                 #inserted_count += 1

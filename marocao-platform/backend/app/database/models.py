@@ -140,6 +140,7 @@ class Tender(Base):
     extraction_date = Column(DateTime, index=True) # Date réelle d'extraction du site web
     is_consulted = Column(Boolean, default=False, nullable=False, index=True)
     nbr_documents = Column(Integer, default=0, nullable=False)
+    is_recursive = Column(Boolean, default=False, nullable=False)
  
     lots = relationship("TenderLot", back_populates="tender", cascade="all, delete-orphan")
     documents = relationship("TenderDocument", back_populates="tender", cascade="all, delete-orphan")
@@ -161,8 +162,22 @@ class TenderDocument(Base):
     classified_file_path = Column(Text, nullable=True)
     response_time = Column(Float, nullable=True, comment="Temps de traitement/réponse en secondes")
     analysis_metadata = Column(JSON, nullable=True, comment="Métriques et détails techniques de la classification IA")
+    is_validated = Column(
+            Boolean, 
+            default=False, 
+            nullable=False, 
+            server_default="false",
+            doc="Indique si la classification a été revue/validée par un utilisateur humain"
+        )
+    
+    validation_status = Column(
+        String(50), 
+        nullable=True, 
+        doc="Statut de validation humaine : PENDING, VALIDATED, ou CORRECTED"
+    )    
 
     tender = relationship("Tender", back_populates="documents") 
+    audit_logs = relationship("ClassificationAuditLog", back_populates="document", cascade="all, delete-orphan")
 
 
 class TenderLot(Base):
@@ -216,3 +231,38 @@ class SystemMetric(Base):
     database_status = Column(JSONB, nullable=False)
     scraping_metrics = Column(JSONB, nullable=False)
     ai_metrics = Column(JSONB, nullable=False)
+    
+class ClassificationAuditLog(Base):
+    __tablename__ = "classification_audit_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("tender_documents.id", ondelete="CASCADE"), nullable=False)
+
+    # Résultat de la tentative
+    predicted_type = Column(String, nullable=False)
+    classification_reason = Column(String, nullable=True)
+    confidence_score = Column(Integer, nullable=True)
+    detected_language = Column(String(10), nullable=True)
+    extracted_keywords = Column(JSON, nullable=True)  # Liste de mots-clés
+
+    # Métriques de performance & LLM
+    model_used = Column(String, nullable=False)
+    execution_duration_sec = Column(Float, nullable=True)
+    ollama_total_duration = Column(Float, nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)
+    generated_tokens = Column(Integer, nullable=True)
+    
+    # Propriétés du texte analysé
+    text_length_chars = Column(Integer, nullable=True)
+    text_word_count = Column(Integer, nullable=True)
+    has_uncertainty_keywords = Column(Boolean, default=False)
+    
+    # Workflow de validation humaine
+    validation_status = Column(String, default="PENDING")  # PENDING, VALIDATED, CORRECTED
+    is_correct = Column(Boolean, nullable=True)
+    corrected_type = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relation vers le document parent
+    document = relationship("TenderDocument", back_populates="audit_logs")

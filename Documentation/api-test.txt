@@ -247,11 +247,58 @@ GET http://localhost:8000/api/classifier/stats
 
 POST http://localhost:8000/api/classifier/documents/{id}/validate
 
+Cas 1 : Validation simple (L'IA avait raison)
+{
+  "is_correct": true,
+  "is_split_required": false,
+  "undo_split": false
+}
+
+Cas 2 : Correction simple du type (Mauvaise classification, mais pas de découpage)
+{
+  "is_correct": false,
+  "corrected_type": "REGLEMENT_CONSULTATION",
+  "is_split_required": false,
+  "undo_split": false
+}
+
+Cas 3 : Annulation du découpage IA (undo_split)
+{
+  "is_correct": false,
+  "undo_split": true,
+  "corrected_type": "CPS"
+}
+
+Cas 4 : Découpage manuel ou ré-ajustement des splits
+{
+  "is_correct": false,
+  "is_split_required": true,
+  "undo_split": false,
+  "splits": [
+    {
+      "start_page": 1,
+      "end_page": 3,
+      "file_type": "CPS"
+    },
+    {
+      "start_page": 4,
+      "end_page": 6,
+      "file_type": "BORDEREAU_PRIX"
+    }
+  ]
+}
+
 GET http://localhost:8000/api/classifier/documents
 
 GET http://localhost:8000/api/classifier/documents/{document_id}
 
 PATCH http://localhost:8000/api/classifier/documents/{document_id}
+
+GET http://localhost:8000/api/classifier/documents/{document_id}/view
+
+GET http://localhost:8000/api/classifier/documents/latest-classified
+
+GET http://localhost:8000/api/classifier/documents/stats/classification-reasons
 
 GET http://localhost:8000/api/classifier/learning/few-shot-prompt
 
@@ -262,3 +309,31 @@ POST http://localhost:8000/api/classifier/learning/train-local
 ##############################################################################
 
 POST  http://localhost:8000/api/telemetry/collect-now
+
+GET  http://localhost:8000/api/telemetry/metrics/history
+
+GET  http://localhost:8000/api/telemetry/metrics/latest
+
+{limit : 2}
+
+GET  http://localhost:8000/api/telemetry/metrics/all
+
+##############################################################################
+
+GET http://localhost:8000/api/audit-logs
+
+Onglet Params :Key: skip Value: 0 ; Key: limit Value: 5
+
+GET http://localhost:8000/api/audit-logs/stats
+
+GET http://localhost:8000/api/audit-logs/latest
+
+Key: limit Value: 5
+
+POST http://localhost:8000/api/audit-logs
+
+{
+  "validation_status": "PENDING",
+  "skip": 0,
+  "limit": 10
+}

@@ -33,6 +33,11 @@ marocao-platform/
 │   │   │   │   ├── classification_service.py
 │   │   │   │   └── ocr_engine.py
 │   │   │   │
+│   │   │   ├── audit/         # 
+│   │   │   │   ├── __init__.py 
+│   │   │   │   ├── routes.py    # 
+│   │   │   │   └── schemas.py   # 
+│   │   │   │
 │   │   │   ├── scraper/         # Collecte amont (Appels d'Offres)
 │   │   │   │   ├── config.json  # Paramètres du scraper (email, nom, prenom, date mise en ligne)
 │   │   │   │   ├── parser.py    # Extraction et structuration des données HTML/données brutes
@@ -77,6 +82,8 @@ marocao-platform/
 │       │                   ├── cps.pdf
 │       │                   └── rc.pdf
 │       │
+│       ├── temp_files/  
+│       │
 │       ├── generated/           # Livrables .docx générés par utilisateur
 │       │   └── user_uuid_ao_04_2026/
 │       │       ├── acte_engagement.docx
@@ -116,3 +123,43 @@ marocao-platform/
                                 (Télécharge le HTML)
                                        ▼
 [utils.py]  ◄────(Enregistre)─── [parser.py] (Extrait les JSON)
+
+
+
+
+
++-----------------------------------------------------------------------------------+
+|                        1. EXTRACTION DE TEXTE (ocr_engine)                        |
+|                                                                                   |
+|  PDF texte / Native  ------> ExtractPyPDF / PdfReader                             |
+|  PDF scanné / Images ------> PaddleOCR (Multi-thread, FR puis AR en RAM/cpu)      |
+|  DOCX, XLSX, DAO     --------> Extracteurs dédiés (openpyxl, python-docx, etc.)   |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                  2. PIPELINE DE CLASSIFICATION (classification_service)           |
+|                                                                                   |
+|  [Étape A] RÈGLES PRIMITIVES                                                      |
+|   ↳ Extension (.xlsx -> BORDEREAU_PRIX) ou préfixe de fichier (ex: cps, rc)      |
+|                                                                                   |
+|  [Étape B] ANALYSE PAR LLM (llm_analyzer)                                        |
+|   ↳ Récupération du contexte Few-Shot (WaraqLearningEngine)                       |
+|   ↳ Extrait (En-tête + Pied de page) envoyé à Qwen via Ollama                      |
+|   ↳ Retour structuré JSON (type, raison, confidence, keywords, language)          |
+|                                                                                   |
+|  [Étape C] DÉCOUPAGE PAR PAGE (verifier_et_decouper_pdf)                          |
+|   ↳ Scan page par page du PDF pour identifier les sous-documents (ex: BDR à la   |
+|     fin d'un CPS)                                                                 |
+|   ↳ Regroupement des plages contiguës et création des sous-fichiers (split_*)    |
++-----------------------------------------------------------------------------------+
+                                          |
+                                          v
++-----------------------------------------------------------------------------------+
+|                    3. RANGEMENT PHYSIQUE & PERSISTANCE BDD                        |
+|                                                                                   |
+|  ↳ Copie dans storage : data_storage/classified/YYYY/MM/DD/REF_HEURE/TYPE/       |
+|  ↳ Mise à jour de TenderDocument (is_classified=True, metadata, response_time)    |
+|  ↳ Insertion des nouveaux segments (si découpage PDF effectué)                   |
+|  ↳ Nettoyage sécurisé du répertoire temporaire (TEMP_DIR)                         |
++-----------------------------------------------------------------------------------+

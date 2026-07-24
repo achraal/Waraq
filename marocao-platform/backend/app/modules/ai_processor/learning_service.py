@@ -29,7 +29,8 @@ class WaraqLearningEngine:
             meta = doc.analysis_metadata or {}
             if meta.get("validation_status") == "CORRECTED":
                 erreurs_historiques.append(doc)
-                if len(erreurs_historiques) >= limite:
+                #if len(erreurs_historiques) >= limite:
+                if limite is not None and len(erreurs_historiques) >= limite:
                     break
 
         if not erreurs_historiques:

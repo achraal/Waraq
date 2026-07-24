@@ -14,6 +14,7 @@ wheels/
 
 # 
 **temp_downloads/
+**temp_files/
 **data_storage/archives/
 **data_storage/extracted/
 **data_storage/metadata/

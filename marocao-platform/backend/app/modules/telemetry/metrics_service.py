@@ -1,8 +1,8 @@
 import os, time, psutil
 from datetime import datetime, date
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect, func
-from backend.app.database.models import SystemMetric, TenderDocument
+from sqlalchemy import inspect, func, text
+from backend.app.database.models import SystemMetric, TenderDocument, Tender
 
 # Capturer le timestamp de démarrage de l'application pour calculer l'uptime FastAPI
 FASTAPI_START_TIME = time.time()
@@ -44,7 +44,7 @@ def collecter_et_sauvegarder_metriques(db: Session):
         "tables_count": 0,
         "rows_per_table": {}
     }
-    
+
     try:
         inspector = inspect(db.bind)
         table_names = inspector.get_table_names()
@@ -52,16 +52,17 @@ def collecter_et_sauvegarder_metriques(db: Session):
         database_status["is_connected"] = True
         database_status["tables_count"] = len(table_names)
         
-        # Compter dynamiquement le nombre de lignes par table
         rows_per_table = {}
         for table in table_names:
             try:
-                # Requête SQL brute générique pour compter rapidement chaque table
-                res = db.execute(func.text(f"SELECT COUNT(*) FROM {table}")).scalar()
-                rows_per_table[table] = res
-            except Exception:
-                rows_per_table[table] = -1  # Flag en cas d'erreur de lecture d'une table
-                
+                with db.begin_nested():
+                    query = text(f'SELECT COUNT(*) FROM "{table}"')
+                    result = db.execute(query).scalar()
+                    rows_per_table[table] = result
+            except Exception as err:
+                print(f"[METRICS WARN] Erreur lors du count sur la table '{table}': {err}")
+                rows_per_table[table] = -1
+
         database_status["rows_per_table"] = rows_per_table
     except Exception as e:
         print(f"[METRICS ERROR] Échec de l'inspection de la BDD : {e}")
@@ -73,7 +74,8 @@ def collecter_et_sauvegarder_metriques(db: Session):
     aujourd_hui = date.today()
     docs_scrapes_aujourd_hui = (
         db.query(TenderDocument)
-        .filter(func.date(TenderDocument.created_at) == aujourd_hui)
+        .join(Tender)
+        .filter(func.date(Tender.created_at) == aujourd_hui)
         .count()
     )
 

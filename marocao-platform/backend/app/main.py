@@ -16,6 +16,7 @@ from backend.app.modules.ai_processor.routes import router as classification_rou
 from backend.app.modules.scraper.email_monitor import fetch_marche_publics, save_emails_to_db
 import os
 from backend.app.modules.telemetry.routes import router as telemetry_router
+from backend.app.modules.audit.routes import router as audit_router
 from backend.app.modules.telemetry.metrics_service import collecter_et_sauvegarder_metriques
 from backend.app.database.connection import SessionLocal
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -62,7 +63,13 @@ async def lifespan(app: FastAPI):
 
     # Initialisation et démarrage du BackgroundScheduler ---
     scheduler = BackgroundScheduler()
-    scheduler.add_job(execute_cron_telemetrie, 'interval', minutes=60)
+    scheduler.add_job(
+        execute_cron_telemetrie, 
+        'interval', 
+        minutes=60, 
+        misfire_grace_time=None,  # Tolère un retard infini (ne manque jamais la tâche)
+        coalesce=True            # Fusionne les exécutions manquées en une seule
+    )
     scheduler.start()
     print("[SCHEDULER] Le planificateur de métriques horaires a démarré.")
 
@@ -104,6 +111,7 @@ app.include_router(scraper_router, prefix="/api")
 app.include_router(tenders_router, prefix="/api")
 app.include_router(classification_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")
+app.include_router(audit_router, prefix="/api")
 
 @app.get("/")
 def health_check():

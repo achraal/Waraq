@@ -37,6 +37,7 @@ def extract_all_recursive(zip_path, destination_folder):
     """
     # On s'assure que le dossier cible existe
     os.makedirs(destination_folder, exist_ok=True)
+    found_nested_zip = False
     
     # 1. Extraction du zip courant dans le dossier de la référence
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -48,6 +49,9 @@ def extract_all_recursive(zip_path, destination_folder):
         for file in files:
             if file.lower().endswith('.zip'):
                 sub_zip_path = os.path.join(root, file)
+
+                # On indique qu'on a trouvé au moins une donnée imbriquée
+                found_nested_zip = True
                 
                 # On crée un dossier au nom du zip pour ne pas mélanger les fichiers
                 folder_name = os.path.splitext(file)[0]
@@ -61,6 +65,7 @@ def extract_all_recursive(zip_path, destination_folder):
                 #     print(f"-> [Nettoyage] Sous-zip supprimé : {file}")
                 # except Exception as e:
                 #     print(f"-> [Alerte] Impossible de supprimer {file} : {e}")
+    return found_nested_zip
 
 def wait_for_download(download_dir, timeout=60):
     seconds = 0
@@ -142,236 +147,6 @@ def run_scraper():
 
     # Remplissage des filtres de date (Uniquement si renseignées dans la config)
     fill_search_dates(driver, wait, config)
-    
-    #processed = 0
-    
-    # # La boucle principale tourne tant qu'on n'a pas atteint l'objectif personnalisé
-    # while processed < config['tenders_to_extract']:
-    #     time.sleep(3) # Attente du rafraîchissement ou chargement de la page de liste
-        
-    #     # Récupération dynamique des boutons de la page courante
-    #     buttons = driver.find_elements(By.XPATH, "//img[@alt='Accéder à la consultation']")
-    #     tenders_on_page = len(buttons)
-        
-    #     if tenders_on_page == 0:
-    #         print("Aucun appel d'offres trouvé sur cette page.")
-    #         break
-            
-    #     # On parcourt les offres de la page une par une
-    #     for i in range(tenders_on_page):
-    #         # Condition d'arrêt dès que le quota personnalisé est atteint au milieu d'une page
-    #         if processed >= config['tenders_to_extract']:
-    #             break
-                
-    #         try:
-    #             # Reciblage pour éviter StaleElementReference Exception
-    #             buttons = driver.find_elements(By.XPATH, "//img[@alt='Accéder à la consultation']")
-    #             buttons[i].click()
-    #             time.sleep(2)
-
-    #             # --- BLOC D'EXTRACTION CONDITIONNEL ET SÉCURISÉ ---
-    #             lots_data = [] 
-
-    #             # On cherche sans attendre indéfiniment
-    #             detail_btns = driver.find_elements(By.XPATH, "//a[contains(@href, 'PopUpDetailLots')]")
-
-    #             if detail_btns:
-    #                 print("-> [Info] Bouton 'Détail des lots' trouvé, extraction en cours...")
-    #                 try:
-    #                     main_win = driver.current_window_handle
-                        
-    #                     # Clic via JavaScript
-    #                     driver.execute_script("arguments[0].click();", detail_btns[0])
-    #                     time.sleep(2)
-                        
-    #                     # Bascule popup
-    #                     all_windows = driver.window_handles
-    #                     if len(all_windows) > 1:
-    #                         new_window = [w for w in all_windows if w != main_win][0]
-    #                         driver.switch_to.window(new_window)
-                            
-    #                         # Parsing
-    #                         lots_data = parse_tender_lots(driver.page_source)
-                            
-    #                         # Fermeture
-    #                         driver.execute_script("window.close();")
-    #                         driver.switch_to.window(main_win)
-    #                         print(f"-> [Info] Extraction terminée : {len(lots_data) if lots_data else 0} lots.")
-    #                 except Exception as e:
-    #                     print(f"-> [Alerte] Erreur lors de l'extraction des lots : {e}")
-    #                     if len(driver.window_handles) > 1:
-    #                         driver.switch_to.window(driver.window_handles[0])
-    #             else:
-    #                 print("-> [Info] Aucun bouton 'Détail des lots' pour cette offre. On continue.")
-
-                
-    #             # ÉTAPE 1 : Cliquer sur le lien pour aller vers la page de Téléchargement du DCE
-    #             dce_link = wait.until(EC.element_to_be_clickable((By.ID, "ctl0_CONTENU_PAGE_linkDownloadDce")))
-
-    #             meta = parse_tender_metadata(driver.page_source)
-    #             ref = meta.get("reference")
-    
-    #             if ref and tender_manager.is_already_processed(ref):
-    #                 print(f"-> [SKIP] La référence {ref} est déjà traitée. On passe.")
-    #                 # Revenir à la liste des résultats sans télécharger
-    #                 driver.get("https://www.marchespublics.gov.ma/index.php?page=entreprise.EntrepriseAdvancedSearch&searchAnnCons") # ou le bouton retour
-    #                 continue
-    #             else : 
-    #                 dce_link.click()
-    #                 time.sleep(2)
-                                
-    #             # ÉTAPE 2 : Déployer le panneau des métadonnées s'il est masqué, puis extraire
-    #             meta = None
-    #             paths = None
-                
-    #             # BLOC ISOLÉ : Quoi qu'il se passe ici, on ne saute PAS au grand 'except' du bas
-    #             try:
-    #                 # On cherche le lien toggle juste avant le div recap-consultation
-    #                 toggle_elements = driver.find_elements(By.CSS_SELECTOR, "a.title-toggle")
-    #                 if toggle_elements:
-    #                     toggle_elements[0].click()
-    #                     time.sleep(1) # Laisse l'animation s'ouvrir
-                    
-    #                 # Extraction HTML et parsing
-    #                 html = driver.page_source
-    #                 meta = parse_tender_metadata(html)
-    #                 if meta:
-    #                     meta['lots'] = lots_data
-    #             except Exception as e_meta:
-    #                 print(f"-> [Info] Impossible de parser les métadonnées (Panneau masqué ou erreur) : {e_meta}")
-
-    #             # Traitement et création des dossiers (Toujours hors du grand danger)
-    #             if meta and meta.get('reference'):
-    #                 paths = get_storage_paths(meta['reference'])
-    #                 save_metadata(meta, paths['metadata'])
-    #                 print(f"[{processed + 1}/{config['tenders_to_extract']}] Métadonnées extraites pour la réf : {meta['reference']}")
-    #             else:
-    #                 print(f"[{processed + 1}/{config['tenders_to_extract']}] Attention: Référence non trouvée. Utilisation d'une réf temporaire.")
-    #                 paths = get_storage_paths(f"UNKNOWN_REF_{int(time.time())}")
-
-    #             # ÉTAPE 3 : Remplir le formulaire de téléchargement (Le script arrivera ICI à 100%)
-    #             wait.until(EC.presence_of_element_located((By.ID, "ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_nom"))).send_keys(config['user_info']['nom'])
-    #             driver.find_element(By.ID, "ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_prenom").send_keys(config['user_info']['prenom'])
-    #             driver.find_element(By.ID, "ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_email").send_keys(config['user_info']['email'])
-                
-    #             # Accepter les conditions générales
-    #             checkbox = driver.find_element(By.ID, "ctl0_CONTENU_PAGE_EntrepriseFormulaireDemande_accepterConditions")
-    #             if not checkbox.is_selected():
-    #                 checkbox.click()
-
-    #             # ÉTAPE 4 : 1ère étape de validation - Clic sur "Valider"
-    #             validate_btn = wait.until(EC.element_to_be_clickable((By.ID, "ctl0_CONTENU_PAGE_validateButton")))
-    #             validate_btn.click()
-    #             print("Formulaire complété, clic sur 'Valider'...")
-    #             time.sleep(3) # Laisse la page exécuter le script de validation et recharger le bouton suivant
-                
-    #             # ÉTAPE 4.5 : 2ème étape de validation - Clic sur le bouton de téléchargement effectif
-                
-    #             download_btn = wait.until(EC.element_to_be_clickable((By.ID, "ctl0_CONTENU_PAGE_EntrepriseDownloadDce_completeDownload")))
-                
-    #             # Capture de l'état du dossier avant le téléchargement
-    #             files_before = os.listdir(download_dir)
-                
-    #             # 1. Nettoyage préventif : on vire les résidus des sessions précédentes
-    #             cleanup_temp_files(download_dir)
-    #             # Déclenchement du téléchargement réel
-    #             driver.execute_script("arguments[0].click();", download_btn)
-    #             print(f"-> Téléchargement du DCE initié.")
-
-    #             # 3. Attente robuste : le script reste bloqué ici tant que le fichier n'est pas prêt
-    #             downloaded_filename = wait_for_download(download_dir, timeout=60)
-
-    #             if downloaded_filename:
-    #                 # 4. Déplacement sécurisé
-    #                 src_file = os.path.join(download_dir, downloaded_filename)
-    #                 dest_zip = os.path.join(paths['archive'], downloaded_filename)
-                    
-    #                 # On utilise shutil.move pour déplacer le fichier final vers l'archive
-    #                 shutil.move(src_file, dest_zip)
-    #                 print(f"ZIP archivé dans : {paths['archive']}")
-    #                 # 5. Extraction
-    #                 if downloaded_filename.lower().endswith('.zip'):
-    #                     try:
-    #                         # On extrait tout dans le dossier 'extracted' spécifique à cette réf
-    #                         extract_all_recursive(dest_zip, paths['extracted'])
-    #                         print(f"Documents extraits récursivement dans : {paths['extracted']}")
-    #                     except Exception as zip_err:
-    #                         print(f"Erreur lors de l'extraction récursive : {zip_err}")
-    #                     #     with zipfile.ZipFile(dest_zip, 'r') as zip_ref:
-    #                     #         zip_ref.extractall(paths['extracted'])
-    #                     #     print(f"Documents extraits avec succès dans : {paths['extracted']}")
-    #                     # except Exception as zip_err:
-    #                     #     print(f"Impossible d'extraire le ZIP : {zip_err}")
-    #                 else:
-    #                     print("-> [Alerte] Le téléchargement a échoué ou a dépassé le temps imparti.")
-                
-    #             # Attente active du fichier (max 20s)
-    #             # downloaded_file = None
-    #             # for _ in range(20):
-    #             #     time.sleep(1)
-    #             #     files_after = os.listdir(download_dir)
-    #             #     new_files = [f for f in files_after if f not in files_before and not f.endswith('.crdownload')]
-    #             #     if new_files:
-    #             #         downloaded_file = new_files[0]
-    #             #         break
-
-    #             # Rangement et extraction du livrable
-    #             # if downloaded_file and paths:                    
-    #             #     src_file = os.path.join(download_dir, downloaded_file)
-    #             #     dest_zip = os.path.join(paths['archive'], downloaded_file)
-                    
-    #             #     shutil.move(src_file, dest_zip)
-    #             #     print(f"ZIP archivé dans : {paths['archive']}")
-                    
-    #             #     if downloaded_file.lower().endswith('.zip'):
-    #             #         try:
-    #             #             with zipfile.ZipFile(dest_zip, 'r') as zip_ref:
-    #             #                 zip_ref.extractall(paths['extracted'])
-    #             #             print(f"Documents extraits avec succès dans : {paths['extracted']}")
-    #             #         except Exception as zip_err:
-    #             #             print(f"Impossible d'extraire le ZIP : {zip_err}")
-                
-    #             # Pause pour initier le téléchargement du fichier
-    #             time.sleep(2)
-                
-    #             # ÉTAPE 5 : Retour à la liste des offres
-    #             # Puisqu'on a fait : Liste -> Page Offre -> Page Téléchargement, 
-    #             # On doit faire un driver.back() pour retourner à la Page Offre, puis un autre pour revenir à la Liste.
-    #             # ÉTAPE 5 : Retour intelligent à la liste des offres via le bouton du site
-    #             # 1. Revenir d'abord à la fiche de consultation
-    #             retour_fiche = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[@title='Retourner à la fiche Détails de la consultation']")))
-    #             retour_fiche.click()
-    #             time.sleep(2)
-
-    #             # 2. Revenir ensuite à la liste des résultats avec tes critères conservés
-    #             retour_liste = wait.until(EC.element_to_be_clickable((By.ID, "ctl0_CONTENU_PAGE_linkRetourBas2")))
-    #             retour_liste.click()
-
-                
-    #             processed += 1
-                
-    #         except Exception as e:
-    #             print(f"Erreur lors du traitement de l'élément à l'index {i}: {e}")
-    #             # En cas d'erreur au milieu du parcours, on tente de revenir à la racine de la recherche
-    #             driver.get("https://www.marchespublics.gov.ma/index.php?page=entreprise.EntrepriseAdvancedSearch&searchAnnCons")
-    #             # Idéalement ré-exécuter la recherche ou s'assurer qu'on est sur la bonne page de liste
-    #             #break
-    #             time.sleep(2)
-    #             fill_search_dates(driver, wait, config)
-    #             continue
-
-    #     # ÉTAPE 6 : Gestion de la pagination si on a traité les 10 offres de la page et qu'on en veut encore
-    #     # Gestion de la pagination basée sur ton objectif global
-    #     if processed < config['tenders_to_extract']:
-    #         try:
-    #             next_btn = driver.find_element(By.XPATH, "//img[@alt='Aller à la page suivante']")
-    #             next_btn.click()
-    #             print("--- Passage à la page suivante de résultats ---")
-    #         except Exception:
-    #             print("Fin des pages disponibles.")
-    #             break
-                
-    # driver.quit()
 
     processed = 0
     current_page_index = 0 # On suit quel bouton traiter sur la page courante
@@ -426,27 +201,6 @@ def run_scraper():
             # --- BLOC D'EXTRACTION (Ton code reste inchangé ici) ---
             lots_data = [] 
             detail_btns = driver.find_elements(By.XPATH, "//a[contains(@href, 'PopUpDetailLots')]")
-
-            # if detail_btns:
-            #     print("-> [Info] Bouton 'Détail des lots' trouvé, extraction en cours...")
-            #     try:
-            #         main_win = driver.current_window_handle
-            #         driver.execute_script("arguments[0].click();", detail_btns[0])
-            #         time.sleep(2)
-            #         all_windows = driver.window_handles
-            #         if len(all_windows) > 1:
-            #             new_window = [w for w in all_windows if w != main_win][0]
-            #             driver.switch_to.window(new_window)
-            #             lots_data = parse_tender_lots(driver.page_source)
-            #             driver.execute_script("window.close();")
-            #             driver.switch_to.window(main_win)
-            #             print(f"-> [Info] Extraction terminée : {len(lots_data) if lots_data else 0} lots.")
-            #     except Exception as e:
-            #         print(f"-> [Alerte] Erreur lors de l'extraction des lots : {e}")
-            #         if len(driver.window_handles) > 1:
-            #             driver.switch_to.window(driver.window_handles[0])
-            # else:
-            #     print("-> [Info] Aucun bouton 'Détail des lots' pour cette offre.")
             
             # ÉTAPE 1 : Cliquer sur le lien pour aller vers la page de Téléchargement du DCE
             dce_link = wait.until(EC.element_to_be_clickable((By.ID, "ctl0_CONTENU_PAGE_linkDownloadDce")))
@@ -559,10 +313,12 @@ def run_scraper():
                 shutil.move(src_file, dest_zip)
                 print(f"ZIP archivé dans : {paths['archive']}")
                 # 5. Extraction
+                is_recursive = False
                 if downloaded_filename.lower().endswith('.zip'):
                     try:
                         # On extrait tout dans le dossier 'extracted' spécifique à cette réf
-                        extract_all_recursive(dest_zip, paths['extracted'])
+                        is_recursive = extract_all_recursive(dest_zip, paths['extracted'])
+                        #extract_all_recursive(dest_zip, paths['extracted'])
                         print(f"Documents extraits récursivement dans : {paths['extracted']}")
                     except Exception as zip_err:
                         print(f"Erreur lors de l'extraction récursive : {zip_err}")
@@ -681,6 +437,8 @@ if __name__ == "__main__":
 # 		"""
 # 		# On s'assure que le dossier cible existe
 # 		os.makedirs(destination_folder, exist_ok=True)
+
+        #found_nested_zip = False
 		
 # 		# 1. Extraction du zip courant dans le dossier de la référence
 # 		with zipfile.ZipFile(zip_path, 'r') as zip_ref:
@@ -692,6 +450,9 @@ if __name__ == "__main__":
 # 			for file in files:
 # 				if file.lower().endswith('.zip'):
 # 					sub_zip_path = os.path.join(root, file)
+
+                    # On indique qu'on a trouvé au moins une donnée imbriquée
+                    #found_nested_zip = True
 					
 # 					# On crée un dossier au nom du zip pour ne pas mélanger les fichiers
 # 					folder_name = os.path.splitext(file)[0]
@@ -699,6 +460,7 @@ if __name__ == "__main__":
 					
 # 					# Appel récursif avec le nouveau sous-dossier
 # 					self._extract_all_recursive(sub_zip_path, sub_destination)
+        #return found_nested_zip
 
 # 	def _wait_for_download(self, timeout=60):
 # 		seconds = 0
@@ -928,9 +690,11 @@ if __name__ == "__main__":
 # 					shutil.move(src_file, dest_zip)
 # 					print(f"ZIP archivé dans : {paths['archive']}")
 # 					# 5. Extraction
+                    #is_recursive = False
 # 					if downloaded_filename.lower().endswith('.zip'):
 # 						try:
 # 							# On extrait tout dans le dossier 'extracted' spécifique à cette réf
+                            #is_recursive = self._extract_all_recursive(dest_zip, paths['extracted'])
 # 							self._extract_all_recursive(dest_zip, paths['extracted'])
 # 							print(f"Documents extraits récursivement dans : {paths['extracted']}")
 # 						except Exception as zip_err:

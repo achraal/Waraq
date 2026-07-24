@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Any
+from typing import Optional, Any, List, Dict
 from datetime import datetime
 from uuid import UUID 
 
@@ -47,3 +47,51 @@ class TenderDocumentUpdate(BaseModel):
 
     # Bloque les champs inconnus pour éviter les erreurs d'inattention
     model_config = ConfigDict(extra="forbid")
+    
+class TenderDocumentListResponse(BaseModel):
+    total: int
+    items: List[TenderDocumentResponse]
+    
+class PageRangeSplit(BaseModel):
+    file_type: str        # Ex: "CPS", "RC", "AVIS"
+    start_page: int       # Ex: 1
+    end_page: int         # Ex: 12
+
+class ValidateDocumentRequest(BaseModel):
+    is_correct: bool               # True si validation conforme IA, False si correction
+    corrected_type: Optional[str] = None # Utile si on annule le split ou change le type
+
+    # CAS 1 : Annuler un découpage fait par l'IA et déclarer le document comme unifié
+    undo_split: bool = False       
+
+    # CAS 2 : Refaire ou faire un découpage manuel
+    is_split_required: bool = False
+    splits: Optional[List[PageRangeSplit]] = None
+    
+class LatestClassifiedPaginatedResponse(BaseModel):
+    total_count: int
+    documents: List[TenderDocumentResponse]
+
+    class Config:
+        from_attributes = True
+        
+class DocumentStatItem(BaseModel):
+    id: UUID
+    file_name: str
+    file_type: Optional[str]
+    classified_file_path: Optional[str]
+    is_validated: bool
+    validation_status: Optional[str]
+    classified_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class ClassificationReasonGroup(BaseModel):
+    reason: str
+    count: int
+    documents: List[DocumentStatItem]
+
+class ClassificationStatsResponse(BaseModel):
+    total_documents: int
+    by_reason: List[ClassificationReasonGroup]
