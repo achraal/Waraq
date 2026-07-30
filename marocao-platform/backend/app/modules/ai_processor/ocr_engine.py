@@ -9,6 +9,7 @@ from pypdf import PdfReader
 from paddleocr import PaddleOCR
 from pdf2image import convert_from_path
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 # Force l'affichage immédiat des logs dans la console sans buffering
@@ -172,7 +173,7 @@ def extraire_texte_integral(file_path: str) -> str:
             return ""        
 
         # 3. Excel (XLSX / XLS)
-        elif ext in [".xlsx", ".xls"]:
+        elif ext == ".xlsx":
             wb = openpyxl.load_workbook(file_path, data_only=True)
             textes = []
             for sheet in wb.worksheets:
@@ -180,6 +181,15 @@ def extraire_texte_integral(file_path: str) -> str:
                     row_txt = " ".join([str(cell) for cell in row if cell is not None])
                     if row_txt.strip():
                         textes.append(row_txt)
+            return "\n".join(textes)
+            
+        elif ext == ".xls":
+            # xlrd doit être installé (pip install xlrd)
+            df_dict = pd.read_excel(file_path, sheet_name=None, engine="xlrd")
+            textes = []
+            for sheet_name, df in df_dict.items():
+                if not df.empty:
+                    textes.append(df.to_string(index=False))
             return "\n".join(textes)
 
         # 4. Images (JPG, PNG, TIFF, etc.)

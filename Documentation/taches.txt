@@ -1,0 +1,197 @@
+17/07
+
+* debut du module classification 
+* comprehension
+* Compréhension du module classification. Mise en place des contraintes et limitations et directives (Exemple file_type avec type primitif seulement. Vérification et is classified = true. Autre que type primitif LLM classifier et is classified = true. data storage/classified/AAAA/MM/DD/ref_HH_MM_SS/type Stockage selon cette arborescence. Découpage si plusieurs types dans un seul document selon l'extension. 
+* Architecture ajoute routes.py et classification_service.py. 
+* Ajout de is_classified et classification_type, (LLM ou pre-LLM) dans tender_documents. 
+* Installation et run de Queen 2.5:7b via Ollama. 
+* Préparation du module extraction danc ocr_engine.py et installation des bibliotheques.
+* Définition du type de lia qu'on a utilisé (IDP). 
+* Définition des logs pour traçabilité et aide à la décision et tolérance de panne. 
+* Ajout du champ classification_reason et un champ de description de classification classification_description dans tender documents. 
+* Ajout dans les logs nombre d'itérations et nom du dossier Architecturer selon cette définition. 
+* Bug : emplacement erroné de classified backend/data_storage/classified mais dans data_storage/classified .
+* Ajout du champ classified_at (date et heure). 
+* Ne pas diviser le nom du sous-dossier la référence (ref_HH_MM_SS exemple ...). 
+* Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents). 
+* WinError syntax. 
+* Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+* Ajout d'estimation de temps dans json response de l'endpoint. 
+* Ajout du champ classified_file_paths. 
+* Bug classified_file_path null et bug timeout, changement en None pour laisser la décision de classification. 
+* Bug de chemin de stockage car référence contient '/'. 
+* Erreur critique shutil.move, shutil.copy2, récupérer les fichiers à leur place immédiatement. 
+* Revérification des données dans tenders (tender documents) et réextraction des dossiers manuellement. Récupération de données critique, ultime tâche. 
+* Suppression des splits inconnus. 
+* Bug "Le fichier physique n'existe pas sur le disque à l'emplacement..." + "La syntaxe du nom de fichier, de répertoire ou de volume est incorrecte."
+
+
+18/07 - 20/07
+
+* Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents).
+* Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+* Ajout d'estimation de temps dans json response de l'endpoint. 
+* notification avec ai, scraping et health serveur ordi et base de donnees et tables
+* traiter les autres extensions 
+* Vérification des données de la classification. 
+* Donner un taux de réussite. 
+* Reconstituer les contraintes de classification. 
+* Retester avec des exemplaires de Nachit. 
+* Est-ce qu'il ignore les is_classified = true ? 
+* Les splits inconnus ont été enregistrés en base. Suppression et pourquoi ? 
+* Ajout d'une table system_metrics. Modification de l'architecture en ajoutant dans modules le dossier telemetry avec des .py comme routes.py, metrics_service.py, __init__.py. 
+* Bug, échec de l'appel à la main, http connection pool, read timeout. 
+* tester : 1 Ajout de calcul de temps à la fin (total_time dans les logs, combien de lignes en combien de temps, response_time champs en base de donnees pour chaque lignes chaque documents).
+2 Ajout des métriques et précisions du modèle et de classification (champs analisys_metadata). 
+3 Ajout d'estimation de temps dans json response de l'endpoint. 
+4 notification avec ai, scraping et health serveur ordi et base de donnees et tables
+* Les contraintes de classification mises en place. Premièrement, prendre en considération les documents de n'importe quelle extension, les documents scannés ou décalés et les documents en arabe. Deuxièmement, prendre tous les documents dans le dossier extracted et les documents dans les sous-dossiers de extracted dans le dossier classified en respectant l'arborescence classified/AAAA/MM/DD/ref_HH_MM_SS/type/doc. Troisièmement, copier les documents et non les déplacer. Quatrièmement, découpage si nécessaire et ajoute dans tender_documents. Cinquièmement, classifier les documents qui sont non déjà pré-classifiés par les types primitifs lors de leur stockage dans tender_documents seulement vérification. Sixièmement, mentionner la raison de classification et la date de classification et aussi la description.
+* Ajoute du champ nbr_documents dans tenders. Changer nombre par défaut lot_number en 1 au lieu de 0. Ajout du champ response_time dans tender_documents pour chaque ligne traitées et temps global de la classification dans les logs. Ajout du champ analysis_metadata qui contient les métriques et plusieurs infos sur chaque classification. 
+* Ajoute du modèle system_metrics qui contient un timestamp et qui est déclenché chaque heure pour envoyer une notification qui contient database_status (infos sur la base et tables) AI_metrics (classification) scrapping_metrics et server_and_hardware_health. 
+* Ajoute d'une endpoint qui appelle system_metrics si on veut pas attendre une heure et aussi ajoute d'une endpoint de classification_status, classifier_stats, validation_de_classifier, get_all_documents, get_tenders_documents_by_id et patch_champ_du_tender_documents. classifier_status pour retourner la progression en temps réel. classifier_stats pour générer des insights sur la performance IA et type de docs. et validate_de_classifier permet de valider ou corriger manuellement la classification. 
+* Ajoute d'estimation du temps dans le retour du json response lors de l'appel du /classify_documents et retourner metrics. 
+* Possibilité de rectifier la classification et enhancement du modèle. Option A: Dynamic few-shot, injection du correctif humain de la database directement dans le prompt. Option B: Fine-tuning déporté, utilisation GPU de Google Colab, export jsonl. Option C: Fine-tuning local, script d'entraînement pour changer le poids du modèle, nécessite une GPU. 
+* Ajoute d'un champ is_recursive si il y a des documents récursifs dans tenders. 
+* Traitement des autres extensions pour pouvoir les classifier comme dwg, png, jpg, etc. Supprimer les splits inconnus, ne pas lire qu'une seule page mais lire jusqu'à être sûr du type de document. 
+* BUG : correction erreur endpint collect_now ("{"detail": "Erreur lors de la collecte manuelle des métriques : type object 'TenderDocument' has no attribute 'created_at'" }") et ajout du count dans endpoint getalldocuments
+* diagramme de sequence scraper
+* TEST ET VALIDATION de :
+	champ nbr de documents   [VALIDE]
+    changer nombre par defaut des lots en 1 au lieu de 0 [VALIDE]
+    ajout du calcul de temps a la fin et de combien de lignes traitees (champs temps de rps pour chaque document ligne dans tender documents) [VALIDE]
+    ajout d'estimation de temps dans json response de lendpoint et ajoute plusieurs autres infos si c'est possible [VALIDE]
+    ajouter autre endpoint  [VALIDE]
+    notification avec metriques ai, scraping base de donnees nombres ded donnees jealth ..... stocker dans une table et le faire chaque heure [VALIDE]
+    get update pour tender documents [VALIDE]
+    ajout de champs donnees recursives si presentes [VALIDE]
+    est ce qu'il ignore les is_classified = true donc si y a des nouveaux il classifier seulement les nouveaux et is_classified = false [VALIDE]
+    getters system metrics [VALIDE]
+* changement de ocr_engine et de ses methodes pour traiter les autres extensisons, ne pas lire une seule page et ajout d'un dossier pour eliminer les split inconnu
+* initialisation de la procedure de possibilite de rectifier la classification et endurer le model et son entrainement plus que tester
+* Extraction intégrale multi-formats : Le contenu de l'ensemble des pages est extrait sans limitation, avec prise en charge automatique de Tesseract OCR pour les scans/images (.jpg, .png), de la lecture intégrale des tableurs Excel (.xlsx), des documents Word (.docx), et même d'un typage dédié pour les fichiers CAO/DAO (.dwg, .dxf).
+
+Élimination définitive des split_0_INCONNU : En cas de doute ou de page illisible lors du découpage, le segment hérite du type global du document parent au lieu d'écrire la valeur fallback INCONNU. Aucun fichier parasite split_*_INCONNU ne sera plus généré ni ré-indexé dans la base de données.
+
+Capture des pièces imbriquées : Même si un Bordereau de Prix (BDR) ne fait qu'une seule page à la fin d'un CPS volumineux, le scan page par page du PDF le détectera, l'isolera et le classifiera séparément.
+
+
+21-07
+
+* ajouter count dans les endpoints telemetry /history et /all et test
+* Démarrage du sprint 2, mini-rapport fine-tuning. 
+* Modification du diagramme de classe, élaboration des diagrammes de séquence.
+* TEST ET VALIDATION de :
+	y a des splits inconnu qui ont ete enregistre en base il faut les supprimer et pourquoi ils sont la
+	ne pas lire qu'une seule page des fichiers mais plusieurs pages jusque ce quil soit sur (IA_FALLBACK)
+	ajout des metriques du model et precisions et de classification (inseertion dans un champs)
+    traiter les autres extension pour pouvoir les classifier si jpg dwg etc
+    tester du calcul de temps a la fin
+* BUG creation des png dans extracted
+* BUG SAWarning: Coercing Subquery object into a select() for use in IN(); please pass a select() construct explicitly
+  .filter(Tender.id.in_(subquery))
+* BUG Erreur OCR Page 0 sur C:/Users/achra/Desktop/Intern/Project/marocao-platform/data_storage/extracted/2026/07/08/04-2026-MDJS_14-56-24/CPS 64.pdf: PaddleOCR.predict() got an unexpected keyword argument 'cls'
+* BUG ConvertPirAttribute2RuntimeAttribute not support [pir::ArrayAttribute<pir::DoubleAttribute>]
+* si y a dossier classified ?
+* mini rapport fine tuning
+* BUG paddleOCR
+* endpoint pour voir les documents sous leur format pour les inspecter et appeler validate pour la validation humaine
+* probleme telemtry bug 2026-07-21 17:43:40,332 - [WARNING] - Run time of job "execute_cron_telemetrie (trigger: interval[1:00:00], next run at: 2026-07-21 17:43:20 +01)" was missed by 0:00:20.318062
+* estimtation de temps n'est pas bien precis dans /classify_documents
+* estimtation de temps n'est pas bien precis
+* si on garde la meme structure qu'avant et pour alleger on ajouter le systeme de streaming comme redis ca ameliorera ca ? 
+* probleme analysis metadata des champs sont :
+{
+  "model": "qwen2.5:7b",
+  "confidence_score": 5,
+  "extracted_keywords": [
+    "déclaration",
+    "honneur",
+    "personnes physiques",
+    "appel d'offres"
+  ],
+  "detected_language": "fr",
+  "text_length_chars": 9138,
+  "text_word_count": 768,
+  "is_short_text": false,
+  "has_uncertainty_keywords": false,
+  "ollama_total_duration": 39045854100,
+  "load_duration": 871227000,
+  "prompt_tokens": 1074,
+  "generated_tokens": 94,
+  "validation_status": "PENDING",
+  "is_correct": null,
+  "corrected_type": null
+}
+
+et des champs classifies contiennet que pour decoupage automatique et regles primitives et aussi pour les autres types que les types primitives {}
+
+22-07
+
+* verifier analysis metadata
+* estimtation de temps n'est pas bien precis
+
+
+
+* Les .jgw / .tfw ne passeront plus par l'IA et seront traités en 0.00s dans les règles primitives.Les images géantes (.jpg, .png) qui échappent aux primitives seront redimensionnées automatiquement avant que PaddleOCR ou Qwen ne tentent de les analyser, évitant les crashs mémoire et réduisant la durée de traitement à moins de $1\text{s}$.
+* BUG ameliorer metadata analisys pas toujours language fr pour avis arabe c'est ar
+* BUG Resized image size (10258x9679) exceeds max_side_limit of 4000. Resizing to fit within limit.
+* BUG IA_FALLBACK pour .doc utilisation de libreoffice pour convertion
+* pourquoi pas sauvegarder tout les logs de la classification dans une table ajout de ClassificationAuditLog
+* tester /validate
+
+23-07
+
+* taux de reussite de la classification
+* get classification_audit_logs avec filtrage validation_status et pagination /latest avec limite optionnel et /stats
+* changement des types primitifs et amelioration
+* si jappele /validate et le document n'etait pas decoupe comment lhumain va le decouper et corriger ceci ? deja jai une endpoint qui retourne le document il faut que comment decouper un pdf doc et pour les splits il faut les supprimer pour redecouper avec lhumain si jamais les pslits sans errones et afficher le document pere
+* ajout de /documents/latest-classified
+* dans /validate ajoute de traitement de plusieurs cas : Cas 1 : Validation simple (L'IA avait raison)
+Cas 2 : Correction simple du type (Mauvaise classification, mais pas de découpage)
+Cas 3 : Annulation du découpage IA (undo_split)
+Cas 4 : Découpage manuel ou ré-ajustement des splits
+* tests de tous ces endpoints ajoutes 
+* utiliser police geist dans le front end
+
+24-07
+
+* ajouter deux champs is_validated et validation_status
+* validate cas 3, cas 4, cas 2
+* on ajoute comme type CPS les documents CCATP et CCFTP
+* reverifiction dans classification_service implementer decoupage suivie des pages
+* on ajoute un endpoint qui agrège à la fois les compteurs par classification_reason et les documents associés /documents/stats/classification-reasons
+* CDC mise a jour et initiation rapport
+* audit log filtrage par validation_statut, getbyid et getbydocumentid et verification latest 
+
+25-07
+
+* tests des endpoints audit logs 
+
+27-07 / 28-07
+
+* est ce qu'il lit bien tous le documents car decoupage arbitraire et hallucination c'est ecrit cps et il a dit que cest un avis, est ce que jendure le module avec qqc ? je modifie du code ou y a t il un modele plus performant que qwen 2.5:7b, raisonner encore plus lors du decoupage 
+* endpoint qui met is classified false pour des documents
+* mais nous on a fait classification global si on veut une classification et extraction pour un tender  et ses documents quon veut donc par id
+* donc pour ml c'est mort aussi donc soit utiliser un outil tierces soit changer la bibliotheques ONNX Runtime Tesseract OCR Tesseract Fast / PyMuPDF ; 
+Si on utilise yolo pour classification des scans, pour les scannés récalcitrants, un petit modèle Vision-LLM (ex: Qwen2-VL ou Llama-3.2-Vision) permet de classifier directement à partir des images des pages sans passer par un OCR textuel intermédiaire.
+* test nouvelle endpoints
+* validation humaine
+* contrainte de classification : model 4go, ocr cpu lent, ocr lent 5 pages,
+* ajouter stats dans ai_processor
+* BUG : 28 19:26:15,637 - [ERROR] - Erreur d'extraction intégrale sur C:/Users/achra/Desktop/Intern/Project/marocao-platform/data_storage/extracted/2026/07/09/032-2026-CHUMVIO_16-23-22/DCE AO 06-2026-SDR-FIASET/BD Transfo.xls: openpyxl does not support the old .xls file format, please use xlrd to read this file, or convert it to the more recent .xlsx file format.
+* changement de la strategie classification qu'on a : 
+-> Conservation de ta stratégie de découpage actuelle : On garde ton algorithme de découpage physique des PDF tel qu'il est déjà implémenté.
+-> Scan par paquets de 10 pages : On parcourt 100% du document (page 1 à N) par lots de 10 pages pour ne rien rater, tout en gérant le Français et l'Arabe.
+-> Double validation pour les Types Primitifs : Lorsqu'un type est identifié par tes règles/types primitifs (regex), on ajoute systématiquement une vérification LLM pour confirmer ou corriger le résultat et éviter les faux positifs.
+-> Bascule dynamique GPU / CPU : Détection automatique au démarrage : si Cuda/GPU est disponible, le LLM s'exécute dessus ; sinon, il bascule proprement en mode CPU sans plantage.
+-> Logs d'audit sur les splits : Attribution systématique d'un ClassificationAuditLog pour chaque sous-segment généré lors des découpages.
+
+29-07
+
+* decouper un word
+* ne faire le decoupage que si le pdf est tres grand et possibilite d'imbrication d'un CPS et un RC dans un autre ou dans un seul document,
+1. Les règles métier sur les alias (CCAP, CCTP, CCATP $\rightarrow$ CPS).
+2. Le seuil des 20 pages pour décider s'il y a un vrai découpage ou juste une détection d'annexes.
+3. Le scan ciblé des en-têtes de page pour distinguer une rupture majeure (ex: passage de RC à CPS) d'un simple modèle (ex: Acte d'engagement).
+4. La construction d'une description BDD enrichie qui récapitule les modèles internes trouvés.

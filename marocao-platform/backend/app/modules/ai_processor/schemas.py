@@ -95,3 +95,11 @@ class ClassificationReasonGroup(BaseModel):
 class ClassificationStatsResponse(BaseModel):
     total_documents: int
     by_reason: List[ClassificationReasonGroup]
+    
+class UnclassifyDocumentsRequest(BaseModel):
+    document_ids: List[UUID]
+
+class UnclassifyDocumentsResponse(BaseModel):
+    message: str
+    updated_count: int
+    updated_document_ids: List[UUID]

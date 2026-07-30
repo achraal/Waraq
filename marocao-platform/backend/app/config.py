@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import EmailStr
 
+
 # Chargement explicite du fichier .env
 load_dotenv()
 
@@ -28,5 +29,6 @@ class Settings:
     # Infrastructure Locale (Ollama)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL")
+    
 
 settings = Settings()

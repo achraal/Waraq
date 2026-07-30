@@ -107,7 +107,64 @@ marocao-platform/
 
 
 
+Voici le diagramme d'architecture mis à jour et enrichi avec le rôle exact de chaque composant (PyMuPDF, ONNX Runtime et YOLO) dans le pipeline de Waraq :
 
+                        ┌─────────────────────────────────────────────────────────┐
+                        │                DOCUMENT ENTRANT (PDF)                   │
+                        └────────────────────────────┬────────────────────────────┘
+                                                     │
+                                       PyMuPDF : Inspection Rapide
+                                       (Détection Natif vs Scan < 0.01s)
+                                                     │
+         ┌───────────────────────────────────────────┴───────────────────────────────────────────┐
+         ▼                                                                                       ▼
+┌─────────────────────────────────┐                                             ┌─────────────────────────────────┐
+│     CAS A : PDF NATIF (Texte)   │                                             │     CAS B : PDF SCANNÉ (Image)  │
+└────────────────┬────────────────┘                                             └────────────────┬────────────────┘
+                 │                                                                               │
+                 │ - Extraction texte directe instantanée (< 0.001s)                             ├─► 1. DÉTECTION STRUCTURE & HEADER
+                 │ - Recherche d'ancres par REGEX                                                │    ├── YOLO (Layout Analysis)
+                 │                                                                               │    │   └─ Repère visuellement les blocs (En-tête, Tableau)
+                 │                                                                               │    │      en 0.02s sans OCR.
+                 │                                                                               │    └── PyMuPDF (Header Crop)
+                 │                                                                               │        └─ Découpe la zone supérieure (25-30% haut).
+                 │                                                                               │
+                 │                                                                               ├─► 2. FAST OCR SUR HEADER
+                 │                                                                               │    └── ONNX Runtime (PaddleOCR ONNX)
+                 │                                                                               │        └─ Inférence CPU ultra-rapide (3x à 5x plus rapide)
+                 │                                                                               │           pour extraire le texte de l'en-tête.
+                 │                                                                               │
+                 │                                                                               └─► 3. DÉTECTION DE FRONTIÈRES & DÉCOUPAGE
+                 │                                                                                    └─ Identification des points de rupture (ex: p.46)
+                 │                                                                                       et scission automatique des sous-documents.
+                 │                                                                                               │
+                 └───────────────────────────────────────┬───────────────────────────────────────────────────────┘
+                                                         │
+                                                         ▼
+                                       ┌───────────────────────────────────┐
+                                       │   CLASSIFICATION & SEGMENTATION   │
+                                       │       (CPS, RC, BDR, etc.)        │
+                                       └─────────────────┬─────────────────┘
+                                                         │
+                                                         ▼
+                                       ┌───────────────────────────────────┐
+                                       │    EXTRACTION CIBLÉE DE DONNÉES   │
+                                       └─────────────────┬─────────────────┘
+                                                         │
+                         ┌───────────────────────────────┴───────────────────────────────┐
+                         ▼                                                               ▼
+             [ Si Document Natif ]                                             [ Si Document Scanné ]
+             │                                                                 │
+             └─► Extraction par Regex sur Ancres                               ├─► 1. YOLO (Localisation ROI)
+                 dans le flux de texte brut.                                   │    └─ Repère la bounding box exacte
+                                                                               │       (ex: Tableau de Prix, Bloc Article).
+                                                                               │
+                                                                               ├─► 2. PyMuPDF (Crop Image)
+                                                                               │    └─ Découpe la sous-image ciblée (RAM).
+                                                                               │
+                                                                               └─► 3. ONNX Runtime (Mini-OCR)
+                                                                                    └─ Inférence haute précision sur la vignette
+                                                                                       uniquement (0.05s par champ).
 
 
 
@@ -125,7 +182,46 @@ marocao-platform/
 [utils.py]  ◄────(Enregistre)─── [parser.py] (Extrait les JSON)
 
 
-
+La Logique de Découpage et d'Analyse
+               ┌──────────────────────────────┐
+               │  Document (PDF / Word conv)  │
+               └──────────────┬───────────────┘
+                              │
+                    Nombre de pages ?
+                              │
+         ┌────────────────────┴────────────────────┐
+         ▼                                         ▼
+   [ < 20 Pages ]                            [ >= 20 Pages ]
+         │                                         │
+ ┌───────┴────────────────────────┐       ┌────────┴────────────────────────┐
+ │ 1. PAS de découpage physique. │       │ 1. Scan des en-têtes/titres     │
+ │ 2. Classifier le doc global.  │       │    en haut de chaque page.      │
+ │ 3. Inspecter le contenu pour  │       │ 2. Si rupture Majeure (RC/CPS): │
+ │    détecter et Lister les     │       │    -> Découpage Physique.       │
+ │    modèles / annexes inclus.  │       │ 3. Lister aussi les annexes/    │
+ └────────────────────────────────┘       │    modèles détectés dedans.    │
+                                          └─────────────────────────────────┘
+										  
+										  
+DOCUMENT INPUT (PDF/Word/Scan)
+                     │
+                     ▼
+  ┌─────────────────────────────────────┐
+  │   1. Optical / Structural Sensing   │ ◄── OCR, extraction de layout,
+  │      (PyPDF, Tesseract, PDFPlumber) │     analyse de primitives
+  └──────────────────┬──────────────────┘
+                     │
+                     ▼
+  ┌─────────────────────────────────────┐
+  │ 2. Heuristic & Rule Engine (IA/NLP) │ ◄── Grammaires, Regex contextuelles,
+  │    (Détection de tableaux, headers)  │     analyse spatiale
+  └──────────────────┬──────────────────┘
+                     │
+                     ▼
+  ┌─────────────────────────────────────┐
+  │   3. Generative & Semantic LLM      │ ◄── Ollama (qwen2.5:7b)
+  │      (Classification globale, RAG)  │     Compréhension complexe
+  └─────────────────────────────────────┘
 
 
 +-----------------------------------------------------------------------------------+

@@ -1,0 +1,31 @@
+gantt
+    dateFormat  YYYY-MM-DD
+    title Planification Globale du Projet Waraq (Stage / Engineering)
+
+    section Phase 1: Conception & Setup
+    Cahier des charges & UML (5 Profils)    :done, p1_1, 2026-05-18, 7d
+    Setup Backend (uv, FastAPI, PostgreSQL)  :done, p1_2, 2026-05-25, 5d
+    Setup Frontend React (Vite, Tailwind)    :done, p1_3, 2026-05-28, 4d
+
+    section Phase 2: Sprint 1 - Scraping & Auth
+    Scraper Multi-Lots & Extraction ZIP      :done, s1_1, 2026-06-01, 7d
+    Auth JWT, Argon2id & 5 Profils Juridiques :done, s1_2, 2026-06-08, 6d
+    Email Monitor PMMP & Export Excel        :done, s1_3, 2026-06-12, 5d
+    Fixes Sprint 1 (Pagination, Duplicats)   :done, s1_4, 2026-06-17, 5d
+
+    section Phase 3: Sprint 2 - IDP & IA Hybride
+    Engine OCR Multi-formats & Pillow/LibreOff :done, s2_1, 2026-06-22, 7d
+    Classification Hybride (Primitives + Qwen 2.5) :done, s2_2, 2026-06-29, 8d
+    Human-in-the-Loop (/validate 4 cas)      :done, s2_3, 2026-07-06, 7d
+    Few-Shot Learning Loop & Export JSONL    :done, s2_4, 2026-07-11, 4d
+    Fixes Sprint 2 (WinError, Timeouts LLM)   :done, s2_5, 2026-07-14, 5d
+
+    section Phase 4: Sprint 3 - Observabilité & Workflows
+    Module Télémétrie & Cron Hourly          :done, s3_1, 2026-07-15, 4d
+    Logs d'Audit & Stats de Réussite         :done, s3_2, 2026-07-18, 4d
+    Génération .docx (Acte Engagement)       :active, s3_3, 2026-07-21, 4d
+    Dashboard React, Police Geist & UI       :active, s3_4, 2026-07-22, 4d
+
+    section Phase 5: Finalisation & Soutenance
+    Tests E2E, Recette & Dette Technique     :crit, p5_1, 2026-07-25, 4d
+    Rédaction Rapport & Support Soutenance   :crit, p5_2, 2026-07-27, 5d

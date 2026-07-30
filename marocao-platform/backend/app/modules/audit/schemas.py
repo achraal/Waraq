@@ -27,7 +27,7 @@ class AuditLogResponse(BaseModel):
     # Texte
     text_length_chars: Optional[int] = None
     text_word_count: Optional[int] = None
-    has_uncertainty_keywords: bool
+    has_uncertainty_keywords: bool = False
 
     # Validation humaine
     validation_status: str

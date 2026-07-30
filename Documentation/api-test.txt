@@ -300,6 +300,19 @@ GET http://localhost:8000/api/classifier/documents/latest-classified
 
 GET http://localhost:8000/api/classifier/documents/stats/classification-reasons
 
+POST http://localhost:8000/api/classifier/unclassify
+
+{
+  "document_ids": [
+    "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "a1b2c3d4-e5f6-7890-1234-56789abcdef0"
+  ]
+}
+
+POST http://localhost:8000/api/classifier/classify-documents/tender/{tender_id}
+
+GET http://localhost:8000/api/classifier/metrics/stats
+
 GET http://localhost:8000/api/classifier/learning/few-shot-prompt
 
 POST http://localhost:8000/api/classifier/learning/export-dataset
@@ -337,3 +350,9 @@ POST http://localhost:8000/api/audit-logs
   "skip": 0,
   "limit": 10
 }
+
+GET http://localhost:8000/api/audit-logs/search/document/{document_id}
+
+GET http://localhost:8000/api/audit-logs/{audit_id}
+
+##############################################################################

@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 
 from backend.app.database.connection import get_db  # Adapte selon ton import
 from backend.app.database.models import ClassificationAuditLog  # Adapte l'import
@@ -21,6 +21,7 @@ router = APIRouter(prefix="/audit-logs", tags=["Classification Audit Logs"])
 def get_all_audit_logs(
     skip: Optional[int] = Query(0, ge=0, description="Nombre d'éléments à sauter (Optionnel, défaut: 0)"),
     limit: Optional[int] = Query(20, ge=1, le=100, description="Nombre d'éléments à récupérer (Optionnel, défaut: 20)"),
+    validation_status: Optional[str] = Query(None, description="Filtrer par statut: PENDING, VALIDATED, CORRECTED"),
     db: Session = Depends(get_db)
 ):
     """
@@ -30,11 +31,17 @@ def get_all_audit_logs(
     # Valeurs par défaut si envoyés à None
     actual_skip = skip if skip is not None else 0
     actual_limit = limit if limit is not None else 20
+    query = db.query(ClassificationAuditLog)
+    
+    # Filtrage par validation_status si fourni
+    if validation_status:
+        query = query.filter(
+            ClassificationAuditLog.validation_status == validation_status.upper().strip()
+        )
 
-    total_count = db.query(ClassificationAuditLog).count()
+    total_count = query.count()
     logs = (
-        db.query(ClassificationAuditLog)
-        .order_by(ClassificationAuditLog.created_at.desc())
+        query.order_by(ClassificationAuditLog.created_at.desc())
         .offset(actual_skip)
         .limit(actual_limit)
         .all()
@@ -65,7 +72,7 @@ def get_latest_audit_logs(
     
     if today_only:
         # Calcule le début de la journée courante (ex: 2026-07-23 00:00:00)
-        today_start = datetime.combine(datetime.now().date(), time.min)
+        today_start = datetime.combine(datetime.now(timezone.utc).date(), time.min)
         query = query.filter(ClassificationAuditLog.created_at >= today_start)
 
     return query.order_by(ClassificationAuditLog.created_at.desc()).limit(actual_limit).all()
@@ -91,6 +98,47 @@ def get_audit_stats(db: Session = Depends(get_db)):
         "accuracy_rate_percentage": round(accuracy, 2) if accuracy is not None else None
     }
 
+@router.get("/document/{document_id}", response_model=List[AuditLogResponse])
+def get_audit_logs_by_document_id(
+    document_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    GET : Récupère tout l'historique d'audit lié à un document spécifique.
+    """
+    logs = (
+        db.query(ClassificationAuditLog)
+        .filter(ClassificationAuditLog.document_id == document_id)
+        .order_by(ClassificationAuditLog.created_at.desc())
+        .all()
+    )
+
+    if not logs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Aucun log d'audit trouvé pour le document_id {document_id}"
+        )
+
+    return logs
+
+
+@router.get("/{audit_id}", response_model=AuditLogResponse)
+def get_audit_log_by_id(
+    audit_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    GET : Récupère un log d'audit unique via son ID.
+    """
+    audit_log = db.query(ClassificationAuditLog).filter(ClassificationAuditLog.id == audit_id).first()
+
+    if not audit_log:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Log d'audit introuvable avec l'ID {audit_id}"
+        )
+
+    return audit_log
 
 @router.post("/search", response_model=AuditListResponse)
 def search_audit_logs(
