@@ -16,6 +16,7 @@ from backend.app.modules.ai_processor.classification_service import executer_cla
 from backend.app.modules.ai_processor.schemas import DocumentValidationUpdate, TenderDocumentResponse, TenderDocumentUpdate, TenderDocumentListResponse, ValidateDocumentRequest, LatestClassifiedPaginatedResponse, ClassificationStatsResponse, ClassificationReasonGroup, DocumentStatItem, UnclassifyDocumentsResponse, UnclassifyDocumentsRequest
 from backend.app.modules.ai_processor.learning_service import WaraqLearningEngine
 from fastapi.responses import FileResponse
+from backend.app.modules.ai_processor.ocr_engine import convertir_doc_en_pdf
 
 router = APIRouter(
     prefix="/classifier",

@@ -18,6 +18,12 @@ class StructureType(str, enum.Enum):
     PUBLIC_INSTITUTION = "PUBLIC_INSTITUTION"    # Établissement public
     COOPERATIVE = "COOPERATIVE"                  # Coopérative
 
+class ScrapingStatus(str, enum.Enum):
+    SUCCESS = "SUCCESS"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    SELENIUM_ERROR = "SELENIUM_ERROR"
+    DOWNLOAD_ERROR = "DOWNLOAD_ERROR"
 
 # --- TABLE : UTILISATEURS ---
 class User(Base):
@@ -141,10 +147,15 @@ class Tender(Base):
     is_consulted = Column(Boolean, default=False, nullable=False, index=True)
     nbr_documents = Column(Integer, default=0, nullable=False)
     is_recursive = Column(Boolean, default=False, nullable=False)
+    scraping_status = Column(Enum(ScrapingStatus), default=ScrapingStatus.PENDING, nullable=False, index=True)
+    scraping_duration_sec = Column(Float, nullable=True)
+    is_zip_corrupted = Column(Boolean, default=False, nullable=False, index=True)
+    
+    #Optionnel : pour garder le message d'erreur précis si besoin
+    scraping_error_message = Column(Text, nullable=True)
  
     lots = relationship("TenderLot", back_populates="tender", cascade="all, delete-orphan")
     documents = relationship("TenderDocument", back_populates="tender", cascade="all, delete-orphan")
-
 
 class TenderDocument(Base):
     __tablename__ = "tender_documents"
@@ -161,24 +172,16 @@ class TenderDocument(Base):
     classified_at = Column(DateTime, nullable=True)
     classified_file_path = Column(Text, nullable=True)
     response_time = Column(Float, nullable=True, comment="Temps de traitement/réponse en secondes")
+    page_count = Column(Integer, nullable=True, comment="Nombre total de pages du document")
+    word_count = Column(Integer, nullable=True, comment="Nombre de mots extraits")
+    file_size_mb = Column(Float, nullable=True, comment="Taille du document en Mo")
+    ocr_duration_sec = Column(Float, nullable=True, comment="Temps consacré à l'OCR en secondes")
     analysis_metadata = Column(JSON, nullable=True, comment="Métriques et détails techniques de la classification IA")
-    is_validated = Column(
-            Boolean, 
-            default=False, 
-            nullable=False, 
-            server_default="false",
-            doc="Indique si la classification a été revue/validée par un utilisateur humain"
-        )
-    
-    validation_status = Column(
-        String(50), 
-        nullable=True, 
-        doc="Statut de validation humaine : PENDING, VALIDATED, ou CORRECTED"
-    )    
+    is_validated = Column(Boolean, default=False, nullable=False, server_default="false", doc="Indique si la classification a été revue/validée par un utilisateur humain")
+    validation_status = Column(String(50), nullable=True, doc="Statut de validation humaine : PENDING, VALIDATED, ou CORRECTED")    
 
     tender = relationship("Tender", back_populates="documents") 
     audit_logs = relationship("ClassificationAuditLog", back_populates="document", cascade="all, delete-orphan")
-
 
 class TenderLot(Base):
     __tablename__ = "tender_lots"
@@ -231,6 +234,7 @@ class SystemMetric(Base):
     database_status = Column(JSONB, nullable=False)
     scraping_metrics = Column(JSONB, nullable=False)
     ai_metrics = Column(JSONB, nullable=False)
+    ai_and_pipeline = Column(JSONB, nullable=False)
     
 class ClassificationAuditLog(Base):
     __tablename__ = "classification_audit_logs"
@@ -260,6 +264,8 @@ class ClassificationAuditLog(Base):
     # Workflow de validation humaine
     validation_status = Column(String, default="PENDING")  # PENDING, VALIDATED, CORRECTED
     is_correct = Column(Boolean, nullable=True)
+    is_scanned = Column(Boolean, default=False, nullable=True)
+    inspection_method = Column(String, nullable=True)
     corrected_type = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)

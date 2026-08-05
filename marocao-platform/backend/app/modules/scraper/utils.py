@@ -1,13 +1,12 @@
 from sqlalchemy.orm import joinedload
 from backend.app import database
-import os, json
+import os, json, unicodedata
 from datetime import datetime
 from sqlalchemy.orm import Session
 from backend.app.database.models import Tender, TenderDocument, TenderLot
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side 
 import pandas as pd
-import unicodedata
 
 DATA_STORAGE_DIR = r"C:\Users\achra\Desktop\Intern\Project\marocao-platform\data_storage"
 EXCEL_PATH = os.path.join(DATA_STORAGE_DIR, "tenders_export.xlsx")
@@ -250,6 +249,10 @@ def sync_local_tenders_to_db(db: Session):
                         nbr_documents=len(temp_docs),
                         is_recursive=meta_data.get('is_recursive', has_nested_zip),
                         metadata_json=meta_data,
+                        scraping_status=meta_data.get('scraping_status'),
+                        scraping_duration_sec=meta_data.get('scraping_duration_sec'),
+                        scraping_error_message=meta_data.get('scraping_error_message'),
+                        is_zip_corrupted=meta_data.get('is_zip_corrupted'),
                     )
                     # 4. Association des LOTS (Nouveau !)
                     lots_data = meta_data.get("lots", []) # On récupère la liste des lots
