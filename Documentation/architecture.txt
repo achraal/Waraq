@@ -30,8 +30,22 @@ marocao-platform/
 │   │   │   │   ├── llm_analyzer.py
 │   │   │   │   ├── routes.py
 │   │   │   │   ├── schemas.py
-│   │   │   │   ├── classification_service.py
-│   │   │   │   └── ocr_engine.py
+│   │   │   │   ├── learning_service.py  # Mécanisme de feedback/apprentissage continu pour ajuster les performances du modèle
+│   │   │   │   ├── rules.py                  # Moteur de règles déterministes et heuristiques venant appuyer l'IA pour la classification
+│   │   │   │   ├── document_splitter.py      # Logique de découpage des PDF multi-pages (en veillant à laisser les fichiers sources du dossier 'extracted' intacts)
+│   │   │   │   ├── classification_service.py # Orchestrateur classifiant les documents (RC, CPS, BDR...) et historisant les multiples raisons de classificatio
+│   │   │   │   ├── fast_ocr_engine.py        # Moteur OCR lourd/avancé (ONNX / PaddleOCR) sollicité pour les documents scannés complexes ou bruités 
+│   │   │   │   └── ocr_engine.py             # Moteur OCR léger et rapide pour extraire le texte natif ou facilement lisible lors d'un premier passage
+│   │   │   │
+│   │   │   ├── rag_engine/                # PIPELINE RAG
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── embeddings.py          # Wrapper BAAI/bge-m3 avec gestion mémoire RAM
+│   │   │   │   ├── vector_store.py        # Connecteur ChromaDB (PersistentClient local)
+│   │   │   │   ├── chunker.py             # Découpage multilingue (FR/AR) adaptatif
+│   │   │   │   ├── rag_service.py         # Orchestrateur RAG & Extraction via Granite 4.1:3B
+│   │   │   │   ├── prompts.py             # Prompts système d'extraction métier
+│   │   │   │   ├── schemas.py             # Schémas Pydantic pour la structure du JSON RAG
+│   │   │   │   └── routes.py              # Endpoints pour relancer/consulter l'analyse RAG
 │   │   │   │
 │   │   │   ├── audit/         # 
 │   │   │   │   ├── __init__.py 
@@ -43,7 +57,7 @@ marocao-platform/
 │   │   │   │   ├── parser.py    # Extraction et structuration des données HTML/données brutes
 │   │   │   │   ├── portal_scraper.py # Logique de navigation et orchestration des tâches de scraping
 │   │   │   │   ├── routes.py    # Endpoints pour piloter ou inspecter l'état du scraper
-│   │   │   │   ├── email_monitor.py    # 
+│   │   │   │   ├── email_monitor.py    # Surveillance des alertes emails/notifications relatives aux nouveaux avis d'AO
 │   │   │   │   └── utils.py     # Fonctions d'aide (nettoyage de texte, stockage base de données)
 │   │   │   │
 │   │   │   ├── tenders/         # Gestion et cycle de vie des appels d'offres
@@ -53,10 +67,14 @@ marocao-platform/
 │   │   │   ├── telemetry/       #
 │   │   │   │   ├── __init__.py 
 │   │   │   │   ├── routes.py    # 
-│   │   │   │   └── metrics_service.py   # 
+│   │   │   │   └── metrics_service.py   # Collecte des métriques en temps réel
 │   │   │   │
 │   │   │   └── workflows/       # Automatisation et génération
-│   │   │       └── doc_generator.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── bdp_processor.py       # Extraction & complétion Excel/Word du Bordereau des Prix
+│   │   │   │   ├── admin_docs_generator.py # Génération Acte d'Engagement / Déclaration sur l'Honneur
+│   │   │   │   ├── doc_generator.py       # Moteur d'injection (python-docx / openpyxl)
+│   │   │   │   └── routes.py
 │   │   │
 │   │   └── config.py            # Chargement des variables d'environnement (Pydantic Settings)
 │   │
@@ -107,14 +125,13 @@ marocao-platform/
 
 
 
-Voici le diagramme d'architecture mis à jour et enrichi avec le rôle exact de chaque composant (PyMuPDF, ONNX Runtime et YOLO) dans le pipeline de Waraq :
 
                         ┌─────────────────────────────────────────────────────────┐
                         │                DOCUMENT ENTRANT (PDF)                   │
                         └────────────────────────────┬────────────────────────────┘
                                                      │
                                        PyMuPDF : Inspection Rapide
-                                       (Détection Natif vs Scan < 0.01s)
+                              (Détection Texte Natif ou PDF Scanné)
                                                      │
          ┌───────────────────────────────────────────┴───────────────────────────────────────────┐
          ▼                                                                                       ▼
@@ -122,49 +139,336 @@ Voici le diagramme d'architecture mis à jour et enrichi avec le rôle exact de 
 │     CAS A : PDF NATIF (Texte)   │                                             │     CAS B : PDF SCANNÉ (Image)  │
 └────────────────┬────────────────┘                                             └────────────────┬────────────────┘
                  │                                                                               │
-                 │ - Extraction texte directe instantanée (< 0.001s)                             ├─► 1. DÉTECTION STRUCTURE & HEADER
-                 │ - Recherche d'ancres par REGEX                                                │    ├── YOLO (Layout Analysis)
-                 │                                                                               │    │   └─ Repère visuellement les blocs (En-tête, Tableau)
-                 │                                                                               │    │      en 0.02s sans OCR.
-                 │                                                                               │    └── PyMuPDF (Header Crop)
-                 │                                                                               │        └─ Découpe la zone supérieure (25-30% haut).
+                 │ - Extraction du texte avec PyMuPDF                                            │
+                 │ - Lecture directe des pages PDF                                                │
                  │                                                                               │
-                 │                                                                               ├─► 2. FAST OCR SUR HEADER
-                 │                                                                               │    └── ONNX Runtime (PaddleOCR ONNX)
-                 │                                                                               │        └─ Inférence CPU ultra-rapide (3x à 5x plus rapide)
-                 │                                                                               │           pour extraire le texte de l'en-tête.
+                 │                                                                               ├─► Conversion des pages en image
+                 │                                                                               │    (PyMuPDF)
                  │                                                                               │
-                 │                                                                               └─► 3. DÉTECTION DE FRONTIÈRES & DÉCOUPAGE
-                 │                                                                                    └─ Identification des points de rupture (ex: p.46)
-                 │                                                                                       et scission automatique des sous-documents.
-                 │                                                                                               │
+                 │                                                                               ├─► OCR
+                 │                                                                               │    PaddleOCR exécuté via
+                 │                                                                               │    ONNX Runtime (CPU)
+                 │                                                                               │
+                 │                                                                               └─► Reconstruction du texte
+                 │                                                                                    page par page
+                 │
                  └───────────────────────────────────────┬───────────────────────────────────────────────────────┘
                                                          │
                                                          ▼
-                                       ┌───────────────────────────────────┐
-                                       │   CLASSIFICATION & SEGMENTATION   │
-                                       │       (CPS, RC, BDR, etc.)        │
-                                       └─────────────────┬─────────────────┘
-                                                         │
-                                                         ▼
-                                       ┌───────────────────────────────────┐
-                                       │    EXTRACTION CIBLÉE DE DONNÉES   │
-                                       └─────────────────┬─────────────────┘
-                                                         │
-                         ┌───────────────────────────────┴───────────────────────────────┐
-                         ▼                                                               ▼
-             [ Si Document Natif ]                                             [ Si Document Scanné ]
-             │                                                                 │
-             └─► Extraction par Regex sur Ancres                               ├─► 1. YOLO (Localisation ROI)
-                 dans le flux de texte brut.                                   │    └─ Repère la bounding box exacte
-                                                                               │       (ex: Tableau de Prix, Bloc Article).
-                                                                               │
-                                                                               ├─► 2. PyMuPDF (Crop Image)
-                                                                               │    └─ Découpe la sous-image ciblée (RAM).
-                                                                               │
-                                                                               └─► 3. ONNX Runtime (Mini-OCR)
-                                                                                    └─ Inférence haute précision sur la vignette
-                                                                                       uniquement (0.05s par champ).
+                             ┌────────────────────────────────────────────────────────────┐
+                             │      NORMALISATION ET PRÉTRAITEMENT DU TEXTE               │
+                             │                                                            │
+                             │ • Nettoyage du texte                                       │
+                             │ • Suppression des caractères inutiles                      │
+                             │ • Uniformisation des espaces                               │
+                             └──────────────────────────┬─────────────────────────────────┘
+                                                        │
+                                                        ▼
+                           ┌──────────────────────────────────────────────────────────────┐
+                           │          CLASSIFICATION DES DOCUMENTS (IA)                  │
+                           │                                                              │
+                           │ 1. Recherche d'ancres (Regex)                               │
+                           │ 2. Vérification par LLM (Few-Shot Prompting)                │
+                           │ 3. Classification finale                                    │
+                           │    (CPS, RC, BDR, Facture, Bon de commande, etc.)           │
+                           └──────────────────────────┬───────────────────────────────────┘
+                                                      │
+                                                      ▼
+                     ┌─────────────────────────────────────────────────────────────────────┐
+                     │        EXTRACTION CIBLÉE DES INFORMATIONS PAR TYPE                 │
+                     │                                                                     │
+                     │ • Prompts Few-Shot spécialisés                                     │
+                     │ • Extraction des champs métier                                     │
+                     │ • Validation et structuration des résultats                        │
+                     └──────────────────────────┬──────────────────────────────────────────┘
+                                                │
+                                                ▼
+                    ┌──────────────────────────────────────────────────────────────────────┐
+                    │                    STRUCTURATION DES DONNÉES                         │
+                    │                                                                      │
+                    │ • Format JSON                                                       │
+                    │ • Enregistrement dans la base de données                            │
+                    │ • Mise à disposition pour les modules Waraq                         │
+                    └──────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+
+
+
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+                            PIPELINE IA COMPLET — WARAQ
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                                      ┌──────────────────────────────────────────────┐
+                                      │            DOCUMENT ENTRANT                  │
+                                      │        (PDF, Image, Scan, etc.)             │
+                                      └──────────────────────┬───────────────────────┘
+                                                             │
+                                                Inspection du document
+                                                      (PyMuPDF)
+                                                             │
+                          ┌──────────────────────────────────┴──────────────────────────────────┐
+                          ▼                                                                     ▼
+                 PDF Texte Natif                                                       PDF Scanné
+                          │                                                                     │
+                          │ Extraction du texte                                                │ Conversion en image
+                          │ (PyMuPDF)                                                          │ (PyMuPDF)
+                          │                                                                     │
+                          │                                                                     ▼
+                          │                                                       PaddleOCR + ONNX Runtime
+                          │                                                                     │
+                          └──────────────────────────────────┬──────────────────────────────────┘
+                                                             │
+                                                             ▼
+                                      ┌──────────────────────────────────────────────┐
+                                      │      NORMALISATION DU TEXTE                  │
+                                      │ Nettoyage • Regex • Uniformisation           │
+                                      └──────────────────────┬───────────────────────┘
+                                                             │
+                                                             ▼
+                              ┌───────────────────────────────────────────────────────┐
+                              │      CLASSIFICATION DES DOCUMENTS (IA)               │
+                              │                                                       │
+                              │ • Détection par Regex                                │
+                              │ • Vérification Few-Shot                              │
+                              │ • LLM                                                │
+                              │ • Type documentaire                                  │
+                              └──────────────────────┬────────────────────────────────┘
+                                                     │
+                                                     ▼
+                         ┌──────────────────────────────────────────────────────────────┐
+                         │      EXTRACTION STRUCTURÉE DES DONNÉES (LLM)                │
+                         │                                                              │
+                         │ • Prompts spécialisés                                       │
+                         │ • Few-Shot Prompting                                        │
+                         │ • Validation des résultats                                  │
+                         └──────────────────────┬───────────────────────────────────────┘
+                                                │
+                                                ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │              STRUCTURATION DES DONNÉES                            │
+                      │                                                                    │
+                      │ JSON • Métadonnées • Base SQL                                     │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+                             INDEXATION SÉMANTIQUE (RAG)
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │             CHUNKING INTELLIGENT                                  │
+                      │ Découpage du document en segments cohérents                       │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │          GÉNÉRATION DES EMBEDDINGS                                │
+                      │                                                                    │
+                      │                 BGE-M3                                             │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │              BASE VECTORIELLE                                     │
+                      │                                                                    │
+                      │                 ChromaDB                                           │
+                      │                                                                    │
+                      │ • Embeddings                                                      │
+                      │ • Métadonnées                                                     │
+                      │ • Index sémantique                                                │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+                     GÉNÉRATION AUGMENTÉE PAR RÉCUPÉRATION (RAG)
+══════════════════════════════════════════════════════════════════════════════════════════════════════
+
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │       RECHERCHE SÉMANTIQUE AUTOMATIQUE                            │
+                      │                                                                    │
+                      │ • Similarité vectorielle (Top-K)                                  │
+                      │ • ChromaDB + BGE-M3                                                │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │      CONSTRUCTION DU CONTEXTE                                     │
+                      │                                                                    │
+                      │ • Chunks pertinents                                                │
+                      │ • Métadonnées                                                      │
+                      │ • Exemples Few-Shot                                                │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │              GÉNÉRATION PAR LLM                                   │
+                      │                                                                    │
+                      │ • Raisonnement                                                     │
+                      │ • Validation                                                       │
+                      │ • Génération de la sortie finale                                  │
+                      └──────────────────────┬─────────────────────────────────────────────┘
+                                             │
+                                             ▼
+                      ┌────────────────────────────────────────────────────────────────────┐
+                      │              DONNÉES FINALES STRUCTURÉES                          │
+                      │                                                                    │
+                      │ JSON enrichi • Données métier • Exploitation Waraq                │
+                      └────────────────────────────────────────────────────────────────────┘
+
+
+
+
+
+                           ┌───────────────────────────┐
+                           │   Document (PDF / DOCX)   │
+                           └─────────────┬─────────────┘
+                                         │
+                                         ▼
+                     ┌──────────────────────────────────┐
+                     │ Classification (inchangée)       │
+                     │                                  │
+                     │ • PyMuPDF (texte natif)          │
+                     │ • RapidOCR ONNX (OCR)            │
+                     │ • Détection des scans            │
+                     │ • Découpage des documents        │
+                     │ • Qwen (classification IA)       │
+                     └─────────────┬────────────────────┘
+                                   │
+                     Résultat de classification
+                                   │
+                                   ▼
+                    ┌───────────────────────────────────┐
+                    │      Pipeline RAG (nouveau)       │
+                    └─────────────┬─────────────────────┘
+                                  │
+                                  ▼
+                  ┌─────────────────────────────────────┐
+                  │ GLM-OCR (Vision Language Model)      │
+                  │                                     │
+                  │ • Compréhension visuelle            │
+                  │ • Extraction intelligente           │
+                  │ • Structure des tableaux            │
+                  │ • Documents FR & AR                │
+                  │ • Nettoyage du texte               │
+                  └─────────────┬───────────────────────┘
+                                │
+                                ▼
+                  ┌─────────────────────────────────────┐
+                  │ Granite 4.1:3B                      │
+                  │                                     │
+                  │ Analyse métier :                    │
+                  │ • Résumé du document               │
+                  │ • Clauses administratives          │
+                  │ • Clauses techniques               │
+                  │ • Pièces à fournir                 │
+                  │ • Critères d'évaluation            │
+                  │ • Délais et dates importantes      │
+                  │ • Informations financières         │
+                  │ • Livrables attendus               │
+                  │ • JSON structuré                   │
+                  └─────────────┬───────────────────────┘
+                                │
+                                ▼
+                 ┌──────────────────────────────────────┐
+                 │ extracted_text                       │
+                 │                                      │
+                 │ • Texte enrichi                      │
+                 │ • Résumé                             │
+                 │ • Métadonnées                        │
+                 │ • Informations métier                │
+                 │ • JSON complet                       │
+                 └─────────────┬────────────────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────────────────┐
+                 │ BGE Embedding Model                  │
+                 │                                      │
+                 │ • Génération des embeddings          │
+                 │ • Vecteurs sémantiques               │
+                 └─────────────┬────────────────────────┘
+                               │
+                               ▼
+                 ┌──────────────────────────────────────┐
+                 │ ChromaDB                             │
+                 │                                      │
+                 │ • Stockage des embeddings            │
+                 │ • Indexation vectorielle             │
+                 │ • Recherche sémantique               │
+                 └─────────────┬────────────────────────┘
+                               │
+                               ▼
+              Assistant IA / Recherche RAG / Recommandations
+
+
+
+
+                Upload
+                   │
+                   ▼
+        OCR (RapidOCR ONNX)
+                   │
+                   ▼
+          extracted_text
+             /        \
+            /          \
+           ▼            ▼
+  Classification      Pipeline RAG
+  (actuel)            (nouveau)
+           │            │
+           │            ├── Chunking
+           │            ├── Embeddings
+           │            ├── Recherche vectorielle
+           │            ├── LLM
+           │            └── JSON métier
+           │
+           ▼
+   Type du document
+           │
+           └──────────────┐
+                          ▼
+                 Attendre les deux
+                          │
+                          ▼
+             Document complètement traité
+
+
+
+                Import du document
+                        │
+                        ▼
+            Détection Texte / Scan
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+          ▼                           ▼
+    PDF texte                   PDF scanné
+          │                           │
+          ▼                           ▼
+   PyMuPDF (fitz)        RapidOCR + ONNX Runtime
+          │                           │
+          └─────────────┬─────────────┘
+                        ▼
+             Normalisation du texte
+        (accents, espaces, caractères)
+                        │
+                        ▼
+            Analyse structurelle
+      (titres, documents composites,
+          découpage automatique)
+                        │
+                        ▼
+         Classification par LLM
+            (Few-Shot Learning)
+                        │
+                        ▼
+       Type documentaire final
+
+
+
 
 
 

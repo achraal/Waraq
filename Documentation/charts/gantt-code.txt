@@ -1,0 +1,38 @@
+gantt
+    dateFormat  YYYY-MM-DD
+    axisFormat  %Y-%m-%d
+    title Planification Globale du Projet Waraq
+    todayMarker off
+
+    section Jalon
+    Lancement Officiel du Projet Waraq                      :milestone, m1, 2026-06-29, 0d
+
+    section Sprint 1: Conception, Scraping Multi-Lots & Authentification
+    Spécifications Techniques, UML & Modélisation BDD PostgreSQL :done, s1_1, 2026-06-29, 5d
+    Environnement Backend FastAPI, uv & Architecture Modulaire   :done, s1_2, 2026-07-04, 3d
+    Scraper Selenium, Navigation Auto & Telechargement Archives  :done, s1_3, 2026-07-07, 5d
+    Extraction Recursive ZIP & Gestion du Stockage Physique      :done, s1_4, 2026-07-12, 4d
+    Support Architecture Multi-Lots, Migrations Alembic & CRUD   :done, s1_5, 2026-07-16, 4d
+    Auth JWT, Hashage Argon2id & Profiling Juridique (5 Profils)  :done, s1_6, 2026-07-20, 3d
+    Monitoring Email PMMP & Export Excel Stylise                 :done, s1_7, 2026-07-23, 3d
+    Fixes Sprint 1 (Pagination Impaire, OutOfRange & Doublons)  :done, s1_8, 2026-07-26, 3d
+
+    section Sprint 2: IDP, Moteur IA Hybride, Generation & Telemetrie
+    Refonte OCR Multi-formats (PyMuPDF, Tesseract, Word & CAO)  :active, s2_1, 2026-07-29, 5d
+    Classification Hybride (Regles Primitives + Fallback Qwen 2.5):s2_2, 2026-08-03, 6d
+    Traitement Pre-IA Optimise (Redimensionnement & Formats SIG):s2_3, 2026-08-09, 3d
+    Decoupage Intelligent & Suppression Split Inconnu            :s2_4, 2026-08-12, 3d
+    Arborescence Physically Classified & Copies de Securite     :s2_5, 2026-08-15, 3d
+    Circuit Validation Humaine Human-in-the-Loop (4 Cas Metiers) :s2_6, 2026-08-18, 4d
+    Persistance ClassificationAuditLog & Endpoints Metrics       :s2_7, 2026-08-22, 3d
+    Extraction Contextuelle Metrics Cles (Caut. Estim. Dates)    :s2_8, 2026-08-25, 3d
+    Workflow Generation Auto .docx (Acte Engagement & DH)        :s2_9, 2026-08-28, 3d
+    Module Telemetrie, Cron Hourly APScheduler & SystemMetrics   :s2_10, 2026-08-31, 3d
+    Fixes Sprint 2 (WinError Path, Timeouts LLM, PaddleOCR C++)  :s2_11, 2026-09-03, 3d
+
+    section Sprint 3: Frontend React, Recette & Livrables
+    Setup React, Vite, Tailwind CSS & Dynamic Routing            :s3_1, 2026-09-06, 2d
+    Tableau de Bord, Vue Tabulaire & Filtres Avances Opportunites:s3_2, 2026-09-08, 3d
+    Espace Documentaire, Previsualisation Natifs & Mode Vitrine  :s3_3, 2026-09-11, 2d
+    Tests E2E, Recette Globale & Nettoyage Dette Technique       :crit, p5_1, 2026-09-13, 2d
+    Redaction Rapport Final & Preparation Support Soutenance     :crit, p5_2, 2026-09-15, 3d

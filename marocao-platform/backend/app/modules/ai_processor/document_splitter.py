@@ -71,15 +71,6 @@ def est_un_titre(ligne: str) -> bool:
         return False
 
     # présence de verbes ou connecteurs
-    #mots_phrase = [
-        #"EST", "SONT", "DOIT", "DOIVENT",
-        #"PEUT", "PEUVENT",
-        #"SERA", "SERONT",
-        #"ARTICLE", "CONFORMEMENT",
-        #"CONFORMÉMENT",
-        #"LE", "LA", "LES"
-    #]
-    
     mots_phrase = [
         "EST", "SONT", "DOIT", "DOIVENT",
         "PEUT", "PEUVENT",
@@ -216,26 +207,35 @@ def analyser_haut_de_page(page_text: str) -> dict:
     # 2. DÉTECTION DU BORDEREAU DES PRIX / DETAIL ESTIMATIF (Modèle interne -> NE COUPE PAS)
     # Gère les cas : "BORDEREAU DES PRIX", "DETAIL ESTIMATIF", "BORDEREAU DES PRIX - DETAIL ESTIMATIF" + VALIDATION TABLEAU
 
-    pattern_bdp = r"(BORDEREAU\s+(DES\s+)?PRIX|D[EÉè]TAIL\s+ESTIMATIF)"
-    match_bdp = re.search(pattern_bdp, top_text)
-
-    if match_bdp:
-        # On prend le reste de la page situé après la mention du titre
-        index_titre = match_bdp.end()
-        reste_page = top_text[index_titre:] + " " + " ".join(lignes[20:])
-
+    #pattern_bdp = r"(BORDEREAU\s+(DES\s+)?PRIX|D[EÉè]TAIL\s+ESTIMATIF)"
+    if (
+        "BORDEREAUDESPRIX" in top_text_norm
+        or "DETAILESTIMATIF" in top_text_norm
+    ):
+        #match_bdp = re.search(pattern_bdp, top_text)
         # VÉRIFICATION DU TABLEAU
-        if contient_structure_tableau(reste_page):
+        if contient_structure_tableau(page_text):
             return {
                 "file_type": "BORDEREAU_PRIX",
                 "is_major_break": False,     # NE COUPE PAS
                 "is_internal_model": True    # Tracer en BDD / Logs
             }
 
+    #if match_bdp:
+        # On prend le reste de la page situé après la mention du titre
+        #index_titre = match_bdp.end()
+        #reste_page = top_text[index_titre:] + " " + " ".join(lignes[20:])
+
+        # VÉRIFICATION DU TABLEAU
+        #if contient_structure_tableau(reste_page):
+            #return {
+                #"file_type": "BORDEREAU_PRIX",
+                #"is_major_break": False,     # NE COUPE PAS
+                #"is_internal_model": True    # Tracer en BDD / Logs
+            #}
     # -------------------------
     # AVIS D'APPEL D'OFFRES
     # -------------------------
-
     texte_page = "\n".join(lignes)
 
     nb_mots = len(page_text.split())
@@ -259,14 +259,12 @@ def analyser_haut_de_page(page_text: str) -> dict:
                     "is_major_break": True,
                     "is_internal_model": False
                 }
-
         avis_ar = [
             "اعلان عن طلب عروض",
             "إعلان عن طلب العروض",
             "اعلان عن طلب عروض مفتوح",
             "إعلان عن طلب العروض مفتوح",
         ]
-
         top_ar = "\n".join(lignes[:6])
 
         if nb_arabe > 80:
@@ -278,33 +276,14 @@ def analyser_haut_de_page(page_text: str) -> dict:
                         "is_internal_model": False
                     }
 
-    # 3. Normalisation CPS / CCAP / CCTP (AVEC DÉTECTION STRICTE DE TITRE)
-    #for alias, canonical in MAPPING_TYPES.items():
-        # Regex qui vérifie que l'alias est un MOT ISOLÉ (pas dans une phrase au milieu de mots)
-        # Ex: matches "CCTP", "CAHIER DES CLAUSES..." mais pas "...du CCTP du présent..."
-        #pattern_titre = rf"^\s*({re.escape(alias)})\b|\b({re.escape(alias)})\s*$"
-        
-        # On vérifie ligne par ligne dans les 5 premières lignes au lieu de coller tout le texte
-        #for ligne in lignes[:15]:
-            # Si la ligne est courte (ex: < 60 car) ET commence/finit par l'alias -> C'est un TITRE !
-            #if len(ligne) < 60 and re.search(pattern_titre, ligne):
-                # Sécurité anti-citation : Exclure si la ligne contient des verbes/prépositions de phrase
-                #mots_parasites = ["DU", "DES", "EXIGENCES", "CONFORME", "PRESENTE", "ARTICLE"]
-                #if not any(mp in ligne for mp in mots_parasites):
-                    #return {
-                        #"file_type": canonical,
-                        #"is_major_break": not est_un_modele,
-                        #"is_internal_model": est_un_modele
-                    #}
-                    
+    # 3. Normalisation CPS / CCAP / CCTP (AVEC DÉTECTION STRICTE DE TITRE)                    
     for alias, canonical in MAPPING_TYPES.items():
-
         alias_norm = normaliser_ocr(alias)
-
-        for ligne in lignes_norm[:15]:
-
-            if alias_norm in ligne:
-
+        #for ligne in lignes_norm[:15]:
+        for ligne_originale, ligne_norm in zip(lignes[:15], lignes_norm[:15]):
+            if not est_un_titre(ligne_originale):
+                continue
+            if alias_norm in ligne_norm:
                 return {
                     "file_type": canonical,
                     "is_major_break": not est_un_modele,
@@ -312,36 +291,21 @@ def analyser_haut_de_page(page_text: str) -> dict:
                 }
 
     # 4. Détection Règlement de Consultation (RC)
-    if re.search(r"R[EÉÈ]GLEMENT\s+(DE\s+(LA\s+)?)?CONSULTATION", top_text):
+    #if re.search(r"R[EÉÈ]GLEMENT\s+(DE\s+(LA\s+)?)?CONSULTATION", top_text):
+    if "REGLEMENTDELACONSULTATION" in top_text_norm:
         return {
             "file_type": "RC",
             "is_major_break": not est_un_modele,
             "is_internal_model": est_un_modele
         }
 
-    # 5. Détection des autres modèles isolés (Acte d'engagement, Déclaration sur l'honneur, etc.)
-    #for model_type, keywords in MODELES_INTERNES.items():
-        #for ligne in lignes:
-            #if not est_un_titre(ligne):
-                #continue
-            #if any(kw in top_text for kw in keywords):
-                #return {
-                    #"file_type": model_type,
-                    #"is_major_break": False,  # Ne coupe pas
-                    #"is_internal_model": True
-                #}
-                
+    # 5. Détection des autres modèles isolés (Acte d'engagement, Déclaration sur l'honneur, etc.)               
     for model_type, keywords in MODELES_INTERNES.items():
-
         for ligne in lignes_norm[:15]:
-
             if not est_un_titre(ligne):
                 continue
-
             for kw in keywords:
-
                 if normaliser_ocr(kw) in ligne:
-
                     return {
                         "file_type": model_type,
                         "is_major_break": False,
@@ -387,11 +351,6 @@ def verifier_et_decouper_document(
             return [(type_document_global, file_path)], False, f"Document court ({total_pages} pages)."
 
         # Test document scanné
-        # texte_test = "".join([reader.pages[i].extract_text() or "" for i in range(min(3, total_pages))])
-        # if len(texte_test.strip()) < 100:
-            # logger.warning(f"[DECOUPAGE SAUTÉ] '{nom_fichier}' semble être un scan.")
-            # return [(type_document_global, file_path)], False, f"Document scanné ({total_pages} pages)."
-
         modeles_detectes = []
         splits_proposes = []
         type_courant = type_document_global
@@ -402,9 +361,7 @@ def verifier_et_decouper_document(
         # 3. Parcours page par page
         for page_idx in range(total_pages):
             num_page = page_idx + 1
-            #res_ocr = extraire_texte_page_pdf_avec_meta(pdf_path_a_traiter, page_num=page_idx)
-            #page_text = res_ocr["text"]
-            
+           
             if extraction and "pages" in extraction:
                 res_ocr = extraction["pages"][page_idx]
             else:
@@ -432,26 +389,13 @@ def verifier_et_decouper_document(
                 logger.info(f"[DECOUPAGE LOG] Page {num_page} identifiée comme SOMMAIRE/TABLE DES MATIÈRES. Rupture ignorée sur cette page.")
 
             # Capture des ruptures majeures pour découpage (Seulement si >= 20 pages)
-            #if total_pages >= 10 and not est_sommaire and header_info.get("is_major_break") and file_type_detecte in TYPES_MAJEURS_SPLIT:
-                #if type_courant and file_type_detecte != type_courant:
-                    #logger.info(f"[DECOUPAGE LOG] Rupture majeure p.{num_page} : Changement {type_courant} -> {file_type_detecte}")
-                    #splits_proposes.append({
-                        #"type": type_courant,
-                        #"start": page_debut_segment,
-                        #"end": page_idx  # La page précédente termine le segment
-                    #})
-                    #page_debut_segment = num_page
-                    #type_courant = file_type_detecte
-        
             if (
                 total_pages >= 10
                 and not est_sommaire
                 and header_info.get("is_major_break")
                 and file_type_detecte in TYPES_MAJEURS_SPLIT
             ):
-
                 if file_type_detecte != type_courant:
-
                     # Premier changement dès la page 1
                     if num_page == 1:
                         logger.info(
@@ -461,17 +405,14 @@ def verifier_et_decouper_document(
                         type_courant = file_type_detecte
                         page_debut_segment = 1
                         continue
-
                     logger.info(
                         f"[DECOUPAGE LOG] Rupture majeure p.{num_page} : {type_courant} -> {file_type_detecte}"
                     )
-
                     splits_proposes.append({
                         "type": type_courant,
                         "start": page_debut_segment,
                         "end": page_idx
                     })
-
                     page_debut_segment = num_page
                     type_courant = file_type_detecte
         # Clôture du dernier segment

@@ -47,7 +47,7 @@ def extraire_texte_en_tete_fast_ocr(path_pdf: str, page_num: int = 0, ratio_haut
         # 2. Pré-traitement OpenCV léger pour maximiser la netteté
         gray = cv2.cvtColor(img_crop, cv2.COLOR_BGR2GRAY)
         #_, thresh = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        
+        # 3. Inférence via ONNX Runtime
         engine = _get_onnx_ocr_engine()
         if not engine:
             return ""
@@ -68,25 +68,7 @@ def extraire_texte_en_tete_fast_ocr(path_pdf: str, page_num: int = 0, ratio_haut
 
             if len(texte_complet) > len(texte_final):
                 texte_final = texte_complet
-        
-        # 3. Inférence via ONNX Runtime
-        #engine = _get_onnx_ocr_engine()
-        #if not engine:
-            #return ""
-            
-        # rapidocr_onnxruntime prend directement l'image numpy OpenCV en entrée
-        ##result, elapse_list = engine(thresh)
-        #result, elapse_list = engine(gray)
-        
-        #lignes = []
-        #if result:
-            #for item in result:
-                #texte_detecte = item[1]  # Chaîne de texte extraite
-                #confiance = item[2]     # Score de confiance
-                #if confiance > 0.4:     # Filtrage léger du bruit
-                    #lignes.append(texte_detecte)
-                
-        #texte_final = "\n".join(lignes).strip()
+
         logger.info(f"[FAST_OCR_ONNX] P.{page_num+1}/{total_pages} - En-tête scannée extraite via ONNX ({len(texte_final)} car.) : {texte_final[:60]}...")
         return texte_final
        

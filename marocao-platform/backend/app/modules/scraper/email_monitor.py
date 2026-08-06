@@ -10,61 +10,6 @@ username = settings.EMAIL_USER
 password = settings.EMAIL_PASSWORD
 imap_url = settings.EMAIL_IMAP_SERVER
 
-# def fetch_marche_publics():
-#     # Debug avant la connexion
-#     if not username or not password:
-#         print("ERREUR CRITIQUE: EMAIL_USER ou EMAIL_PASSWORD non définis dans le .env")
-#         return []
-
-#     try:
-#         # Connexion
-#         mail = imaplib.IMAP4_SSL(imap_url)
-#         mail.login(username, password)
-#         mail.select("inbox")
-
-#         # Recherche
-#         status, messages = mail.search(None, 'FROM "noreply-marchespublics@tgr.gov.ma"')
-        
-#         if status != "OK":
-#             return []
-
-#         email_ids = messages[0].split()
-#         results = []
-        
-#         # On itère sur les derniers messages
-#         for e_id in email_ids[-5:]:
-#             _, msg_data = mail.fetch(e_id, "(RFC822)")
-#             for response_part in msg_data:
-#                 if isinstance(response_part, tuple):
-#                     msg = email.message_from_bytes(response_part[1])
-                    
-#                     # 1. Obtenir l'objet et le convertir en string proprement
-#                     raw_subject = msg.get("Subject", "")
-#                     if isinstance(raw_subject, email.header.Header):
-#                         # Si c'est un objet Header, on le décode proprement
-#                         try:
-#                             subject = str(email.header.make_header(decode_header(raw_subject)))
-#                         except:
-#                             subject = str(raw_subject)
-#                     else:
-#                         subject = raw_subject
-
-#                     # 2. Nettoyage final sécurisé (on s'assure que c'est une string)
-#                     subject = str(subject).replace("PMMP - ", "").strip()
-                    
-#                     results.append({
-#                         "mail_uid": e_id.decode(),
-#                         "subject": subject,
-#                         "date": msg["Date"]
-#                     })
-        
-#         mail.logout()
-#         return results
-
-#     except Exception as e:
-#         print(f"Erreur lors de la récupération des emails: {e}")
-#         return []
-
 def fetch_marche_publics():
     if not username or not password:
         print("ERREUR CRITIQUE: EMAIL_USER ou EMAIL_PASSWORD non définis")
@@ -105,28 +50,6 @@ def fetch_marche_publics():
                         subject = str(raw_subject)
 
                     subject = subject.replace("PMMP - ", "").strip()
-                    
-                    # try:
-                    #     # On décode les parties de l'en-tête
-                    #     decoded_parts = decode_header(raw_subject)
-                    #     subject_str = ""
-                    #     for part, encoding in decoded_parts:
-                    #         if isinstance(part, bytes):
-                    #             # On essaie l'encodage spécifié, sinon on force utf-8 ou latin-1
-                    #             enc = encoding if encoding else 'utf-8'
-                    #             try:
-                    #                 subject_str += part.decode(enc)
-                    #             except (UnicodeDecodeError, LookupError):
-                    #                 # Secours : forcer le latin-1 (très fréquent pour les accents français/marocains)
-                    #                 subject_str += part.decode('latin-1', errors='replace')
-                    #         else:
-                    #             subject_str += part
-                    #     subject = subject_str
-                    # except Exception:
-                    #     # Dernier recours : garder le texte brut
-                    #     subject = str(raw_subject)
-
-                    #subject = subject.replace("PMMP - ", "").strip()
                     
                     # 2. Extraction du corps (pour le champ 'content')
                     content = get_email_body(msg)

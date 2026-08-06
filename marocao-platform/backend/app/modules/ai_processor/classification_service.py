@@ -67,10 +67,6 @@ def determiner_type_par_ia(file_path: str, ext: str, nom_fichier: str, contexte_
 
         is_scanned_detecte = False
         inspection_methode_detectee = "NATIVE"
-        # page_count = None
-        # word_count = 0
-        # file_size_mb = None
-        # ocr_duration_sec = 0.0
 
         if isinstance(res_extraction, dict):
             texte_p1 = res_extraction.get("text", "")
@@ -101,21 +97,6 @@ def determiner_type_par_ia(file_path: str, ext: str, nom_fichier: str, contexte_
             logger.warning(f"[IA] Texte extrait vide pour : {nom_fichier}")
             return valeur_par_defaut, "IA_FALLBACK_TEXTE_VIDE", "Le texte extrait est vide.", meta_fallback
 
-        #logger.info("=" * 80)
-        #logger.info(f"SCAN : {is_scanned_detecte}")
-        #logger.info(f"METHODE : {inspection_methode_detectee}")
-        #logger.info(f"LONGUEUR : {len(texte_p1)}")
-        #logger.info(texte_p1[:5000])
-        #logger.info("=" * 80)
-        #logger.info(f"[IA] Envoi du texte extrait à Qwen pour {nom_fichier}...")
-        #res_ia = classifier_texte_document(texte_p1, contexte_few_shot)
-        # logger.info(
-        #     "[TRACE avant classifier_texte_document] "
-        #     f"page_count={page_count} | "
-        #     f"word_count={word_count} | "
-        #     f"file_size_mb={file_size_mb} | "
-        #     f"ocr_duration_sec={ocr_duration_sec}"
-        # )
         res_ia = classifier_texte_document(
             texte_p1,
             contexte_few_shot,
@@ -177,109 +158,6 @@ def determiner_type_par_ia(file_path: str, ext: str, nom_fichier: str, contexte_
         )
         return valeur_par_defaut, "IA_CRASH_FALLBACK", f"Erreur lors de l'analyse : {str(e)}", meta_crash
 
-# def determiner_type_par_ia(file_path: str, ext: str, nom_fichier: str, contexte_few_shot: str, doc_id: str, db: Session ) -> tuple[str, str, str, dict]:
-#     valeur_par_defaut = nom_fichier.upper()
-#     logger.info(f"[IA] Début de l'analyse du document pour classification : {nom_fichier}")
-#     try:
-#         chemin_a_analyser = file_path
-#         if ext in [".jpg", ".jpeg", ".png", ".tiff", ".bmp"]:
-#             chemin_a_analyser = optimiser_image_pour_analyse(file_path, max_side=2048)
-#         try:
-#             texte_p1 = extraire_texte_integral(chemin_a_analyser)
-#         finally:
-#             # Nettoyage si un fichier temporaire _opti a été généré
-#             if chemin_a_analyser != file_path and os.path.exists(chemin_a_analyser):
-#                 try:
-#                     os.remove(chemin_a_analyser)
-#                 except Exception:
-#                     pass
-                    
-#         if isinstance(texte_p1, dict):
-#             # Si c'est un dictionnaire (ex: extrait d'un Excel), on fusionne les valeurs textuelles
-#             texte_p1 = " ".join([str(val) for val in texte_p1.values() if val])
-#         elif not isinstance(texte_p1, str):
-#             texte_p1 = str(texte_p1) if texte_p1 is not None else ""
-                    
-#         if not texte_p1 or not texte_p1.strip():
-#             meta_fallback = construire_metriques(
-#                 model="IA_FALLBACK_TEXTE_VIDE",
-#                 confidence=1,
-#                 raison="Le texte extrait de la première page est vide."
-#             )
-#             logger.warning(f"[IA] Texte extrait de la première page vide pour : {nom_fichier}")
-#             return valeur_par_defaut, "IA_FALLBACK_TEXTE_VIDE", "Le texte extrait est vide.", meta_fallback
-            
-#         logger.info(f"[IA] Envoi du texte extrait à Qwen pour {nom_fichier}...")
-#         res_ia = classifier_texte_document(texte_p1, contexte_few_shot)
-#         type_extrait = "INCONNU"
-#         description_extraite = ""
-#         metrics_extraites = {}
-        
-#         if isinstance(res_ia, tuple):
-#             logger.info(f"[IA] llm_analyzer a renvoyé un tuple : {res_ia}")
-#             type_extrait = res_ia[0] if len(res_ia) > 0 else "INCONNU"
-#             description_extraite = res_ia[1] if len(res_ia) > 1 else ""
-#             metrics_extraites = res_ia[2] if len(res_ia) > 2 else {}
-#         elif isinstance(res_ia, str):
-#             type_extrait = res_ia
-#             description_extraite = "Classifié par analyse de contenu."
-#         langue_ia = metrics_extraites.get("detected_language", "fr") if metrics_extraites else "fr"
-            
-#         metrics_complete = construire_metriques(
-#             model=metrics_extraites.get("model", "QWEN_LLM"),
-#             confidence=metrics_extraites.get("confidence_score"),
-#             keywords=metrics_extraites.get("extracted_keywords"),
-#             language=langue_ia,
-#             texte=texte_p1,
-#             raison=description_extraite,
-#             extra_metrics=metrics_extraites
-#         )
-#         t_clean = nettoyer_nom_type(type_extrait)
-#         # === CRÉATION DU LOG D'AUDIT EN BDD ===
-#         #log_audit = ClassificationAuditLog(
-#            # document_id=doc_id,  # L'ID du TenderDocument en cours
-#            # predicted_type=t_clean if t_clean != "INCONNU" else type_extrait,
-#            # classification_reason=description_extraite,
-#            # confidence_score=metrics_extraites.get("confidence_score"),
-#            # detected_language=langue_ia,
-#            # extracted_keywords=metrics_extraites.get("extracted_keywords"),
-#            # model_used=metrics_extraites.get("model", "qwen"),
-#            # execution_duration_sec=metrics_extraites.get("ollama_total_duration"),
-#            # prompt_tokens=metrics_extraites.get("prompt_tokens"),
-#            # generated_tokens=metrics_extraites.get("generated_tokens"),
-#            # text_length_chars=len(texte_p1),
-#            # text_word_count=len(texte_p1.split()),
-#            # has_uncertainty_keywords=metrics_extraites.get("has_uncertainty_keywords", False),
-#            # validation_status="PENDING"
-#         #)
-#         #db.add(log_audit)
-#         if t_clean != "INCONNU":
-#             logger.info(f"[IA] Succès : Qwen a classifié le document en '{t_clean}'")
-#             return t_clean, "CLASSIFICATION_IA_QWEN", description_extraite, metrics_complete
-            
-#         logger.warning(f"[IA] Qwen a renvoyé 'INCONNU' ou un échec pour {nom_fichier}. Utilisation du nom par défaut.")
-#         return valeur_par_defaut, "IA_FALLBACK_INCONNU", description_extraite, metrics_complete
-#     except Exception as e:
-#         logger.error(f"[IA] Crash de l'analyse IA pour {nom_fichier}: {str(e)}", exc_info=True)
-#         meta_crash = construire_metriques(
-#             model="IA_CRASH_FALLBACK",
-#             confidence=1,
-#             raison=f"Erreur lors de l'analyse : {str(e)}"
-#         )
-        
-#         try:
-#             log_crash = ClassificationAuditLog(
-#                 document_id=doc_id,
-#                 predicted_type="CRASH_ERROR",
-#                 classification_reason=f"Erreur lors de l'analyse : {str(e)}",
-#                 model_used="qwen",
-#                 validation_status="FAILED"
-#             )
-#             db.add(log_crash)
-#         except Exception as log_err:
-#             logger.error(f"[IA] Impossible d'ajouter le log de crash à la session BDD: {str(log_err)}")
-#         return valeur_par_defaut, "IA_CRASH_FALLBACK", f"Erreur lors de l'analyse : {str(e)}", meta_crash
-   
 def executer_classification_post_scraping(target_tender_id: Optional[int] = None):
     """Parcourt la base de données en regroupant le traitement par Appel d'Offres (Tender) 
     qui possède des documents non classifiés.
@@ -290,10 +168,6 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
         global_start_time = time.time()
         total_lignes_traitees = 0
 
-        # OPTION A : Extraction de TOUTES les corrections humaines de la BDD (limite=None)
-        logger.info("[OPTION A] Chargement de l'historique complet des corrections utilisateur...")
-        contexte_few_shot = WaraqLearningEngine.obtenir_exemples_few_shot(db, limite=None)
-        
         subquery = db.query(TenderDocument.tender_id).filter(
             TenderDocument.is_classified == False
         )
@@ -357,6 +231,16 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                         # 1. Étape Primitives + Vérification LLM par lots de 10 pages
                         type_primitive = appliquer_types_primitifs(nom_fichier, ext)
                         logger.info(f"[PRIMITIF] {nom_fichier} -> {type_primitive}")
+                        
+                        # OPTION A : EExtraction dynamique des dernières corrections humaines
+                        logger.info("[OPTION A] Chargement de l'historique complet des corrections utilisateur...")
+                        contexte_few_shot = WaraqLearningEngine.obtenir_exemples_few_shot(db, type_document=None, limite=15)
+                        logger.info(
+                            "[LEARNING] Contexte Few-Shot préparé pour %s (%s caractères)",
+                            type_primitive,
+                            len(contexte_few_shot)
+                        )
+                        
                         # Extraction de 100% du texte par lots de 10 pages
                         if ext == ".pdf":
                             extraction = extraire_texte_integral(chemin_original)
@@ -396,24 +280,6 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                             if not texte_global_condense.strip():
                                 texte_global_condense = nom_fichier
 
-                        #if ext == ".pdf":
-                            #is_scanned_global = any(
-                                #lot.get("is_scanned", False)
-                                #for lot in lots
-                            #)
-
-                            #inspection_method_global = (
-                                #"FAST_OCR_ONNX_FULL_PAGE"
-                                #if is_scanned_global
-                                #else "NATIVE_TEXT_PYMUPDF"
-                            #)
-                        # logger.info(
-                        #     "[DIAG AVANT LLM] "
-                        #     f"page_count={page_count} | "
-                        #     f"word_count={word_count} | "
-                        #     f"file_size_mb={file_size_mb} | "
-                        #     f"ocr_duration_sec={ocr_duration_sec}"
-                        # )
                         # Vérification LLM (validation du primitif ou classification directe)
                         res_llm = verifier_ou_classifier_par_llm(texte_global_condense, type_primitif_detecte=type_primitive, 
                         is_scanned=is_scanned_global, 
@@ -520,7 +386,6 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                             metrics_ia = construire_metriques(model="UNKNOWN", confidence=0, raison="Métadonnées indisponibles")
                             
                         # 4. Déplacement physique, mise à jour BDD et Nettoyage
-                        # 4. Déplacement physique, mise à jour BDD et Nettoyage
                         for idx, (t_final, path_source) in enumerate(fichiers_finaux):
                             t_final_clean = nettoyer_nom_type(t_final)
                             dossier_cible = BASE_STORAGE_DIR / "classified" / identifiant_dossier / t_final_clean
@@ -545,12 +410,18 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                         logger.error(f"   [Erreur] Nettoyage impossible pour {path_source} : {e}")
 
                             temps_reponse_doc = time.time() - doc_start_time
-                            
                             # -------------------------------------------------------------
                             # FIX : Copie profonde et isolation stricte du dictionnaire JSON
                             # -------------------------------------------------------------
                             # --- LOG DE DIAGNOSTIC AVANT INSERTION AUDIT ---
                             metadata_segment = copy.deepcopy(metrics_ia or {})
+                            metadata_segment["predicted_type_before_validation"] = t_final_clean
+                            texte_learning = WaraqLearningEngine.creer_extrait_representatif(
+                                texte_global_condense,
+                                max_chars=8000
+                            )
+
+                            metadata_segment["learning_text"] = texte_learning
                             
                             if est_un_split:
                                 keywords = list(metadata_segment.get("extracted_keywords") or [])
@@ -571,10 +442,10 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                             else:
                                 modele_log = metadata_segment.get("model", "qwen")
                                 
-                            logger.info(
-                                "[DEBUG BDD] metadata_segment = %s",
-                                metadata_segment
-                            )
+                            #logger.info(
+                                #"[DEBUG BDD] metadata_segment = %s",
+                                #metadata_segment
+                            #)
 
                             if idx == 0:
                                 doc.file_type = t_final_clean
@@ -600,15 +471,15 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                 doc.inspection_method = metadata_segment.get("inspection_method") or ("RULES_ENGINE" if est_primitive_valide else "QWEN_LLM")
                                 doc.model_used = modele_log
                                 doc.file_type = t_final_clean
+                                doc.extracted_text = texte_learning
+                                metadata_segment["learning_text"] = texte_learning
+                                logger.info(
+                                    "[LEARNING STORAGE] Texte sauvegardé | ID=%s | Taille=%s caractères",
+                                    doc.id,
+                                    len(doc.extracted_text)
+                                )
                                 logger.info(f"      [BDD] Entrée principale ID {doc.id} mise à jour en {temps_reponse_doc:.2f}s.")
 
-                                # logger.info(
-                                #     "[DEBUG DOC] "
-                                #     f"page_count={doc.page_count} "
-                                #     f"word_count={doc.word_count} "
-                                #     f"file_size_mb={doc.file_size_mb} "
-                                #     f"ocr_duration_sec={doc.ocr_duration_sec}"
-                                # )
                                 log_principal = ClassificationAuditLog(
                                     document_id=doc.id,
                                     predicted_type=t_final_clean,
@@ -638,25 +509,12 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                     file_path=doc.file_path,  
                                     classified_file_path=chemin_destination,
                                     is_classified=True,
-                                    #is_scanned=metadata_segment.get("is_scanned", False),
                                     classification_reason="DECOUPAGE_PDF_AUTOMATIQUE",
                                     classification_description=f"Segment découpé automatiquement. Analyse parente : {description_classification}",
                                     classified_at=maintenant,
                                     response_time=temps_reponse_doc,
                                     analysis_metadata=metadata_segment,
                                     validation_status="PENDING",
-                                    # page_count=metadata_segment.get("page_count"),
-                                    # word_count=metadata_segment.get("word_count"),
-                                    # file_size_mb=metadata_segment.get("file_size_mb"),
-                                    # ocr_duration_sec=metadata_segment.get("ocr_duration_sec"),
-                                    #confidence_score=metadata_segment.get("confidence_score"),
-                                    #prompt_tokens=metadata_segment.get("prompt_tokens"),
-                                    #generated_tokens=metadata_segment.get("generated_tokens"),
-                                    #detected_language=metadata_segment.get("detected_language", "fr"),
-                                    #text_length_chars=metadata_segment.get("text_length_chars", 0),
-                                    #text_word_count=metadata_segment.get("text_word_count", 0),
-                                    #inspection_method="PDF_SPLITTER",
-                                    #model_used="pdf_splitter_llm"
                                 )
                                 db.add(nouveau_morceau)
                                 db.flush()
@@ -679,13 +537,6 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                 db.add(log_segment)
                                 logger.info(f"      [BDD] Nouveau segment ID {nouveau_morceau.id} enregistré avec AuditLog.")                  
                         db.commit()
-                        # logger.info(
-                        #     "[DEBUG DB AFTER COMMIT] "
-                        #     f"page_count={doc.page_count} "
-                        #     f"word_count={doc.word_count} "
-                        #     f"file_size_mb={doc.file_size_mb} "
-                        #     f"ocr_duration_sec={doc.ocr_duration_sec}"
-                        # )
                         
                     except Exception as doc_error:
                         db.rollback()

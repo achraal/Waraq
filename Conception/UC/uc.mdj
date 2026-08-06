@@ -1,0 +1,1085 @@
+{
+  "_type": "Project",
+  "_id": "ba5238c6-ae68-45f3-bfc4-7514fd7bf374",
+  "name": "Waraq_Project",
+  "ownedElements": [
+    {
+      "_type": "UMLModel",
+      "_id": "15a7b018-5913-41ad-bc6a-41aae9c262e2",
+      "name": "Model",
+      "ownedElements": [
+        {
+          "_type": "UMLUseCaseDiagram",
+          "_id": "435ba19f-8054-45da-aa2b-aedf079f4c84",
+          "name": "Diagramme de Cas d'Utilisation Waraq",
+          "ownedViews": [
+            {
+              "_type": "UMLActorView",
+              "_id": "a00598fb-b748-4d3b-a25d-0b035406d51b",
+              "model": {
+                "$ref": "921ecefd-3494-41ca-984d-cd59aa53813d"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 50,
+              "top": 100,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLActorView",
+              "_id": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a",
+              "model": {
+                "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 50,
+              "top": 100,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLActorView",
+              "_id": "58d21c58-5268-47c3-b6de-d38919a61223",
+              "model": {
+                "$ref": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 50,
+              "top": 100,
+              "width": 80,
+              "height": 100
+            },
+            {
+              "_type": "UMLSubsystemView",
+              "_id": "38d19a8a-93ea-4a4f-bd32-9d2398e3c124",
+              "model": {
+                "$ref": "414dc949-d22f-4e03-a2c2-171f4984b8c3"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 250,
+              "top": 20,
+              "width": 600,
+              "height": 700
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "f05eb298-6055-4991-b5e5-97ddd76e2db3",
+              "model": {
+                "$ref": "2ec20caf-a512-4c58-b263-6ffa3aef1474"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "0189ad2f-4b9c-4960-828f-0e5338db96eb",
+              "model": {
+                "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "b7208ea4-eb93-4297-9ef5-7ec1fb2c5ae6",
+              "model": {
+                "$ref": "d9fdb91c-6b3a-418a-ad74-2b24f6d53848"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "e860e49f-2a9b-4d51-bb4e-7625f4ded51b",
+              "model": {
+                "$ref": "d268fe84-1327-4d36-8621-28e9dae919e7"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "fd335941-b1d1-412b-99be-7158612a7651",
+              "model": {
+                "$ref": "3db5890a-3506-4dfb-9efd-da721db03856"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9",
+              "model": {
+                "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "fbc2b598-f5c2-4bd7-b208-f20be5a6a357",
+              "model": {
+                "$ref": "d4ab76a3-d53a-4f24-871b-eb60f30eb13a"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "ec0c996c-d56e-4984-aa7b-7d307d2078ac",
+              "model": {
+                "$ref": "25c8bd5c-3967-487c-ae1e-f12819555efc"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "39db2f6a-8673-4ffb-b2b8-ea3845629b8e",
+              "model": {
+                "$ref": "98c26042-2485-458b-8837-05e4e9adeb75"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "3a81dc14-144d-47b2-a377-b9e3bfdd5507",
+              "model": {
+                "$ref": "2adb5f7e-5600-4801-837a-20fa3bd105c7"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "3bde642c-4da5-4077-b588-066be322a2d9",
+              "model": {
+                "$ref": "36897844-4538-4334-bed0-495b950dfab2"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLUseCaseView",
+              "_id": "68909ac7-c79b-4795-b692-57fa424b7bf0",
+              "model": {
+                "$ref": "f7cab529-93ee-4dfc-862e-0763b1c9f0b9"
+              },
+              "subViews": [],
+              "visible": true,
+              "left": 300,
+              "top": 50,
+              "width": 160,
+              "height": 40
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "73a0dffd-a2b8-46d3-ac37-b23586c828b8",
+              "model": {
+                "$ref": "3e4ab823-d9bd-4a28-9cb3-f33deded872c"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "a00598fb-b748-4d3b-a25d-0b035406d51b"
+              },
+              "tail": {
+                "$ref": "f05eb298-6055-4991-b5e5-97ddd76e2db3"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "6c403b06-d52f-4598-87ac-3276d5b83cce",
+              "model": {
+                "$ref": "77235b50-0e79-4eff-85ca-b3b1d0b035aa"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "a00598fb-b748-4d3b-a25d-0b035406d51b"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "a9ac8269-9931-4105-a957-6206aaf42719",
+              "model": {
+                "$ref": "0913a716-cf72-43f9-a7d5-a85dd863f7c1"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "b7208ea4-eb93-4297-9ef5-7ec1fb2c5ae6"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "eb21ba64-cfd5-437f-94e1-bef49ed9e9e2",
+              "model": {
+                "$ref": "0d8b38d5-4423-43c9-8a01-5b82e4512d39"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "e860e49f-2a9b-4d51-bb4e-7625f4ded51b"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "32a63c87-068f-4ed3-bc08-7800d01aefd7",
+              "model": {
+                "$ref": "ebdee0fa-02ac-4420-8099-5dcf5f00310f"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "fd335941-b1d1-412b-99be-7158612a7651"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "226e5770-7aca-4131-aa87-9ec4041700b9",
+              "model": {
+                "$ref": "f06471c0-ad09-4fc5-8ca5-a708b058bba1"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "6c8ce973-1a81-42d8-be80-1941188ebb10",
+              "model": {
+                "$ref": "21500ac2-daba-4dff-9676-63506d1bce03"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "fbc2b598-f5c2-4bd7-b208-f20be5a6a357"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "2429abd1-9d0d-4f92-b954-26ce2b59b9ca",
+              "model": {
+                "$ref": "fbb5e099-8069-4754-92e8-40912aeabc93"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b6f2e1dd-0e2f-44f3-a9eb-6916795d543a"
+              },
+              "tail": {
+                "$ref": "ec0c996c-d56e-4984-aa7b-7d307d2078ac"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "5b72055b-c332-420f-95bd-4014a6786f29",
+              "model": {
+                "$ref": "f1ffb6ec-2756-4b3f-9966-142e44faf7f5"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "58d21c58-5268-47c3-b6de-d38919a61223"
+              },
+              "tail": {
+                "$ref": "39db2f6a-8673-4ffb-b2b8-ea3845629b8e"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "73587932-7a0d-4c62-9dd3-d215144532d8",
+              "model": {
+                "$ref": "10a7c2ec-c0d0-4f8b-84f6-aa72130e3ecc"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "58d21c58-5268-47c3-b6de-d38919a61223"
+              },
+              "tail": {
+                "$ref": "3a81dc14-144d-47b2-a377-b9e3bfdd5507"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "247b62c0-b8ad-4610-9f0e-8b6c372eb6b6",
+              "model": {
+                "$ref": "2f8a8d05-4738-432a-8ed3-833b91205d39"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "58d21c58-5268-47c3-b6de-d38919a61223"
+              },
+              "tail": {
+                "$ref": "3bde642c-4da5-4077-b588-066be322a2d9"
+              }
+            },
+            {
+              "_type": "UMLAssociationView",
+              "_id": "9b59ebf1-d4b0-4051-8dfc-55448a4cbaa3",
+              "model": {
+                "$ref": "c5fee096-94d5-456f-84cc-b950923f4caa"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "58d21c58-5268-47c3-b6de-d38919a61223"
+              },
+              "tail": {
+                "$ref": "68909ac7-c79b-4795-b692-57fa424b7bf0"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "b08ba0c5-8e31-48a3-89d9-bb460484bf1c",
+              "model": {
+                "$ref": "00a2cae4-6c43-43b0-b245-93ca3d994419"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "b7208ea4-eb93-4297-9ef5-7ec1fb2c5ae6"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "d4db8769-1df4-4d1e-aafa-5dadcff34617",
+              "model": {
+                "$ref": "6ad5f1a1-a2cb-40a5-ac16-816e099cb242"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "e860e49f-2a9b-4d51-bb4e-7625f4ded51b"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "5a81d726-2a6f-4705-92a5-cd64440dc1ac",
+              "model": {
+                "$ref": "74ad460d-a734-4bea-a000-6edc66c9f675"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "fd335941-b1d1-412b-99be-7158612a7651"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "fdc47c84-d04f-4e5e-b264-35fa04385a75",
+              "model": {
+                "$ref": "82d0bfbf-3953-4346-815e-6d11a22ca4d2"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "5832eb0b-81bc-4154-8454-e039f10a368a",
+              "model": {
+                "$ref": "2b0c77a5-2286-4ffe-ad9e-9ea6168d75bc"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "fbc2b598-f5c2-4bd7-b208-f20be5a6a357"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "76b28f62-83d8-4ae3-996b-e8280ddae5bc",
+              "model": {
+                "$ref": "d92fe30a-b0d2-4684-8ca7-28111e2cc00b"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "ec0c996c-d56e-4984-aa7b-7d307d2078ac"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "fabd3031-564a-4b39-810e-414050031354",
+              "model": {
+                "$ref": "c07ff821-b4a2-4cb4-b333-ea4cbde2fc0d"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "39db2f6a-8673-4ffb-b2b8-ea3845629b8e"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "acca31d7-af8a-44e4-a3b1-bccc6c05b507",
+              "model": {
+                "$ref": "cbab9812-7ccd-4123-ac18-3060c279b575"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "3a81dc14-144d-47b2-a377-b9e3bfdd5507"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "d0ff527e-ca16-4ffd-97dc-cb488a35c64a",
+              "model": {
+                "$ref": "07565fcb-00c8-4af2-8a75-5dcff1771207"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "3bde642c-4da5-4077-b588-066be322a2d9"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "d5a27daa-15d5-4aec-800f-8bfd902a4860",
+              "model": {
+                "$ref": "37970218-a01a-4552-b371-6cbe01b8bd58"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "68909ac7-c79b-4795-b692-57fa424b7bf0"
+              },
+              "tail": {
+                "$ref": "0189ad2f-4b9c-4960-828f-0e5338db96eb"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "29aaf252-1ea4-4928-b0d1-5c9959c2e6ca",
+              "model": {
+                "$ref": "09c7183b-f832-40ea-ae1a-061bf4bdf490"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9"
+              },
+              "tail": {
+                "$ref": "b7208ea4-eb93-4297-9ef5-7ec1fb2c5ae6"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "3657fcef-b756-478b-95a9-b57ade1d5281",
+              "model": {
+                "$ref": "41e56646-7083-4338-90f1-52363a31b33b"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9"
+              },
+              "tail": {
+                "$ref": "fd335941-b1d1-412b-99be-7158612a7651"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "7d303965-bc39-4f63-9f12-eaae1d4a2b0b",
+              "model": {
+                "$ref": "b7c0e578-728d-4a34-91f7-ec6e36c5cee8"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "ec0c996c-d56e-4984-aa7b-7d307d2078ac"
+              },
+              "tail": {
+                "$ref": "6e498daf-12de-4bdb-a8af-2eb3ac9827b9"
+              }
+            },
+            {
+              "_type": "UMLIncludeView",
+              "_id": "d3b27894-c5fc-4168-9c3a-38d5606873c1",
+              "model": {
+                "$ref": "dbfcc21f-4a59-4a44-9651-90e0681ecc18"
+              },
+              "subViews": [],
+              "visible": true,
+              "head": {
+                "$ref": "3bde642c-4da5-4077-b588-066be322a2d9"
+              },
+              "tail": {
+                "$ref": "3a81dc14-144d-47b2-a377-b9e3bfdd5507"
+              }
+            }
+          ]
+        },
+        {
+          "_type": "UMLSubsystem",
+          "_id": "414dc949-d22f-4e03-a2c2-171f4984b8c3",
+          "name": "Plateforme Waraq (SaaS IDP)",
+          "ownedElements": [
+            {
+              "_type": "UMLUseCase",
+              "_id": "2ec20caf-a512-4c58-b263-6ffa3aef1474",
+              "name": "Consulter la Landing Page et Demo Restreinte",
+              "ownedElements": []
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "9c2560b1-4464-47d3-96d1-27f4ce9e4764",
+              "name": "S'inscrire / Se Connecter (JWT + Argon2id)",
+              "ownedElements": []
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "d9fdb91c-6b3a-418a-ad74-2b24f6d53848",
+              "name": "Gérer son Profil Juridique Polymorphe",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "00a2cae4-6c43-43b0-b245-93ca3d994419",
+                  "source": {
+                    "$ref": "d9fdb91c-6b3a-418a-ad74-2b24f6d53848"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "d268fe84-1327-4d36-8621-28e9dae919e7",
+              "name": "Rechercher & Consulter les Marchés Publics",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "6ad5f1a1-a2cb-40a5-ac16-816e099cb242",
+                  "source": {
+                    "$ref": "d268fe84-1327-4d36-8621-28e9dae919e7"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "3db5890a-3506-4dfb-9efd-da721db03856",
+              "name": "Consulter la Synthèse IA & RAG",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "74ad460d-a734-4bea-a000-6edc66c9f675",
+                  "source": {
+                    "$ref": "3db5890a-3506-4dfb-9efd-da721db03856"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c",
+              "name": "Générer les Documents de Candidature (.docx)",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "82d0bfbf-3953-4346-815e-6d11a22ca4d2",
+                  "source": {
+                    "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                },
+                {
+                  "_type": "UMLInclude",
+                  "_id": "09c7183b-f832-40ea-ae1a-061bf4bdf490",
+                  "source": {
+                    "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+                  },
+                  "target": {
+                    "$ref": "d9fdb91c-6b3a-418a-ad74-2b24f6d53848"
+                  }
+                },
+                {
+                  "_type": "UMLInclude",
+                  "_id": "41e56646-7083-4338-90f1-52363a31b33b",
+                  "source": {
+                    "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+                  },
+                  "target": {
+                    "$ref": "3db5890a-3506-4dfb-9efd-da721db03856"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "d4ab76a3-d53a-4f24-871b-eb60f30eb13a",
+              "name": "Compléter le Bordereau des Prix (BDP Automatique)",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "2b0c77a5-2286-4ffe-ad9e-9ea6168d75bc",
+                  "source": {
+                    "$ref": "d4ab76a3-d53a-4f24-871b-eb60f30eb13a"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "25c8bd5c-3967-487c-ae1e-f12819555efc",
+              "name": "Apposer Tampon & Signature Automatique sur le Dossier",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "d92fe30a-b0d2-4684-8ca7-28111e2cc00b",
+                  "source": {
+                    "$ref": "25c8bd5c-3967-487c-ae1e-f12819555efc"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                },
+                {
+                  "_type": "UMLInclude",
+                  "_id": "b7c0e578-728d-4a34-91f7-ec6e36c5cee8",
+                  "source": {
+                    "$ref": "25c8bd5c-3967-487c-ae1e-f12819555efc"
+                  },
+                  "target": {
+                    "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "98c26042-2485-458b-8837-05e4e9adeb75",
+              "name": "Superviser les Scrapers & Notifications Mail (PMMP)",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "c07ff821-b4a2-4cb4-b333-ea4cbde2fc0d",
+                  "source": {
+                    "$ref": "98c26042-2485-458b-8837-05e4e9adeb75"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "2adb5f7e-5600-4801-837a-20fa3bd105c7",
+              "name": "Inspecter & Corriger les Pièces (Human-in-the-Loop)",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "cbab9812-7ccd-4123-ac18-3060c279b575",
+                  "source": {
+                    "$ref": "2adb5f7e-5600-4801-837a-20fa3bd105c7"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "36897844-4538-4334-bed0-495b950dfab2",
+              "name": "Gérer le Learning Loop & Dynamic Few-Shot Prompts",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "07565fcb-00c8-4af2-8a75-5dcff1771207",
+                  "source": {
+                    "$ref": "36897844-4538-4334-bed0-495b950dfab2"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                },
+                {
+                  "_type": "UMLInclude",
+                  "_id": "dbfcc21f-4a59-4a44-9651-90e0681ecc18",
+                  "source": {
+                    "$ref": "36897844-4538-4334-bed0-495b950dfab2"
+                  },
+                  "target": {
+                    "$ref": "2adb5f7e-5600-4801-837a-20fa3bd105c7"
+                  }
+                }
+              ]
+            },
+            {
+              "_type": "UMLUseCase",
+              "_id": "f7cab529-93ee-4dfc-862e-0763b1c9f0b9",
+              "name": "Consulter la Télémétrie & les Logs d'Audit",
+              "ownedElements": [
+                {
+                  "_type": "UMLInclude",
+                  "_id": "37970218-a01a-4552-b371-6cbe01b8bd58",
+                  "source": {
+                    "$ref": "f7cab529-93ee-4dfc-862e-0763b1c9f0b9"
+                  },
+                  "target": {
+                    "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "921ecefd-3494-41ca-984d-cd59aa53813d",
+          "name": "Visiteur",
+          "ownedElements": [
+            {
+              "_type": "UMLAssociation",
+              "_id": "3e4ab823-d9bd-4a28-9cb3-f33deded872c",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "7a9102d3-9768-448a-ae5b-8eed235f6c0f",
+                "reference": {
+                  "$ref": "921ecefd-3494-41ca-984d-cd59aa53813d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "1a587dc2-997a-47fb-a79f-a124429ff875",
+                "reference": {
+                  "$ref": "2ec20caf-a512-4c58-b263-6ffa3aef1474"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "77235b50-0e79-4eff-85ca-b3b1d0b035aa",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "c1f4498d-9335-4159-82b7-c8ca24fc5400",
+                "reference": {
+                  "$ref": "921ecefd-3494-41ca-984d-cd59aa53813d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "fa4a9522-f692-4711-a417-05437377a2c6",
+                "reference": {
+                  "$ref": "9c2560b1-4464-47d3-96d1-27f4ce9e4764"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254",
+          "name": "Entreprise Candidate (Soumissionnaire)",
+          "ownedElements": [
+            {
+              "_type": "UMLAssociation",
+              "_id": "0913a716-cf72-43f9-a7d5-a85dd863f7c1",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "26c95cdf-def9-442a-a68f-c29c20175759",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "9849c237-7f7d-4952-9b00-64e10d239b28",
+                "reference": {
+                  "$ref": "d9fdb91c-6b3a-418a-ad74-2b24f6d53848"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "0d8b38d5-4423-43c9-8a01-5b82e4512d39",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "9b16f41b-65ed-4f46-8d3b-842bb8110aab",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "30543249-f292-458d-a8a0-f0c0dcf34c46",
+                "reference": {
+                  "$ref": "d268fe84-1327-4d36-8621-28e9dae919e7"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "ebdee0fa-02ac-4420-8099-5dcf5f00310f",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "542bcff5-50ff-4dda-8a31-a01774bb1f76",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "14c4d0c3-535e-47af-82d2-85b464b14e56",
+                "reference": {
+                  "$ref": "3db5890a-3506-4dfb-9efd-da721db03856"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "f06471c0-ad09-4fc5-8ca5-a708b058bba1",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "960a3203-f5b0-4635-8587-3d03b72d215c",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "468a9d34-bc44-449a-8b6b-7ebd0b260bcb",
+                "reference": {
+                  "$ref": "e1c757d2-73fd-4c75-b8db-0418ecc5a42c"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "21500ac2-daba-4dff-9676-63506d1bce03",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "9115746a-43f9-44fb-a39c-975bd0f1a746",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "552d9d73-755b-4229-8e6c-3e116d0efa39",
+                "reference": {
+                  "$ref": "d4ab76a3-d53a-4f24-871b-eb60f30eb13a"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "fbb5e099-8069-4754-92e8-40912aeabc93",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "ccafa208-5b29-4aa5-bca9-a7283f42f024",
+                "reference": {
+                  "$ref": "b55aeec8-8d8a-4b11-8365-2cb3b07c0254"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "7f7311df-dbb6-4f37-947d-b582866cf8f1",
+                "reference": {
+                  "$ref": "25c8bd5c-3967-487c-ae1e-f12819555efc"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "_type": "UMLActor",
+          "_id": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d",
+          "name": "Administrateur",
+          "ownedElements": [
+            {
+              "_type": "UMLAssociation",
+              "_id": "f1ffb6ec-2756-4b3f-9966-142e44faf7f5",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "20268822-e489-4f79-a49f-9ddfcb52e0b1",
+                "reference": {
+                  "$ref": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "036720f9-3a7b-4e5b-92cf-55c71d63dc2d",
+                "reference": {
+                  "$ref": "98c26042-2485-458b-8837-05e4e9adeb75"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "10a7c2ec-c0d0-4f8b-84f6-aa72130e3ecc",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "6cdc1ce2-bbe6-4f9f-878b-8d7ee2db8962",
+                "reference": {
+                  "$ref": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "589b31f9-0316-4bb8-8d96-c4defd049157",
+                "reference": {
+                  "$ref": "2adb5f7e-5600-4801-837a-20fa3bd105c7"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "2f8a8d05-4738-432a-8ed3-833b91205d39",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "a09b6eef-c743-4264-a98e-398be2ea386f",
+                "reference": {
+                  "$ref": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "65b4503c-609f-4f71-86c8-8f335f41aaee",
+                "reference": {
+                  "$ref": "36897844-4538-4334-bed0-495b950dfab2"
+                }
+              }
+            },
+            {
+              "_type": "UMLAssociation",
+              "_id": "c5fee096-94d5-456f-84cc-b950923f4caa",
+              "end1": {
+                "_type": "UMLAssociationEnd",
+                "_id": "6feae51a-7acd-4857-950d-0eb46a0e0517",
+                "reference": {
+                  "$ref": "ec25cff1-fd8e-448f-8ce1-b54b31a74c6d"
+                }
+              },
+              "end2": {
+                "_type": "UMLAssociationEnd",
+                "_id": "8892222f-968a-40f0-865c-6b4bc7b64d70",
+                "reference": {
+                  "$ref": "f7cab529-93ee-4dfc-862e-0763b1c9f0b9"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

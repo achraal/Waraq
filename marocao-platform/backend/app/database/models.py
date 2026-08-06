@@ -25,6 +25,19 @@ class ScrapingStatus(str, enum.Enum):
     SELENIUM_ERROR = "SELENIUM_ERROR"
     DOWNLOAD_ERROR = "DOWNLOAD_ERROR"
 
+class RAGStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    INDEXING = "INDEXING"
+    ANALYZING = "ANALYZING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+class GeneratedDocType(str, enum.Enum):
+    ACTE_ENGAGEMENT = "ACTE_ENGAGEMENT"
+    DECLARATION_HONNEUR = "DECLARATION_HONNEUR"
+    BDP_COMPLETED = "BDP_COMPLETED"
+    SYNTHESE_CONFORMITE = "SYNTHESE_CONFORMITE"
+
 # --- TABLE : UTILISATEURS ---
 class User(Base):
     __tablename__ = "users"
@@ -45,26 +58,21 @@ class CompanyProfile(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    structure_type = Column(Enum(StructureType), nullable=False)
-    
+    structure_type = Column(Enum(StructureType), nullable=False)    
     # Champs Communs demandés dans les documents (Acte engagement & Déclaration sur l'honneur)
     manager_name = Column(String, nullable=False)  # Nom, prénom et qualité
     address = Column(String, nullable=False)       # Domicile élu
     phone = Column(String, nullable=True)
     fax = Column(String, nullable=True)
-    email_contact = Column(String, nullable=True)
-    
+    email_contact = Column(String, nullable=True)    
     # Mis à nullable=True car optionnel pour les purs auto-entrepreneurs/personnes physiques
     ice = Column(String, nullable=True, unique=True) 
     tax_professionnelle = Column(String, nullable=False) # Patente
     rib = Column(String, nullable=False)           # RIB à 24 positions
     bank_name = Column(String, nullable=False)     # Banque, Poste ou TGR
-
     # Colonne technique pour gérer l'héritage SQLAlchemy
     type_discriminator = Column(String, nullable=False)
-
     capital_social = Column(Float, nullable=True)
-
     __mapper_args__ = {
         "polymorphic_on": type_discriminator,
         "polymorphic_identity": "base_profile",
@@ -76,8 +84,7 @@ class CompanyProfile(Base):
 class PhysicalPersonProfile(CompanyProfile):
     __tablename__ = "physical_person_profiles"
 
-    id = Column(UUID(as_uuid=True), ForeignKey("company_profiles.id"), primary_key=True)
-    
+    id = Column(UUID(as_uuid=True), ForeignKey("company_profiles.id"), primary_key=True)    
     # Spécifique Personnes physiques / Auto-entrepreneurs
     cin_number = Column(String, nullable=False)
     auto_entrepreneur_card_number = Column(String, nullable=True) 
@@ -182,6 +189,7 @@ class TenderDocument(Base):
 
     tender = relationship("Tender", back_populates="documents") 
     audit_logs = relationship("ClassificationAuditLog", back_populates="document", cascade="all, delete-orphan")
+    rag_result = relationship("RAGAnalysisResult", back_populates="document", uselist=False, cascade="all, delete-orphan")
 
 class TenderLot(Base):
     __tablename__ = "tender_lots"
@@ -248,19 +256,16 @@ class ClassificationAuditLog(Base):
     confidence_score = Column(Integer, nullable=True)
     detected_language = Column(String(10), nullable=True)
     extracted_keywords = Column(JSON, nullable=True)  # Liste de mots-clés
-
     # Métriques de performance & LLM
     model_used = Column(String, nullable=False)
     execution_duration_sec = Column(Float, nullable=True)
     ollama_total_duration = Column(Float, nullable=True)
     prompt_tokens = Column(Integer, nullable=True)
-    generated_tokens = Column(Integer, nullable=True)
-    
+    generated_tokens = Column(Integer, nullable=True)    
     # Propriétés du texte analysé
     text_length_chars = Column(Integer, nullable=True)
     text_word_count = Column(Integer, nullable=True)
-    has_uncertainty_keywords = Column(Boolean, default=False)
-    
+    has_uncertainty_keywords = Column(Boolean, default=False)    
     # Workflow de validation humaine
     validation_status = Column(String, default="PENDING")  # PENDING, VALIDATED, CORRECTED
     is_correct = Column(Boolean, nullable=True)
@@ -272,3 +277,59 @@ class ClassificationAuditLog(Base):
 
     # Relation vers le document parent
     document = relationship("TenderDocument", back_populates="audit_logs")
+   
+# ANALYSE MÉTIER RAG ---
+class RAGAnalysisResult(Base):
+    __tablename__ = "rag_analysis_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("tender_documents.id", ondelete="CASCADE"), 
+        unique=True, 
+        nullable=False
+    )    
+    # Suivi d'état du traitement asynchrone
+    status = Column(Enum(RAGStatus), default=RAGStatus.PENDING, nullable=False, index=True)
+    error_message = Column(Text, nullable=True)
+    # Données extraites structurées par Granite 4.1:3B (n'altère PAS extracted_text d'origine)
+    rag_analysis = Column(JSONB, nullable=True)    
+    # Métriques RAG pour Telemetry & Audit
+    chunk_count = Column(Integer, nullable=True)
+    indexing_duration_sec = Column(Float, nullable=True)
+    retrieval_duration_sec = Column(Float, nullable=True)
+    generation_duration_sec = Column(Float, nullable=True)
+    total_rag_duration_sec = Column(Float, nullable=True)   
+    embedding_duration_sec = Column(Float, nullable=True)
+    llm_extraction_duration_sec = Column(Float, nullable=True)
+    error_message = Column(Text, nullable=True)
+    # Traçabilité des modèles
+    model_used = Column(String, default="Granite 4.1:3B", nullable=False)
+    embedding_model_used = Column(String, default="BAAI/bge-m3", nullable=False)
+    chroma_collection_name = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relation vers TenderDocument
+    document = relationship("TenderDocument", back_populates="rag_result")
+
+# DOCUMENTS DE RÉPONSE GÉNÉRÉS ---
+class GeneratedDocument(Base):
+    __tablename__ = "generated_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    tender_id = Column(UUID(as_uuid=True), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False)    
+    doc_type = Column(Enum(GeneratedDocType), nullable=False)
+    file_name = Column(String, nullable=False)
+    file_path = Column(Text, nullable=False)
+    is_custom_template = Column(Boolean, default=False)  # True si modèle DCE, False si modèle fallback Waraq
+    is_fallback_used = Column(Boolean, default=False, comment="True si les modèles standards Waraq ont été utilisés")
+    
+    # Métadonnées d'injection (ex: valeurs saisies, prix unitaires BDP, etc.)
+    generation_metadata = Column(JSONB, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relations
+    user = relationship("User")
+    tender = relationship("Tender")

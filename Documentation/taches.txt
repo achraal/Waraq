@@ -130,9 +130,6 @@ et des champs classifies contiennet que pour decoupage automatique et regles pri
 
 * verifier analysis metadata
 * estimtation de temps n'est pas bien precis
-
-
-
 * Les .jgw / .tfw ne passeront plus par l'IA et seront traités en 0.00s dans les règles primitives.Les images géantes (.jpg, .png) qui échappent aux primitives seront redimensionnées automatiquement avant que PaddleOCR ou Qwen ne tentent de les analyser, évitant les crashs mémoire et réduisant la durée de traitement à moins de $1\text{s}$.
 * BUG ameliorer metadata analisys pas toujours language fr pour avis arabe c'est ar
 * BUG Resized image size (10258x9679) exceeds max_side_limit of 4000. Resizing to fit within limit.
@@ -195,3 +192,71 @@ Si on utilise yolo pour classification des scans, pour les scannés récalcitran
 2. Le seuil des 20 pages pour décider s'il y a un vrai découpage ou juste une détection d'annexes.
 3. Le scan ciblé des en-têtes de page pour distinguer une rupture majeure (ex: passage de RC à CPS) d'un simple modèle (ex: Acte d'engagement).
 4. La construction d'une description BDD enrichie qui récapitule les modèles internes trouvés.
+
+30-07 / 31-07
+
+* amelioration classification des types primitifs
+* decoupage et ajout de rules.py et document_splitter
+* initialisation de la classification des docs scans et ajout de fast_ocr_engine
+
+01-04
+
+* BUG metadata_analysis des champs null
+* 'AVIS_ARABE' (fr) probleme de language
+* mixed ocr : La classification des documents scannés repose sur une approche hybride combinant l'OCR, des règles métier et un modèle de langage (LLM). Lorsqu'un document est importé, le système détermine d'abord s'il contient du texte natif ou s'il s'agit d'un document numérisé. Pour les documents scannés, le texte est extrait à l'aide de RapidOCR, qui s'appuie sur des modèles ONNX exécutés localement par ONNX Runtime, ce qui permet d'obtenir de bonnes performances sans nécessiter de GPU. Le texte obtenu est ensuite normalisé afin de corriger les principales erreurs issues de l'OCR (suppression des accents, uniformisation de la casse, élimination des caractères parasites et des espaces superflus). Une analyse structurelle détecte ensuite les titres des documents, identifie les documents composites (Avis d'appel d'offres, Règlement de consultation, CPS, Bordereau des prix, etc.) et réalise un découpage automatique lorsque plusieurs documents sont regroupés dans un même fichier. Enfin, un LLM utilisant le Few-Shot Learning analyse le contenu extrait afin de confirmer ou de corriger la catégorie du document. Cette combinaison entre OCR, règles métier et intelligence artificielle permet d'obtenir une classification fiable, même sur des documents scannés de qualité variable.
+* AVIS (p.1-0) probleme de decoupage
+* les metriques metadata_analysis ajouter des nouvelles 
+* verifier system_metrics, ajout de nouveau chanmps dans tenders pour scraper et tenders_documents et adapter le scraper pour envoyer ses donnees
+
+05-08 
+
+* prblm null champs page count
+* BUG fixation de 2026-08-05 12:30:58,911 - [INFO] - Running job "execute_cron_telemetrie (trigger: interval[1:00:00], next run at: 2026-08-05 12:30:58 +01)" (scheduled at 2026-08-05 12:30:58.882369+01:00)
+❌ Type non sérialisable : ai_pipeline_metrics.documents_stats.pages_moyennes -> <class 'decimal.Decimal'>
+❌ Type non sérialisable : ai_pipeline_metrics.documents_stats.mots_moyens -> <class 'decimal.Decimal'>
+[METRICS ERROR] Impossible d'insérer les métriques en BDD : (builtins.TypeError) Object of type Decimal is not JSON serializable
+[SQL: INSERT INTO system_metrics (server_and_hardware_health, database_status, scraping_metrics, ai_metrics, ai_and_pipeline) VALUES (%(server_and_hardware_health)s::JSONB, %(database_status)s::JSONB, %(scraping_metrics)s::JSONB, %(ai_metrics)s::JSONB, %(ai_and_pipeline)s::JSONB) RETURNING system_metrics.id, system_metrics.timestamp]
+[parameters: [{'database_status': {'is_connected': True, 'tables_count': 11, 'database_size_mb': 11.01, 'active_connections': 1, 'largest_table': 'classification_au ... (4495 characters truncated) ... cent': 89.3, 'disk_total_gb': 456.68, 'disk_free_gb': 48.7, 'fastapi_uptime_seconds': 3600, 'fastapi_memory_rss_mb': 131.17, 'fastapi_open_files': 9}}]]
+[CRON] Snapshot de télémétrie enregistré avec succès.
+2026-08-05 12:31:00,450 - [INFO] - Job "execute_cron_telemetrie (trigger: interval[1:00:00], next run at: 2026-08-05 13:30:58 +01)" executed successfully
+
+* validation_status null dans tender documents
+* doublure de classification scan
+* les titres classification
+* amélioration : 2026-08-05 12:01:54,814 - [INFO] - [FAST_OCR_ONNX] P.3/54 - En-tête scannée extraite via ONNX (146 car.) : +.XHA+1CYO
+APPELD'OFFRESOUVERTINTERNATIONALSUROFFRES
+pour les pages qui ont des caracteres faible comme ca donc leur titre peut etre ne pas etre lu donc on lit toute la page car elle est de type car des fois il doit decoupe et il ne decoupe pas surtout pour les scans
+
+---------------------------------------------
+
+06-08
+
+* modification du cdc et du diagramme de usecase
+* validate les sous dossier cree validated aussi
+* diag classification pipeline
+* possibilite de rectifier la classification et endurer le model et son entrainement, est ce qu'il peut apprendre des autres et sameliorer avec le temps
+* mettre en place les contraintes et les solutions
+* strategie d'extraction et de génération
+* models ajout de : class GeneratedDocument(Base), class RAGAnalysisResult(Base), class GeneratedDocType(str, enum.Enum), class RAGStatus(str, enum.Enum):
+* changement de l'architecture ajout de :
+│   │   │   ├── rag_engine/                # PIPELINE RAG
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── embeddings.py          # Wrapper BAAI/bge-m3 avec gestion mémoire RAM
+│   │   │   │   ├── vector_store.py        # Connecteur ChromaDB (PersistentClient local)
+│   │   │   │   ├── chunker.py             # Découpage multilingue (FR/AR) adaptatif
+│   │   │   │   ├── rag_service.py         # Orchestrateur RAG & Extraction via Granite 4.1:3B
+│   │   │   │   ├── prompts.py             # Prompts système d'extraction métier
+│   │   │   │   ├── schemas.py             # Schémas Pydantic pour la structure du JSON RAG
+│   │   │   │   └── routes.py              # Endpoints pour relancer/consulter l'analyse RAG
+
+et ajout de  : routes.py, __init__.py, bdp_processor.py, admin_docs_generator.py  dans workflows/ :
+
+│   │   │   └── workflows/       # Automatisation et génération
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── bdp_processor.py       # Extraction & complétion Excel/Word du Bordereau des Prix
+│   │   │   │   ├── admin_docs_generator.py # Génération Acte d'Engagement / Déclaration sur l'Honneur
+│   │   │   │   ├── doc_generator.py       # Moteur d'injection (python-docx / openpyxl)
+│   │   │   │   └── routes.py
+
+* migration avec alembic des nouveaux models
+* Pull des Modèles Ollama : S'assurer que le modèle granite4.1:3b est bien téléchargé dans Ollama (ollama pull granite4.1:3b).

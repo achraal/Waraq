@@ -18,17 +18,14 @@ from backend.app.modules.ai_processor.fast_ocr_engine import extraire_texte_en_t
 
 # Force l'affichage immédiat des logs dans la console sans buffering
 sys.stdout.reconfigure(line_buffering=True)
-
 # Configuration explicite du logger pour afficher les INFO
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-# Clean initialization of French and Arabic OCR engines (without 'det_lang')
-# Initialisation unique des moteurs PaddleOCR
-# Utiliser det_limit_side_len au lieu de max_side_limit
-
-
-# Initialisation explicite sur CPU (use_gpu=False est crucial)
+""" Clean initialization of French and Arabic OCR engines (without 'det_lang')
+Initialisation unique des moteurs PaddleOCR
+Utiliser det_limit_side_len au lieu de max_side_limit
+Initialisation explicite sur CPU (use_gpu=False est crucial)"""
 ocr_fr = PaddleOCR(
     use_angle_cls=False, 
     lang='fr',
@@ -36,7 +33,6 @@ ocr_fr = PaddleOCR(
     device='cpu',  # <-- On utilise 'device' au lieu de 'use_gpu'
     det_limit_side_len=736
 )
-
 ocr_ar = PaddleOCR(
     use_angle_cls=False, 
     lang='ar',
@@ -110,107 +106,7 @@ def optimiser_image_pour_analyse(chemin_image: str, max_side: int = 2048) -> str
         logger.warning(f"[IMAGE] Impossible d'optimiser l'image {chemin_image}: {e}")
     
     return chemin_image
-
-#def extraire_texte_integral(file_path: str) -> str:
-##def extraire_texte_integral(file_path: str) -> dict:
-    ##"""Extracteur universel qui lit TOUT le contenu d'un fichier peu importe son extension."""
-    ##if not os.path.exists(file_path):
-        ##return ""
-
-    ##ext = os.path.splitext(file_path)[1].lower()
-
-    ##try:
-        # 1. PDF (Texte intégral de TOUTES les pages)
-        ##if ext == ".pdf":
-            ###reader = PdfReader(file_path)
-            ##doc = fitz.open(file_path)
-            ##textes = []
-            ###is_scanned_doc = False
-            ##for idx, page in enumerate(reader.pages):
-            #for idx, page in enumerate(doc):
-                #txt = page.get_text("text") or ""
-                #if txt.strip():
-                  #  textes.append(f"--- PAGE {idx + 1} ---\n{txt}")
-            
-            #texte_complet = "\n\n".join(textes)
-            # Fallback OCR si le PDF est un scan complet (texte vide)
-            # Si le texte extrait par PyPDF est trop pauvre (< 100 caractères pour 69 pages),
-            # c'est un scan -> Forcer le fallback OCR intégral !
-           # if len(texte_complet.strip()) < 100:
-                #logger.info(f"[PDF SCAN DÉTECTÉ] Texte natif insuffisant ({len(texte_complet)} car.). Lancement de PaddleOCR...")
-                #is_scanned_doc = True
-                ##return extraire_ocr_pdf_integral(file_path)
-            
-            #logger.info(f"[PDF TEXTE DÉTECTÉ] Extraction native réussie ({len(texte_complet)} car.).")
-            #texte_complet = extraire_ocr_pdf_integral(file_path)
-
-            #return {
-              #  "text": texte_complet,
-              #  "is_scanned": is_scanned_doc
-            #}
-
-        # 2. Word (DOCX / DOC)
-        #elif ext in [".docx", ".doc"]:
-        #elif ext == ".docx":
-            #doc = docx.Document(file_path)
-            #return "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
-            
-        #elif ext == ".doc":
-            #pdf_temp = convertir_doc_en_pdf(file_path)
-            #if pdf_temp:
-                #try:
-                    # On réutilise directement l'extraction PDF qui fonctionne déjà dans ton code
-                    #return extraire_texte_integral(pdf_temp)
-                #finally:
-                   # if os.path.exists(pdf_temp):
-                       # try:
-                          #  os.remove(pdf_temp)
-                       # except Exception:
-                          #  pass
-           # return ""        
-
-        # 3. Excel (XLSX / XLS)
-        #elif ext == ".xlsx":
-            #wb = openpyxl.load_workbook(file_path, data_only=True)
-            #textes = []
-            #for sheet in wb.worksheets:
-                #for row in sheet.iter_rows(values_only=True):
-                   # row_txt = " ".join([str(cell) for cell in row if cell is not None])
-                   # if row_txt.strip():
-                       # textes.append(row_txt)
-           # return "\n".join(textes)
-            
-       # elif ext == ".xls":
-            # xlrd doit être installé (pip install xlrd)
-           # df_dict = pd.read_excel(file_path, sheet_name=None, engine="xlrd")
-           # textes = []
-           # for sheet_name, df in df_dict.items():
-               # if not df.empty:
-               #     textes.append(df.to_string(index=False))
-            #return "\n".join(textes)
-
-        # 4. Images (JPG, PNG, TIFF, etc.)
-        #elif ext in [".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"]:
-            #return extraire_ocr_image(file_path)
-           # return {
-               # "text": extraire_ocr_image(file_path),
-               # "is_scanned": True
-            #}
-
-        # 5. Fichiers CAO/DAO (DWG, DXF) ou archives
-        #elif ext in [".dwg", ".dxf", ".zip", ".rar"]:
-            #return f"FICHIER_TECHNIQUE_DAO_{ext.replace('.', '').upper()}"
-
-        # Fallback Texte brut
-        #else:
-           # with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                #return f.read()
-
-    #except Exception as e:
-        #logger.error(f"Erreur d'extraction intégrale sur {file_path}: {e}")
-        #return {"text": "", "is_scanned": False}
-        ##return ""
-        
+    
 def compter_pages_doc(file_path: str) -> int | None:
     pdf_temp = convertir_doc_en_pdf(file_path)
     if not pdf_temp:
@@ -250,14 +146,7 @@ def extraire_texte_integral(file_path: str) -> dict:
         if ext == ".pdf":
             doc = fitz.open(file_path)
             est_scanne_force, methode_forcee = analyser_si_scanne(doc)
-            #textes = []
-            #is_scanned_global = est_scanne_force
-            #methods_utilisees = set()
-            
-            #if est_scanne_force:
-                #methods_utilisees.add(methode_forcee)
-                
-            #textes = []
+
             methods_utilisees = set()
             nb_pages_ocr = 0
             total_pages = len(doc)
@@ -323,11 +212,7 @@ def extraire_texte_integral(file_path: str) -> dict:
                         lot_pages = []
                         lot_scan = False
                         lot_method = "NATIVE_TEXT_PYMUPDF"
-                
-                #if res_page.get("is_scanned"):
-                    #is_scanned_global = True
-                #methods_utilisees.add(res_page.get("inspection_method", "UNKNOWN"))
-                
+               
                 methode = res_page.get("inspection_method", "UNKNOWN")
                 methods_utilisees.add(methode)
 
@@ -364,14 +249,6 @@ def extraire_texte_integral(file_path: str) -> dict:
                 inspection_method_finale = "FAST_OCR_ONNX_FULL_PAGE"
 
             logger.info(f"[EXTRACTION PDF] Méthode: {inspection_method_finale} | Scan: {is_scanned_global} | Longueur: {len(texte_complet)} car.")
-
-            #logger.info(
-                #f"[METRICS PDF] "
-                #f"pages={page_count} | "
-                #f"words={word_count} | "
-                #f"size={file_size_mb} MB | "
-                #f"ocr={round(ocr_duration_total,2)} s"
-            #)
             return {
                 "text": texte_complet,
                 "is_scanned": is_scanned_global,
@@ -435,22 +312,6 @@ def extraire_texte_integral(file_path: str) -> dict:
             finally:
                 if os.path.exists(pdf_temp):
                     os.remove(pdf_temp)
-            
-        #elif ext == ".doc":
-            #pdf_temp = convertir_doc_en_pdf(file_path)
-            #if pdf_temp:
-                #try:
-                    #return extraire_texte_integral(pdf_temp)
-                #finally:
-                    #if os.path.exists(pdf_temp):
-                        #try:
-                            #os.remove(pdf_temp)
-                        #except Exception:
-                            #pass
-            #return {"text": "", "is_scanned": False, "inspection_method": "CONVERSION_FAILED",                "page_count": page_count,
-                #"word_count": word_count,
-                #"file_size_mb": file_size_mb,
-                #"ocr_duration_sec": 0.0}
 
         # 3. Excel (XLSX / XLS)
         elif ext == ".xlsx":
@@ -570,53 +431,6 @@ def extraire_texte_integral(file_path: str) -> dict:
             "word_count": 0,
             "file_size_mb": file_size_mb if os.path.exists(file_path) else 0.0,
             "ocr_duration_sec": 0.0}
-
-# def extraire_texte_page_pdf_avec_meta(path_pdf: str, page_num: int = 0) -> dict:
-#     """
-#     Extrait le texte d'une page et renvoie également le statut 'is_scanned' 
-#     ainsi que 'inspection_method'.
-#     """
-#     try:
-#         doc = fitz.open(path_pdf)
-#         if page_num < len(doc):
-#             texte_natif = doc[page_num].get_text("text").strip()
-            
-#             # CAS 1 : Texte natif suffisant
-#             if len(texte_natif) >= 50:
-#                 return {
-#                     "text": texte_natif,
-#                     "is_scanned": False,
-#                     "inspection_method": "NATIVE_TEXT_PYMUPDF"
-#                 }
-                
-#             # CAS 2 : Document scanné -> Fast OCR ONNX (Top 40%)
-#             logger.info(f"[OCR PAGE] P.{page_num+1} scannée/pauvre ({len(texte_natif)} car.). Passage Fast OCR ONNX.")
-#             texte_ocr = extraire_texte_en_tete_fast_ocr(path_pdf, page_num=page_num, ratio_hauteur=0.40)
-            
-#             # CAS 2.B : Si l'en-tête est vide ou trop pauvre (< 15 caractères), on scanne TOUTE LA PAGE !
-#             if len(texte_ocr.strip()) < 15:
-#                 logger.warning(f"[OCR PAGE] P.{page_num+1} En-tête OCR insuffisant ({len(texte_ocr)} car.). Lancement OCR Page Complète.")
-                
-#                 # Scan à 100% de la hauteur au lieu de 30%
-#                 texte_ocr = extraire_texte_en_tete_fast_ocr(path_pdf, page_num=page_num, ratio_hauteur=1.00)
-#                 method = "FAST_OCR_ONNX_FULL_PAGE"
-#             else:
-#                 method = "FAST_OCR_ONNX_HEADER"
-            
-#             return {
-#                 "text": texte_ocr,
-#                 "is_scanned": True,
-#                 "inspection_method": method
-#             }
-
-#     except Exception as e:
-#         logger.error(f"[OCR PAGE] Erreur P.{page_num+1} sur '{path_pdf}' : {e}")
-    
-#     return {
-#         "text": "",
-#         "is_scanned": True,
-#         "inspection_method": "FAILED_EXTRACTION"
-#     }
     
 def extraire_texte_page_pdf_avec_meta(doc_or_path, page_num: int = 0, path_pdf: str = None, force_scanned: bool = False) -> dict:
     should_close = False
@@ -701,59 +515,6 @@ def extraire_ocr_pdf_page(file_path: str, page_num: int) -> str:
                 os.remove(temp_img_path)
             except Exception as clean_err:
                 logger.warning(f"Impossible de supprimer l'image temporaire {temp_img_path}: {clean_err}")
-         
-#def extraire_ocr_pdf_integral(file_path: str) -> str:
-    #"""
-    #Stratégie Hybride Optimisée CPU :
-    #1. Tente l'extraction native du texte via PyPDF (< 0.5s).
-    #2. Si le texte est suffisant (>= 100 car.), le renvoie directement pour analyse LLM.
-    #3. Si le PDF est un scan (< 100 car.) :
-      # - Tente de déduire le type via le nom du fichier / règles heuristiques.
-    #   #- Sinon, abandonne l'OCR lourd et renvoie le marqueur 'A_CLASSIFIER_MANUELLEMENT'.
-    #"""
-    #filename = os.path.basename(file_path)
-    
-    #try:
-        # Step 1 : Tentative d'extraction native ultra-rapide
-        #reader = PdfReader(file_path)
-        #texte_native = []
-        
-        #for idx, page in enumerate(reader.pages):
-           # txt = page.extract_text() or ""
-           # if txt.strip():
-            #    texte_native.append(f"--- PAGE {idx + 1} ---\n{txt.strip()}")
-        
-        #contenu_complet = "\n\n".join(texte_native)
-        
-        # Step 2 : Si le texte natif est exploitable, on valide
-        #if len(contenu_complet.strip()) >= 100:
-            #logger.info(f"[NATIVE READ SUCCESS] '{filename}' - {len(contenu_complet)} caractères extraits instantanément.")
-           # return contenu_complet
-            
-        # Step 3 : Traitement du Scan (Texte insuffisant < 100 car.)
-        #logger.warning(f"[SCAN DÉTECTÉ] '{filename}' a moins de 100 car. natifs. Évitement de l'OCR lourd.")
-        
-        # 3a. Heuristique sur le nom du fichier (Exemple : cps, rc, bordereau, etc.)
-        #filename_lower = filename.lower()
-        #if any(keyword in filename_lower for keyword in ["cps", "c.p.s", "cahier_des_charges"]):
-           # logger.info(f"[HEURISTIQUE MATCH] Nom de fichier identifié comme CPS : '{filename}'")
-            #return "TYPE_HEURISTIQUE: CPS - Cahier des Prescriptions Spéciales"
-            
-        #if any(keyword in filename_lower for keyword in ["rc", "r.c", "reglement"]):
-            #logger.info(f"[HEURISTIQUE MATCH] Nom de fichier identifié comme RC : '{filename}'")
-          #  return "TYPE_HEURISTIQUE: RC - Règlement de Consultation"
-            
-       # if any(keyword in filename_lower for keyword in ["bdr", "bordereau", "prix"]):
-        #    logger.info(f"[HEURISTIQUE MATCH] Nom de fichier identifié comme BORDEREAU_PRIX : '{filename}'")
-       #     return "TYPE_HEURISTIQUE: BORDEREAU_PRIX"
-
-        # 3b. Aucun indice fiable -> Redirection vers la file d'attente humaine
-      #  logger.info(f"[ESCALADE HUMAINE] Aucun indice probant sur le scan '{filename}'. Marqué pour classification manuelle.")
-      #  return "STATUS: A_CLASSIFIER_MANUELLEMENT"
-
-    #except Exception as e:
-       # logger.error(f"[ERREUR EXTRACTION] Échec sur '{filename}' : {e}", exc_info=True)
-        #return "STATUS: A_CLASSIFIER_MANUELLEMENT"
     
 def extraire_ocr_image(file_path: str) -> str:
     """Applique PaddleOCR sur un fichier image avec optimisation préalable si l'image est géante."""

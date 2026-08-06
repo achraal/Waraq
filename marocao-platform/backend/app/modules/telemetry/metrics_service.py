@@ -391,6 +391,16 @@ def collecter_et_sauvegarder_metriques(db: Session):
             "historique_journalier": historique_journalier
         }
     }
+    
+    # 6. RAG
+    
+    # Exemple de calcul automatique des métriques RAG pour SystemMetric
+    #rag_stats = db.query(
+        #func.avg(RAGAnalysisResult.total_rag_duration_sec).label("avg_total_time"),
+        #func.avg(RAGAnalysisResult.indexing_duration_sec).label("avg_indexing"),
+        #func.avg(RAGAnalysisResult.generation_duration_sec).label("avg_generation"),
+        #func.count(RAGAnalysisResult.id).label("total_processed")
+    #).filter(RAGAnalysisResult.status == RAGStatus.COMPLETED).first()
 
     # ==========================================
     # 5. ENREGISTREMENT EN BASE DE DONNÉES

@@ -299,3 +299,243 @@ Pendant le processus de conversion et d'analyse OCR des pages PDF, des images te
 🌐 1. EPIC-4 : Intelligent Document Processing (IDP) & IA🟩 USER STORIES & IMPROVEMENTSMAO-ENH-02 : Traitement Pré-IA Optimisé (Fichiers SIG .jgw/.tfw & Auto-Resizing Images)Type : Improvement 🟡Epic : EPIC-4 : IDP & IAPriorité : HighStory Points : 3 SPDescription : Traitement ultra-rapide des fichiers géographiques .jgw / .tfw via des règles primitives instantanées ($0.00\text{s}$). Redimensionnement automatique avant passage dans PaddleOCR ou Qwen pour les images géantes (.jpg, .png), évitant les surcharges mémoire (OOM) et réduisant la durée d'analyse à moins de $1\text{s}$.Sous-tâches (Sub-tasks ┖) :┖ [IDP] Intégrer les extensions .jgw et .tfw dans les règles primitives (0.00s execution)👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [OCR] Développer le middleware de redimensionnement d'images géantes avant OCR/LLM👉 Priorité : High | Estimation : 0.5d (0.5 SP)MAO-ENH-03 : Conversion Automatisée des Fichiers .doc via LibreOfficeType : Improvement 🟡Epic : EPIC-4 : IDP & IAPriorité : HighStory Points : 3 SPDescription : Prise en charge du fallback de conversion headless LibreOffice pour les anciens formats Word (.doc) afin de garantir leur extraction intégrale avant l'analyse IA.Sous-tâches (Sub-tasks ┖) :┖ [Backend/IDP] Intégrer le pipeline LibreOffice pour convertir les fichiers .doc en PDF/TEXT👉 Priorité : High | Estimation : 1d (1 SP)MAO-ENH-04 : Mise à Jour des Heuristiques & Typage Métier (CCATP / CCFTP dans CPS)Type : Improvement 🟡Epic : EPIC-4 : IDP & IAPriorité : MediumStory Points : 2 SPDescription : Enrichissement du dictionnaire de règles primitives et des types métier : inclusion automatique des Cahiers des Clauses Administratives et Techniques Particulières (CCATP, CCFTP) sous la catégorie parente CPS.Sous-tâches (Sub-tasks ┖) :┖ [IDP] Mettre à jour les regex et motifs de reconnaissance pour CCATP et CCFTP vers CPS👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)┖ [IDP] Refaire le suivi séquentiel des numéros de pages lors du découpage dans classification_service👉 Priorité : High | Estimation : 1d (1 SP)🟦 TÂCHES TECHNIQUES (Tasks)MAO-TASK-21 : Implémentation du Système de Validation Humaine Avancée (/validate)Type : Task 🟦Epic : EPIC-4 : IDP & IAPriorité : HighestStory Points : 5 SPDescription : Gestion complète du circuit de validation utilisateur et correction fine du découpage documentaire selon 4 cas d'usage métiers distincts.Sous-tâches (Sub-tasks ┖) :┖ [Database] Ajouter les champs is_validated (boolean) et validation_status (enum) sur TenderDocument👉 Priorité : Highest | Estimation : 0.5d (0.5 SP)┖ [API] Implémenter le Cas 1 : Validation simple (Approbation sans modification)👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [API] Implémenter le Cas 2 : Correction simple du type (Modification du type sans ré-instancier de split)👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [API] Implémenter le Cas 3 : Annulation complète du découpage IA (undo_split)👉 Priorité : High | Estimation : 1d (1 SP)┖ [API] Implémenter le Cas 4 : Redécoupage manuel, suppression des splits erronés et réaffichage du document père👉 Priorité : Highest | Estimation : 1.5d (1.5 SP)MAO-TASK-22 : Système d'Audit et Persistance des Logs (ClassificationAuditLog)Type : Task 🟦Epic : EPIC-4 : IDP & IAPriorité : HighStory Points : 5 SPDescription : Création d'une table d'audit dédiée pour conserver l'historique complet de chaque opération de classification et exposer des endpoints d'analyse de performance.Sous-tâches (Sub-tasks ┖) :┖ [Database] Créer le modèle SQLAlchemy ClassificationAuditLog👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [API] Développer GET /classification_audit_logs avec filtrage par validation_status et pagination👉 Priorité : High | Estimation : 1d (1 SP)┖ [API] Développer l'endpoint GET /classification_audit_logs/latest👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)┖ [API] Développer l'endpoint GET /classification_audit_logs/stats pour évaluer le taux de réussite IA👉 Priorité : High | Estimation : 1d (1 SP)MAO-TASK-23 : Endpoints d'Agrégation et Visualisation DocumentaireType : Task 🟦Epic : EPIC-4 : IDP & IAPriorité : MediumStory Points : 3 SPDescription : Développement d'endpoints permettant au front-end d'accéder rapidement aux derniers documents traités et aux indicateurs groupés par motifs de classification.Sous-tâches (Sub-tasks ┖) :┖ [API] Développer l'endpoint GET /documents/latest-classified👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)┖ [API] Développer l'endpoint agrégé GET /documents/stats/classification-reasons👉 Priorité : High | Estimation : 1d (1 SP)🔴 CORRECTIONS DE BUGS (Bugs)MAO-BUG-16 : Correctif de Détection de la Langue Arabe (detected_language = 'ar')Type : Bug 🔴Epic : EPIC-4 : IDP & IAPriorité : HighStory Points : 1 SPDescription : Résolution du bug où la détection de langue dans analysis_metadata retournait la valeur par défaut fr lors de la lecture d'avis ou de pièces écrites en langue arabe.MAO-BUG-17 : Dépassement des Limites Dimensionnelles de PaddleOCR (max_side_limit)Type : Bug 🔴Epic : EPIC-4 : IDP & IAPriorité : HighStory Points : 2 SPDescription : Correction de l'avertissement/erreur PaddleOCR Resized image size (10258x9679) exceeds max_side_limit of 4000 via le redimensionnement systématique aux bornes acceptées avant prédiction.🎨 2. EPIC-6 : Interface React & DashboardMAO-TASK-24 : Intégration de la Typographie Geist dans le Front-endType : Task 🟦Epic : EPIC-6 : Interface React & DashboardPriorité : LowStory Points : 1 SPDescription : Configuration et mise en place de la police moderne Geist (Geist Sans / Geist Mono) sur le projet React/Tailwind pour harmoniser la charte graphique de l'application client.📄 3. EPIC-1 : Conception & ArchitectureMAO-TASK-25 : Actualisation du Cahier des Charges (CDC) et Rédaction du RapportType : Task 🟦Epic : EPIC-1 : Conception & ArchitecturePriorité : HighStory Points : 3 SPDescription : Mise à jour globale de la documentation technique, spécifications du module IDP, formalisation des diagrammes de validation humaine et initialisation de la rédaction du rapport d'avancement.
 
 
+🌐 1. EPIC-4 : Intelligent Document Processing (IDP) & IA
+🟩 USER STORIES & IMPROVEMENTS (Stories & Improvements)
+MAO-ENH-05 : Pipeline OCR/IDP Hybride Rapide pour Scans (RapidOCR + ONNX Runtime + FastOCR)
+Type : Improvement 🟡
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : Highest
+
+Story Points : 8 SP
+
+Description : Conception d'un pipeline d'OCR mixte pour documents scannés utilisant RapidOCR avec des modèles localisés exécutés par ONNX Runtime sur CPU (évitant la dépendance lourde GPU tout en maintenant de hautes performances). Le pipeline inclut une étape de normalisation textuelle (suppression d'accents, casse, caractères parasites) et une analyse de titre.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [OCR] Intégrer RapidOCR et ONNX Runtime localement via fast_ocr_engine.py
+
+👉 Priorité : Highest | Estimation : 1.5d (2 SP)
+
+┖ [OCR] Développer le nettoyeur et normaliseur de texte extrait par OCR (accents, casse, bruits)
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IDP] Implémenter le fallback d'extraction intégrale pour pages à faible densité de caractères scannés
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+MAO-ENH-06 : Nouvelle Stratégie de Découpage Séquentiel et Scan par Lots (Batching 10 pages)
+Type : Improvement 🟡
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : Highest
+
+Story Points : 5 SP
+
+Description : Évolution du moteur de découpage physique des PDF : introduction du scan complet (page 1 à N) par lots de 10 pages pour supprimer les hallucinations et traiter l'arabe/français. Intégration du seuil de 20 pages pour l'isolation des pièces imbriquées et détection ciblée des en-têtes/ruptures majeures.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [IDP] Créer les modules rules.py et document_splitter.py pour isoler les heuristiques
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IDP] Implémenter le parcours par paquets de 10 pages sur 100% du document
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IDP] Mettre en place le seuil des 20 pages et le scan d'en-tête pour la détection de rupture majeure
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IDP] Implémenter le découpage physique adapté aux fichiers Word (.docx)
+
+👉 Priorité : Medium | Estimation : 1d (1 SP)
+
+MAO-ENH-07 : Double Validation LLM, Few-Shot Learning & Bascule Dynamique GPU/CPU
+Type : Improvement 🟡
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Pour chaque type primitif identifié par Regex, exécution d'une vérification LLM croisée via Few-Shot Learning pour éviter les faux positifs. Prise en charge du basculement automatique et à chaud Cuda/GPU vs CPU sans crash.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [IA] Ajouter la double validation LLM sur la détection par types primitifs
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IA] Implémenter le prompting Few-Shot pour affiner le classement final du LLM
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [IA] Intégrer le fallback dynamique Cuda / CPU au démarrage du conteneur LLM
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+🟦 TÂCHES TECHNIQUES (Tasks)
+MAO-TASK-26 : Développement des Endpoints de Re-classification ciblée et Reset par Tender ID
+Type : Task 🟦
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Création d'endpoints permettant de cibler la classification et l'extraction spécifiquement par ID de marché (Tender), et de réinitialiser le statut de classification (is_classified = false).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [API] Endpoint de classification et extraction ciblée par Tender ID
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [API] Endpoint de remise à zéro du statut classification (is_classified = false)
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+┖ [Database] Génération automatique de ClassificationAuditLog pour chaque sous-segment (split)
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+MAO-TASK-27 : Enrichissement des Métriques et Statistiques analysis_metadata
+Type : Task 🟦
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Extension du schéma JSON analysis_metadata pour y capturer des métriques de pipeline avancées (mots moyens, pages moyennes, stats ai_processor).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [IDP] Intégrer la capture des métriques statistiques dans ai_processor.py
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+┖ [Database] Enrichir analysis_metadata avec la description résumée des modèles internes découverts
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+🔴 CORRECTIONS DE BUGS (Bugs)
+MAO-BUG-18 : Prise en charge des fichiers Excel anciens formats (.xls) via xlrd
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : Highest
+
+Story Points : 2 SP
+
+Description : Résolution du crash openpyxl does not support the old .xls file format. Intégration de la bibliothèque xlrd en secours pour la lecture des classeurs Excel 97-2003 (.xls).
+
+MAO-BUG-19 : Correction de la détection de langue 'ar' pour AVIS_ARABE et des champs nulls
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 1 SP
+
+Description : Correction du bug où la détection de langue retournait fr pour un document annoté AVIS_ARABE et résolution des valeurs null dans metadata_analysis.
+
+MAO-BUG-20 : Correction de l'erreur d'indexation de découpage AVIS (p.1-0) et de l'attribut page_count
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Fix du bug de calcul des bornes de pages générant des découpages invalides (p.1-0) et correction des valeurs null non gérées sur le champ page_count.
+
+MAO-BUG-21 : Élimination des doublons de classification sur les documents scannés
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Correction de la double exécution parallèle de l'OCR et du LLM provoquant des insertions en double dans tender_documents pour les fichiers scannés.
+
+MAO-BUG-22 : Fix de sérialisation JSON des Types Decimal dans la Télémétrie SystemMetrics
+Type : Bug 🔴
+
+Epic : EPIC-7 : Télémétrie & Monitoring
+
+Priorité : Highest
+
+Story Points : 2 SP
+
+Description : Résolution de l'erreur critique du Cron : TypeError: Object of type Decimal is not JSON serializable sur pages_moyennes et mots_moyens lors de l'enregistrement PostgreSQL dans la table system_metrics.
+
+MAO-BUG-23 : Normalisation des valeurs par défaut validation_status (Handling nulls)
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : Medium
+
+Story Points : 1 SP
+
+Description : Fix du champ validation_status se retrouvant à NULL sur tender_documents. Initialisation explicite à PENDING.
+
+🌐 2. EPIC-2 : Web Scraping & Ingestion de Données
+MAO-TASK-28 : Extension des Modèles et Synchronisation des Données Scraper dans Tenders
+Type : Task 🟦
+
+Epic : EPIC-2 : Web Scraping & Ingestion
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Adaptation du scraper et de la BDD pour envoyer et stocker les métriques avancées d'extraction dans les tables tenders et tender_documents.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Database] Ajouter les nouveaux champs de métriques dans la table tenders
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Scraper] Adapter le script d'extraction Selenium pour alimenter directement les nouveaux champs
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+🌐 3. EPIC-7 : Télémétrie, Monitoring & Observabilité
+MAO-TASK-29 : Recette et Validation Complète des Endpoints /telemetry et Audit Logs
+Type : Task 🟦
+
+Epic : EPIC-7 : Télémétrie & Monitoring
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Phase de test complète et validation de la stabilité du job cron horaire, des endpoints d'audit logs et de la cohérence globale de system_metrics.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Test] Exécution des tests d'intégration sur les endpoints /classification_audit_logs
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+┖ [Test] Vérification de l'intégrité du Cron Télémétrie après résolution du bug Decimal
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+📊 Synthèse globale pour Jira (Période 25/07 - 05/0

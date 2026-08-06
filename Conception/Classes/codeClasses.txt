@@ -16,6 +16,14 @@ enum UserRole {
     ADMIN
 }
 
+enum ScrapingStatus {
+    SUCCESS
+    PENDING
+    IN_PROGRESS
+    SELENIUM_ERROR
+    DOWNLOAD_ERROR
+}
+
 class User {
     - id: UUID
     - email: String
@@ -96,6 +104,12 @@ class Tender {
     - created_at: DateTime
     - extraction_date: DateTime
     - is_consulted: Boolean
+    - nbr_documents: Integer
+    - is_recursive: Boolean
+    - scraping_status: ScrapingStatus
+    - scraping_duration_sec: Float
+    - is_zip_corrupted: Boolean
+    - scraping_error_message: Text
 }
 
 class TenderLot {
@@ -116,6 +130,26 @@ class TenderLot {
     - reserve_pme: String
 }
 
+class EmailNotification {
+    - id: Integer
+    - mail_uid: String
+    - subject: String
+    - sender: String
+    - content: Text
+    - received_at: DateTime
+    - is_read: Boolean
+}
+
+class SystemMetric {
+    - id: Integer
+    - timestamp: DateTime
+    - server_and_hardware_health: JSONB
+    - database_status: JSONB
+    - scraping_metrics: JSONB
+    - ai_metrics: JSONB
+    - ai_and_pipeline: JSONB
+}
+
 class TenderDocument {
     - id: UUID
     - tender_id: UUID
@@ -123,6 +157,19 @@ class TenderDocument {
     - file_type: String
     - file_path: String
     - extracted_text: String
+    - is_classified: Boolean
+    - classification_reason: Text
+    - classification_description: Text
+    - classified_at: DateTime
+    - classified_file_path: Text
+    - response_time: Float
+    - page_count: Integer
+    - word_count: Integer
+    - file_size_mb: Float
+    - ocr_duration_sec: Float
+    - analysis_metadata: JSON
+    - is_validated: Boolean
+    - validation_status: String
 }
 
 class DocumentWorkflow {
@@ -189,6 +236,99 @@ package "Scraping Engine" {
     }
 }
 
+'=========================================================
+'          AI PROCESSOR (IDP)
+'=========================================================
+
+package "AI Processor (IDP)" {
+
+    class ClassificationService <<Service>> {
+        + process_document(document: TenderDocument): dict
+        + executer_classification_post_scraping(db: Session): dict
+        + verifier_ou_classifier_par_llm(): dict
+    }
+
+    class LLMAnalyzer <<service>> {
+        + obtenir_device_execution() : String
+        + verifier_ou_classifier_par_llm(...): dict
+        + classifier_texte_document(...): tuple
+        + extraire_texte_par_lots(path_pdf: str, taille_lot: Integer): list
+        + construire_metriques(...): dict
+    }
+
+    class OCREngine <<service>> {
+        + extraire_texte_integral(file_path: str): dict
+        + extraire_texte_page_pdf_avec_meta(...)
+        + extraire_ocr_pdf_page(file_path: str, page_num: int): str
+        + extraire_ocr_image(file_path: str): str
+        + analyser_si_scanne(doc: fitz.Document): tuple
+        + convertir_doc_en_pdf(file_path: str): str
+        + compter_pages_doc(file_path: str): int
+        + optimiser_image_pour_analyse(file_path: str): str
+    }
+    
+    note right of OCREngine
+    Technologies utilisées :
+    • PyMuPDF
+    • PaddleOCR
+    • ONNX Runtime
+    • pdf2image
+    • LibreOffice
+    end note
+    
+    class FastOCREngine <<RapidOCR + ONNX Runtime>> {
+        + extraire_texte_en_tete_fast_ocr(path_pdf): String
+        + ocr_est_de_mauvaise_qualite(text): Boolean
+        - _ocr_image(image): String
+        - _get_onnx_ocr_engine()
+    }
+
+    class DocumentSplitter <<service>> {
+        + verifier_et_decouper_document(file_path: String, nom_fichier: String, type_document_global: String, extraction: dict = None, TYPES_MAJEURS_SPLIT: Set = None): Tuple<List, Boolean, String>
+        + analyser_haut_de_page(page_text: String): dict
+        + est_une_page_sommaire(page_text: String): Boolean
+        + filtrer_segments_parasites(raw_segments: List, min_pages: Integer = 2): List
+        + contient_structure_tableau(texte_apres_titre: String): Boolean
+        - normaliser_ocr(texte: String ): String
+        - est_un_titre(ligne: String): Boolean
+    }
+
+    class RulesEngine <<service>> {
+        + appliquer_types_primitifs(nom_fichier: String, ext: String): String
+        + nettoyer_nom_type(type_str: String): String
+    }
+
+    class WaraqLearningEngine <<Service>> {
+        + obtenir_exemples_few_shot(db: Session, limite: Integer = 3): String
+        + exporter_dataset_jsonl(db: Session, dossier_export: String = "exports"): String
+        + executer_fine_tuning_local_mock(): Dict<String, Any>
+        + creer_extrait_representatif(texte: str, max_chars: int = 8000)
+    
+    }
+
+    class ClassificationAuditLog {
+        - predicted_type: String
+        - classification_reason: String
+        - confidence_score: Integer
+        - detected_language: String
+        - extracted_keywords: JSON
+        - model_used: String
+        - execution_duration_sec: Float
+        - ollama_total_duration: Float
+        - prompt_tokens: Integer
+        - generated_tokens: Integer
+        - text_length_chars: Integer
+        - text_word_count: Integer
+        - has_uncertainty_keywords: Boolean
+        - validation_status: String
+        - is_correct: Boolean
+        - is_scanned: Boolean
+        - inspection_method: String
+        - corrected_type: String
+        - created_at: DateTime
+    }
+}
+
 ' Relations d'héritage & Typage
 CompanyProfile <|-- PhysicalPersonProfile
 CompanyProfile <|-- LegalPersonProfile
@@ -199,6 +339,7 @@ User "1" o-- "1" UserRole : possède >
 User "1" -- "0..1" CompanyProfile : gère >
 Tender *-- "0..*" TenderLot : comporte >
 Tender *-- "0..*" TenderDocument : contient >
+Tender "1" o-- "1" ScrapingStatus : statut >
 
 ' Dépendances transverses
 SecurityManager ..> User : sécurise >
@@ -220,5 +361,31 @@ PipelineUtils ..> Tender : mappe & écrit >
 PipelineUtils ..> TenderLot : mappe & écrit >
 PipelineUtils ..> TenderDocument : mappe & écrit >
 PipelineUtils ..> Parser : utilise la structure de données >
+
+'=========================================================
+'     NOUVELLES DEPENDANCES IA
+'=========================================================
+
+ClassificationService ..> OCREngine : extraction texte >
+ClassificationService ..> RulesEngine : règles primitives >
+ClassificationService ..> LLMAnalyzer : classification IA >
+ClassificationService ..> DocumentSplitter : découpage PDF >
+ClassificationService ..> WaraqLearningEngine : few-shot >
+
+LLMAnalyzer ..> ClassificationAuditLog : journalise >
+LLMAnalyzer ..> OCREngine : extraction texte\npar page PDF
+OCREngine ..> FastOCREngine : utilise pour PDF scannés >
+
+ClassificationService ..> TenderDocument : met à jour >
+ClassificationService ..> Tender : consulte >
+ClassificationService ..> ClassificationAuditLog : crée >
+
+SystemMetric ..> Tender : lit >
+SystemMetric ..> TenderDocument : lit >
+SystemMetric ..> ClassificationAuditLog : lit >
+SystemMetric ..> EmailNotification : lit >
+SystemMetric ..> ScrapingStatus : lit >
+
+TenderDocument "1" *-- "0..*" ClassificationAuditLog : audit >
 
 @enduml
