@@ -19,3 +19,11 @@ wheels/
 **data_storage/extracted/
 **data_storage/metadata/
 **data_storage/classified/
+**data_storage/generated/
+
+**chroma_db/
+
+
+
+
+

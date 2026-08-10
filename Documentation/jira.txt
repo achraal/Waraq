@@ -539,3 +539,193 @@ Sous-tâches (Sub-tasks ┖) :
 👉 Priorité : High | Estimation : 0.5d (0.5 SP)
 
 📊 Synthèse globale pour Jira (Période 25/07 - 05/0
+
+
+
+
+🟩 USER STORIES & IMPROVEMENTS
+MAO-STORY-01 : Pipeline RAG Multilingue (FR/AR) & Indexation Vectorielle dans ChromaDB
+Type : User Story 🟢
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : Highest
+
+Story Points : 8 SP
+
+Description : Implémentation du pipeline RAG asynchrone pour l'analyse sémantique automatique des dossiers d'appels d'offres après classification, exploitant le texte déjà extrait par RapidOCR.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [RAG] Développer embeddings.py pour le wrapper BAAI/bge-m3 multilingue avec gestion de la mémoire RAM
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [RAG] Développer vector_store.py pour l'intégration de ChromaDB (PersistentClient local) par reference Tender
+
+👉 Priorité : Highest | Estimation : 1d (1 SP)
+
+┖ [RAG] Implémenter chunker.py pour le découpage adaptatif FR/AR et prompts.py pour l'extraction métier
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [RAG] Développer rag_document_extractor.py pour l'extraction ciblé des clauses, pièces et garanties
+
+👉 Priorité : Highest | Estimation : 1.5d (2 SP)
+
+┖ [RAG] Déclenchement automatique et asynchrone du RAG dans classification_service
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+MAO-STORY-02 : Moteur de Génération Automatique & Traitement BDP (Word/Excel)
+Type : User Story 🟢
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Création des workflows d'automatisation pour traiter le Bordereau des Prix (BDP) et générer les pièces administratives obligatoires (Acte d'Engagement, Déclaration sur l'Honneur).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Workflow] Développer doc_generator.py pour l'injection dynamique via python-docx et openpyxl
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Workflow] Implémenter bdp_processor.py pour l'extraction et complétion automatique des BDP Excel/Word
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Workflow] Développer admin_docs_generator.py pour la génération de l'Acte d'Engagement et de la Déclaration sur l'Honneur
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+MAO-ENH-08 : Gestion Séquentielle de la Mémoire RAM/VRAM Ollama (OLLAMA_KEEP_ALIVE=0)
+Type : Improvement 🟡
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : Highest
+
+Story Points : 5 SP
+
+Description : Optimisation de l'empreinte mémoire du système sur infrastructure contrainte par le séquencement strict des modèles IA (Qwen 2.5:7b, Granite 4.1:3B, BAAI BGE-M3). Injection du paramètre keep_alive: 0 pour forcer le déchargement immédiat des modèles entre l'OCR, la classification et le RAG.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Architecture] Mettre à jour config.py et .env avec OLLAMA_KEEP_ALIVE=0 sans valeur de secours
+
+👉 Priorité : Highest | Estimation : 0.5d (0.5 SP)
+
+┖ [Core] Injecter le paramètre keep_alive dans tous les payloads HTTP vers Ollama (Classification, Vision, RAG)
+
+👉 Priorité : Highest | Estimation : 1d (1 SP)
+
+┖ [RAG] Adapter rag_service.py pour supporter le séquencement à modèle unique en mémoire
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+🟦 TÂCHES TECHNIQUES
+MAO-TASK-30 : Évolution du Schéma de BDD, Modèles SQLAlchemy & Migrations Alembic
+Type : Task 🟦
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Extension du schéma relationnel PostgreSQL pour prendre en charge les résultats de l'analyse RAG et les documents générés sans polluer la table TenderDocument.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Database] Créer les modèles GeneratedDocument, RAGAnalysisResult et leurs Énums (GeneratedDocType, RAGStatus)
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Database] Ajouter le champ rag_processed dans TenderDocument et extracted_text dans RAGAnalysisResult
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Database] Générer et appliquer la migration Alembic pour les nouveaux modèles et statuts IN_PROGRESS/ANALYZING
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+MAO-TASK-31 : Développement des Endpoints API RAG, Statistiques & Résumés
+Type : Task 🟦
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : Medium
+
+Story Points : 3 SP
+
+Description : Exposition des fonctionnalités RAG via l'API FastAPI pour permettre la consultation des résultats, la relance manuelle et l'affichage des métriques/résumés.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [API] Développer les routes pour l'analyse RAG globale par Tender et l'analyse ciblée par Document
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [API] Développer les endpoints /rag/stats et l'endpoint de restitution du résumé d'analyse
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+MAO-TASK-32 : Mise à Jour de la Documentation Technique (CDC, Use Case & Diagramme de Séquence)
+Type : Task 🟦
+
+Epic : EPIC-1 : Conception & Architecture
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Actualisation de la documentation d'architecture, du Cahier des Charges (CDC), du diagramme de cas d'utilisation (Use Case) et rédaction du diagramme de séquence intégrant le pipeline RAG et la boucle d'apprentissage par validation humaine.
+
+🔴 CORRECTIONS DE BUGS
+MAO-BUG-24 : Correction de la TypeError sur BASE_STORAGE_DIR dans rag_service.py
+Type : Bug 🔴
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : Highest
+
+Story Points : 1 SP
+
+Description : Résolution du crash système causé par la manipulation d'une chaîne brute avec l'opérateur / de pathlib.Path. Reconstitution dynamique via Path(settings.BASE_STORAGE_DIR).
+
+MAO-BUG-25 : Suppression de l'Attribut Réduit/Redondant error_message dans RAGAnalysisResult
+Type : Bug 🔴
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : High
+
+Story Points : 1 SP
+
+Description : Nettoyage de la double déclaration du champ error_message dans la classe SQLAlchemy RAGAnalysisResult provoquant des avertissements au démarrage de l'ORM.
+
+MAO-BUG-26 : Fix des Durées d'Indexation, Recherche et Génération Initialisées à Null
+Type : Bug 🔴
+
+Epic : EPIC-9 : Engine RAG & Workflows
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Correction du calcul des métriques de temps (indexing_duration_sec, retrieval_duration_sec, generation_duration_sec) qui restaient à null lors de l'enregistrement de l'analyse RAG en base de données.
+
+MAO-BUG-27 : Prise en Charge du Path Système LibreOffice sous Windows
+Type : Bug 🔴
+
+Epic : EPIC-4 : IDP & IA
+
+Priorité : High
+
+Story Points : 1 SP
+
+Description : Résolution de l'absence du binaire soffice.exe dans la variable d'environnement PATH, entraînant l'échec de la conversion automatique des anciens fichiers .doc et .xls.

@@ -1,5 +1,6 @@
 # backend/app/config.py
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import EmailStr
 
@@ -29,6 +30,16 @@ class Settings:
     # Infrastructure Locale (Ollama)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL")
     OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL")
+    MODEL_VISION_OCR: str = os.getenv("MODEL_VISION_OCR")
+    MODEL_RAG_ANALYSIS: str = os.getenv("MODEL_RAG_ANALYSIS")
+    MODEL_EMBEDDINGS: str = os.getenv("MODEL_EMBEDDINGS")
+    # Rétention en mémoire (0 pour libérer la VRAM/RAM immédiatement)
+    OLLAMA_KEEP_ALIVE: int = int(os.getenv("OLLAMA_KEEP_ALIVE"))
     
+    # Chemin vers le dossier chroma_db
+    CHROMA_PERSIST_DIR: Path = Path(os.getenv("CHROMA_PERSIST_DIR"))
+    LIBREOFFICE_PATH: str = (
+            r"C:\Program Files\LibreOffice\program\soffice.exe"
+        )    
 
 settings = Settings()

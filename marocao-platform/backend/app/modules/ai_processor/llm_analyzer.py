@@ -210,7 +210,8 @@ Réponds UNIQUEMENT sous forme d'un objet JSON strict avec ces 4 clés :
     try:
         reponse = requests.post(
             OLLAMA_URL,
-            json={'model': MODEL_NAME, 'prompt': prompt, 'stream': False, 'format': 'json'},
+            json={'model': MODEL_NAME, 'prompt': prompt, 'stream': False, 'format': 'json',
+        "keep_alive": settings.OLLAMA_KEEP_ALIVE},
             timeout=None
         )
         reponse.raise_for_status()
@@ -377,7 +378,8 @@ Document :
     try:
         reponse = requests.post(
             OLLAMA_URL,
-            json={'model': MODEL_NAME, 'prompt': prompt, 'stream': False, 'format': 'json'},
+            json={'model': MODEL_NAME, 'prompt': prompt, 'stream': False, 'format': 'json',
+        "keep_alive": settings.OLLAMA_KEEP_ALIVE},
             timeout=None
         )
         reponse.raise_for_status()

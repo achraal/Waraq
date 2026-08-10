@@ -43,6 +43,9 @@ marocao-platform/
 │   │   │   │   ├── vector_store.py        # Connecteur ChromaDB (PersistentClient local)
 │   │   │   │   ├── chunker.py             # Découpage multilingue (FR/AR) adaptatif
 │   │   │   │   ├── rag_service.py         # Orchestrateur RAG & Extraction via Granite 4.1:3B
+│   │   │   │   ├── rag_trigger.py      # Déclencheur événementiel/conditions d'activation du pipeline RAG suite à la classification
+│   │   │   │   ├── rag_document_extractor.py # Extracteur spécialisé parsant et structurant les pièces classées vers rag_extracted/
+│   │   │   │   ├── prompts.py          # Prompts système d'extraction métier
 │   │   │   │   ├── prompts.py             # Prompts système d'extraction métier
 │   │   │   │   ├── schemas.py             # Schémas Pydantic pour la structure du JSON RAG
 │   │   │   │   └── routes.py              # Endpoints pour relancer/consulter l'analyse RAG
@@ -101,6 +104,21 @@ marocao-platform/
 │       │                   └── rc.pdf
 │       │
 │       ├── temp_files/  
+│       ├── templates/  
+│       ├── chroma_db/  
+│       │
+│       ├── rag_extracted/              # Extraction ciblée organisée par dossiers métiers RAG
+│       │   └── 2026/
+│       │       └── 08/
+│       │           └── 07/
+│       │               └── AO-123_14-30-00/
+│       │                   ├── CPS/
+│       │                   ├── RC/
+│       │                   ├── BDP/
+│       │                   ├── CV/
+│       │                   ├── DECLARATION_HONNEUR/
+│       │                   ├── ACTE_ENGAGEMENT/
+│       │                   └── DECLARATION_IDENTITE/
 │       │
 │       ├── generated/           # Livrables .docx générés par utilisateur
 │       │   └── user_uuid_ao_04_2026/
@@ -320,6 +338,56 @@ marocao-platform/
                       └────────────────────────────────────────────────────────────────────┘
 
 
+
+Classification Qwen
+        │
+        ▼
+Déclenchement RAG asynchrone
+        │
+        ▼
+Extracteur RAG indépendant
+        │
+        ├── PDF texte → extraction complète
+        ├── PDF scanné → OCR RapidOCR page par page
+        ├── DOC/DOCX → extraction
+        ├── XLS/XLSX → conservation + lecture
+        └── XML → conservation + lecture
+        │
+        ▼
+Détection des documents internes
+        │
+        ├── CPS
+        ├── RC
+        ├── BDP
+        ├── Acte d'engagement
+        ├── Déclaration sur l'honneur
+        ├── Déclaration d'identité
+        ├── CV
+        └── autres modèles
+        │
+        ▼
+Dossier extracted/
+        │
+        ▼
+GLM-OCR / enrichissement
+        │
+        ▼
+DocumentChunker
+        │
+        ▼
+BGE-M3
+        │
+        ▼
+ChromaDB
+        │
+        ▼
+Recherche sémantique
+        │
+        ▼
+Granite 4.1:3B
+        │
+        ▼
+rag_analysis (JSON)
 
 
 

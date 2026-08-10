@@ -1,23 +1,28 @@
-import logging
-from sentence_transformers import SentenceTransformer
+import logging, httpx 
+from backend.app.config import settings
 
 logger = logging.getLogger("waraq.rag.embeddings")
 
-class EmbeddingService:
-    def __init__(self):
-        self.model_name = "BAAI/bge-m3"
-        self._model = None
+class OllamaEmbeddingService:
+    async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
 
-    @property
-    def model(self):
-        # Lazy loading pour ne pas encombrer la RAM au démarrage
-        if self._model is None:
-            logger.info(f"Chargement du modèle d'embeddings {self.model_name}...")
-            self._model = SentenceTransformer(self.model_name)
-        return self._model
+        payload = {
+            "model": settings.MODEL_EMBEDDINGS,  
+            "input": texts,
+            "keep_alive": settings.OLLAMA_KEEP_ALIVE  # 0 pour libérer la RAM immédiatement
+        }
 
-    def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
-        embeddings = self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
-        return embeddings.tolist()
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                f"{settings.OLLAMA_BASE_URL}/api/embed",
+                json=payload
+            )
+            if response.status_code == 200:
+                return response.json().get("embeddings", [])
+            
+            logger.error(f"Erreur lors de la génération d'embeddings (Status {response.status_code})")
+            return []
 
-embedding_service = EmbeddingService()
+embedding_service = OllamaEmbeddingService()

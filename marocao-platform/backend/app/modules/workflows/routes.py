@@ -1,14 +1,15 @@
 from fastapi import APIRouter, HTTPException, Body
 from typing import Dict, Any
-from workflows.bdp_processor import BDPProcessor
-from workflows.doc_generator import DocumentGenerator
+from backend.app.modules.workflows.bdp_processor import BDPProcessor
+from backend.app.modules.workflows.doc_generator import DocumentGenerator
 
-workflow_router = APIRouter(prefix="/api/v1/workflows", tags=["Workflows"])
+router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
+# Instanciation des services
 bdp_processor = BDPProcessor()
 doc_generator = DocumentGenerator()
 
-@workflow_router.post("/process-bdp")
+@router.post("/process-bdp")
 async def process_bdp_endpoint(payload: Dict[str, Any] = Body(...)):
     """Traitement et calcul automatique du BDP à partir du texte extrait."""
     text_content = payload.get("text", "")
@@ -24,7 +25,7 @@ async def process_bdp_endpoint(payload: Dict[str, Any] = Body(...)):
         "summary": totals
     }
 
-@workflow_router.post("/generate-report")
+@router.post("/generate-report")
 async def generate_report_endpoint(payload: Dict[str, Any] = Body(...)):
     """Génération du rapport de synthèse du dossier."""
     doc_info = payload.get("document_info", {})

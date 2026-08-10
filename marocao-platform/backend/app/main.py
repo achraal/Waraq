@@ -17,6 +17,9 @@ from backend.app.modules.scraper.email_monitor import fetch_marche_publics, save
 import os
 from backend.app.modules.telemetry.routes import router as telemetry_router
 from backend.app.modules.audit.routes import router as audit_router
+from backend.app.modules.rag_engine.routes import router as rag
+from backend.app.modules.rag_engine.routes import router_rag as rag_router
+from backend.app.modules.workflows.routes import router as workflow_router
 from backend.app.modules.telemetry.metrics_service import collecter_et_sauvegarder_metriques
 from backend.app.database.connection import SessionLocal
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -112,6 +115,9 @@ app.include_router(tenders_router, prefix="/api")
 app.include_router(classification_router, prefix="/api")
 app.include_router(telemetry_router, prefix="/api")
 app.include_router(audit_router, prefix="/api")
+app.include_router(rag_router, prefix="/api")
+app.include_router(rag, prefix="/api")
+app.include_router(workflow_router, prefix="/api")
 
 @app.get("/")
 def health_check():

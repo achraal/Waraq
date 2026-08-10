@@ -233,10 +233,11 @@ pour les pages qui ont des caracteres faible comme ca donc leur titre peut etre 
 
 * modification du cdc et du diagramme de usecase
 * validate les sous dossier cree validated aussi
-* diag classification pipeline
+* diag classification et pipeline
 * possibilite de rectifier la classification et endurer le model et son entrainement, est ce qu'il peut apprendre des autres et sameliorer avec le temps
 * mettre en place les contraintes et les solutions
-* strategie d'extraction et de génération
+* strategie d'extraction et de génération :
+À l'issue de la phase de **classification automatique**, qui reste inchangée et continue d'utiliser le modèle **Qwen** pour identifier le type de chaque document (Avis, Règlement de Consultation, CPS, Bordereau des Prix, Acte d'Engagement, etc.), Waraq déclenche automatiquement un **pipeline RAG (Retrieval-Augmented Generation)** fonctionnant en parallèle. Ce pipeline exploite le texte intégral déjà extrait par **RapidOCR ONNX** et stocké dans le champ `extracted_text`, sans nécessiter une nouvelle extraction OCR. Le texte est ensuite découpé en segments (chunking), transformé en représentations vectorielles grâce au modèle d'embeddings **BAAI BGE-M3**, spécialement choisi pour sa prise en charge multilingue du **français** et de **l'arabe**, puis indexé dans **ChromaDB**, la base vectorielle utilisée pour la recherche sémantique. Lors de l'analyse, le système récupère uniquement les segments les plus pertinents en fonction du type de document identifié par la classification, puis les transmet au modèle **Granite 4.1:3B**, chargé d'effectuer une extraction métier approfondie. Celui-ci génère automatiquement un résultat structuré contenant les informations essentielles du dossier, notamment l'objet de l'appel d'offres, le maître d'ouvrage, les références, les dates importantes, les pièces administratives et techniques à fournir, les clauses administratives et techniques, les critères d'évaluation, les garanties, les délais d'exécution, les pénalités ainsi que toute autre information utile à la préparation d'une soumission. Les résultats sont enregistrés dans une structure JSON dédiée, distincte du texte OCR original, afin de préserver les données sources tout en facilitant leur exploitation par la plateforme. Cette architecture permet ainsi à Waraq de produire, dès la fin du traitement, non seulement une **classification fiable des documents**, mais également une **analyse intelligente complète**, directement exploitable pour générer des synthèses, des checklists de conformité, des résumés métier et, à terme, assister automatiquement les utilisateurs dans la préparation et la vérification de leurs dossiers de réponse aux appels d'offres. 
 * models ajout de : class GeneratedDocument(Base), class RAGAnalysisResult(Base), class GeneratedDocType(str, enum.Enum), class RAGStatus(str, enum.Enum):
 * changement de l'architecture ajout de :
 │   │   │   ├── rag_engine/                # PIPELINE RAG
@@ -260,3 +261,80 @@ et ajout de  : routes.py, __init__.py, bdp_processor.py, admin_docs_generator.py
 
 * migration avec alembic des nouveaux models
 * Pull des Modèles Ollama : S'assurer que le modèle granite4.1:3b est bien téléchargé dans Ollama (ollama pull granite4.1:3b).
+
+
+07-08 / 10-08
+
+* sequencement des models pour alleger la RAM : 
+Mettre à jour le fichier d'environnement (.env)
+Définir OLLAMA_BASE_URL (http://localhost:11434).
+Configurer les variables multi-modèles (OLLAMA_MODEL, MODEL_VISION_OCR, MODEL_RAG_ANALYSIS, MODEL_EMBEDDINGS).
+Ajouter la variable OLLAMA_KEEP_ALIVE=0 pour imposer la libération mémoire à chaque étape.
+Adapter la configuration centrale (backend/app/config.py)
+Charger les variables des modèles IA (OLLAMA_MODEL, MODEL_VISION_OCR, etc.) depuis l'environnement.
+Mapper OLLAMA_KEEP_ALIVE en entier sans valeur de secours pour forcer la synchronisation avec le fichier .env.
+Injecter keep_alive dans les appels Ollama
+Ajouter le champ "keep_alive": settings.OLLAMA_KEEP_ALIVE dans le payload de chaque requête HTTP envoyée à Ollama (Classification, OCR vision, Analyse RAG).
+Vérifier le séquencement des requêtes pour garantir qu'un seul modèle à la fois ne réside en mémoire RAM/VRAM.
+* Changer leur appel dans les fichiers de rag_engine
+* est ce que je protège les prompts ?
+* glm non utilise dans les codes
+* comment chroma db stockera est ce avec date/mois/jour/ref_hh_mm_ss/data ? :
+Non, cela ne posera aucun problème, au contraire : c'est la meilleure architecture possible pour un système de RAG appliqué aux marchés publics.
+Voyons en détail comment cela fonctionne, pourquoi c'est extrêmement performant, et comment stocker les données dans ChromaDB en utilisant la reference de votre modèle Tender.
+Pourquoi stocker tous les documents d'un Appel d'Offres dans une seule collection ?
+Dans votre modèle PostgreSQL, un Tender (identifié de manière unique par sa reference, par exemple "AO-2026-8942") possède une relation 1-to-N avec plusieurs TenderDocument (CPS, RC, Avis, Règlement, etc.).
+Dans un moteur RAG appliqué aux marchés publics :
+L'utilisateur pose une question globale sur l'appel d'offres : Ex. "Quelle est la caution provisoire et les pièces administratives requises ?"
+Les réponses sont réparties dans plusieurs fichiers : La caution est souvent dans le Règlement de Consultation (RC), tandis que le détail du projet est dans le Cahier des Prescriptions Spéciales (CPS).
+Avantage de la collection unique par reference : Lors de la recherche vectorielle, ChromaDB interroge l'ensemble des chunks du dossier d'un seul coup. Il récupère le chunk du RC ET le chunk du CPS simultanément pour les transmettre à Granite 4.1:3B.
+Comment ChromaDB gère-t-il cela en interne ?
+ChromaDB n'a pas besoin de sous-dossiers physiques par document sur le disque. Il fonctionne grâce à un système SQLite + fichiers d'index vectoriels HNSW extrêmement rapide et léger en mémoire RAM.
+Pour distinguer les différents fichiers d'un même Tender, on attache les identifiants de TenderDocument dans les metadatas de chaque chunk :
+{
+  "tender_reference": "AO-2026-8942",
+  "document_id": "b3a4f891-...",
+  "file_name": "CPS_Lot1.pdf",
+  "file_type": "CPS",
+  "chunk_index": 0
+}
+
+* qu'est ce que je dois installer : uv add httpx langchain-text-splitters chromadb sentence-transformers
+* utiliser papaya whip (#FFEDD5), inferno (#AA0003) et grapefruit pink (#FF6B6B)
+* ne pas polluer TenderDocuments et ajouter le champs extracted_text dans RAGAnalysisResult
+* Intégration / Déclenchement Automatique Asynchrone dans classification_service
+* modifier l'arborescence
+* !!!! Intégration / Déclenchement Automatique Asynchrone
+* prompts et chunker n'est utilise par aucun fichier
+* donne moi un rapport
+* est ce qu'il extrait les donnees 
+* verifier routes.py de rag_engine
+* explique tous concretement comment ca se fait
+* !!!! Intégration / Déclenchement Automatique Asynchrone
+* prompts et chunker n'est utilise par aucun fichier
+* est ce qu'il extrait les donnees non ajout rag_document_extractor
+* verifier routes.py de rag_engine
+* explique tous concretement comment ca se fait
+* mini-rapport
+* keep alive pour qwen
+* chercher lu et accepte pour la signer 
+* dans rag_service : RAGStatus.INDEXING ou RAGStatus.ANALYZING, ou d’ajouter le statut IN_PROGRESS à l’enum.
+* Redondance d’attribut SQLAlchemy : Le champ error_message est déclaré à deux reprises dans la classe RAGAnalysisResult.
+* Gestion du chemin de stockage : BASE_STORAGE_DIR est défini dans rag_service.py sous forme d’une chaîne de caractères brute (ex. r"C:\...\data_storage") tout en étant manipulé avec l’opérateur de concaténation de chemins /, propre au module pathlib.Path. L’exécution directe de cette ligne lève une erreur de type (TypeError). Le chemin doit être explicitement instancié via Path(BASE_STORAGE_DIR) ou configuré dynamiquement à partir des variables d’environnement centralisées dans config.py.
+* BUG absence du path libreoffice
+* BUG indexing_duration_sec, retrieval_duration_sec, generation_duration_sec null
+* ajout de rag_processed dans tender_documents
+* on traite un seul rag celui du tender courant
+* glm-ocr mauvais travail :
+2026-08-10 13:54:25,670 - [INFO] - [RAG-EXTRACT] Extraction terminée : 13650 caractères | types détectés=['DECLARATION_HONNEUR', 'RC', 'CPS', 'DECLARATION_FISCALE', 'DECLARATION_SOCIALE']
+2026-08-10 13:54:25,671 - [INFO] - [RAG-EXTRACT] Extraction terminée : RC minibus.doc | 0 fichiers modèles générés | 0 zones administratives détectées
+2026-08-10 13:54:25,672 - [INFO] - [RAG] Extraction indépendante terminée : 13650 caractères | types=['DECLARATION_HONNEUR', 'RC', 'CPS', 'DECLARATION_FISCALE', 'DECLARATION_SOCIALE'] | durée=23.38s
+* modification des routes rag pour un document et pour un tender
+* tester et ajouter endpoints stats rag, endpoint qui affiche le resume du rag pour l'afficher
+
+-----------------------------------------------------------------------------
+
+11-08
+
+* 
+

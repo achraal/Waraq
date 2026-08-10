@@ -698,7 +698,6 @@ def recuperer_contexte_few_shot(db: Session = Depends(get_db)):
     contexte_dynamique = WaraqLearningEngine.obtenir_exemples_few_shot(db)
     return {"prompt_injection": contexte_dynamique}
 
-
 @router.post("/learning/export-dataset", tags=["Waraq Intelligence Engine"])
 def exporter_dataset_pour_colab(db: Session = Depends(get_db)):
     """
@@ -710,7 +709,6 @@ def exporter_dataset_pour_colab(db: Session = Depends(get_db)):
         return {"status": "success", "detail": resultat}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.post("/learning/train-local", tags=["Waraq Intelligence Engine"])
 def lancer_entrainement_local():

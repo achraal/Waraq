@@ -1,49 +1,62 @@
-import fitz  # PyMuPDF
+import logging
 from typing import List, Dict, Any
 
+logger = logging.getLogger("waraq.rag.chunker")
+
 class DocumentChunker:
-    def __init__(self, chunk_size: int = 1000, overlap: int = 150):
+    """
+    Découpe le texte enrichi produit par GLM-OCR en chunks
+    adaptés au retrieval BGE-M3.
+    Les chunks conservent :
+    - leur identifiant ;
+    - leur numéro de page si disponible ;
+    - leur contenu ;
+    - leur nombre de mots.
+    """
+
+    def __init__(self, chunk_size: int = 800, overlap: int = 150):
         self.chunk_size = chunk_size
         self.overlap = overlap
+        if overlap >= chunk_size:
+            raise ValueError(
+                "overlap doit être inférieur à chunk_size"
+            )
 
-    def extract_text_by_page(self, pdf_path: str) -> List[Dict[str, Any]]:
-        """Extrait le texte page par page avec métadonnées."""
-        doc = fitz.open(pdf_path)
-        pages_content = []
-        for page_num in range(len(doc)):
-            page = doc.load_page(page_num)
-            text = page.get_text("text")
-            if text.strip():
-                pages_content.append({
-                    "page_number": page_num + 1,
-                    "text": text.strip()
-                })
-        doc.close()
-        return pages_content
+    def create_chunks(
+        self,
+        text: str,
+        page_number: int = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Découpe un texte en chunks.
+        Compatible FR / AR car le découpage se fait
+        au niveau des espaces et non des caractères.
+        """
 
-    def create_chunks(self, pages_content: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Découpe le texte des pages en chunks avec recouvrement (overlap)."""
+        if not text or not text.strip():
+            return []
+
+        words = text.split()
         chunks = []
-        chunk_id = 0
+        step = self.chunk_size - self.overlap
 
-        for item in pages_content:
-            page_num = item["page_number"]
-            text = item["text"]
-            
-            start = 0
-            text_length = len(text)
+        for start in range(0, len(words), step):
+            end = start + self.chunk_size
+            chunk_words = words[start:end]
+            if not chunk_words:
+                continue
+            chunks.append({
+                "chunk_id": len(chunks),
+                "page_number": page_number,
+                "content": " ".join(chunk_words),
+                "word_count": len(chunk_words)
+            })
+            if end >= len(words):
+                break
 
-            while start < text_length:
-                end = start + self.chunk_size
-                chunk_text = text[start:end]
-                
-                chunks.append({
-                    "chunk_id": chunk_id,
-                    "page_number": page_num,
-                    "content": chunk_text
-                })
-                
-                chunk_id += 1
-                start += (self.chunk_size - self.overlap)
-
+        logger.info(
+            "Chunking terminé : %s chunks générés (%s mots)",
+            len(chunks),
+            len(words)
+        )
         return chunks

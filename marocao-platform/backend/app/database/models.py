@@ -174,6 +174,7 @@ class TenderDocument(Base):
     file_path = Column(Text, nullable=False)
     extracted_text = Column(Text, nullable=True)                         # Réservé pour ton moteur OCR / RAG
     is_classified = Column(Boolean, default=False, nullable=False, index=True)
+    rag_processed = Column(Boolean, nullable=False, default=False, server_default="false")
     classification_reason = Column(Text, nullable=True)
     classification_description = Column(Text, nullable=True)  # Text permet de stocker de longues phrases d'explications de l'IA
     classified_at = Column(DateTime, nullable=True)
@@ -199,7 +200,7 @@ class TenderLot(Base):
     
     # Identifiants et description
     lot_number = Column(String, nullable=True) 
-    title = Column(Text, nullable=True)        # "Gares de : ..."
+    title = Column(Text, nullable=True)        
     description = Column(Text, nullable=True)  # La description détaillée
     
     # Données financières et conditions
@@ -292,6 +293,7 @@ class RAGAnalysisResult(Base):
     # Suivi d'état du traitement asynchrone
     status = Column(Enum(RAGStatus), default=RAGStatus.PENDING, nullable=False, index=True)
     error_message = Column(Text, nullable=True)
+    extracted_text = Column(Text, nullable=True)
     # Données extraites structurées par Granite 4.1:3B (n'altère PAS extracted_text d'origine)
     rag_analysis = Column(JSONB, nullable=True)    
     # Métriques RAG pour Telemetry & Audit
@@ -302,7 +304,6 @@ class RAGAnalysisResult(Base):
     total_rag_duration_sec = Column(Float, nullable=True)   
     embedding_duration_sec = Column(Float, nullable=True)
     llm_extraction_duration_sec = Column(Float, nullable=True)
-    error_message = Column(Text, nullable=True)
     # Traçabilité des modèles
     model_used = Column(String, default="Granite 4.1:3B", nullable=False)
     embedding_model_used = Column(String, default="BAAI/bge-m3", nullable=False)

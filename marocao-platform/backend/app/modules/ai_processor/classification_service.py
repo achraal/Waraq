@@ -11,6 +11,8 @@ from backend.app.modules.ai_processor.learning_service import WaraqLearningEngin
 from backend.app.modules.ai_processor.ocr_engine import extraire_texte_integral, extraire_ocr_pdf_page, optimiser_image_pour_analyse, convertir_doc_en_pdf
 from backend.app.modules.ai_processor.rules import nettoyer_nom_type, appliquer_types_primitifs
 from backend.app.modules.ai_processor.document_splitter import verifier_et_decouper_document, est_une_page_sommaire, filtrer_segments_parasites, contient_structure_tableau, analyser_haut_de_page
+from backend.app.modules.rag_engine.rag_trigger import lancer_rag_tender_async
+
 from typing import Optional, List
 
 # Configuration du logger pour ce module
@@ -54,7 +56,7 @@ def determiner_type_par_ia(file_path: str, ext: str, nom_fichier: str, contexte_
         res_extraction = extraire_texte_integral(chemin_a_analyser)
         logger.info(
             f"[DEBUG EXTRACTION] "
-            f"text={len(res_extraction.get('text',''))} "
+            #f"text={len(res_extraction.get('text',''))} "
             f"scan={res_extraction.get('is_scanned')} "
             f"method={res_extraction.get('inspection_method')}"
         )
@@ -472,7 +474,7 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                 doc.model_used = modele_log
                                 doc.file_type = t_final_clean
                                 doc.extracted_text = texte_learning
-                                metadata_segment["learning_text"] = texte_learning
+                                #metadata_segment["learning_text"] = texte_learning
                                 logger.info(
                                     "[LEARNING STORAGE] Texte sauvegardé | ID=%s | Taille=%s caractères",
                                     doc.id,
@@ -538,11 +540,36 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
                                 logger.info(f"      [BDD] Nouveau segment ID {nouveau_morceau.id} enregistré avec AuditLog.")                  
                         db.commit()
                         
+                        
                     except Exception as doc_error:
                         db.rollback()
                         logger.error(f"   -> Erreur lors du traitement du document ID {doc.id}: {str(doc_error)}")
                         continue
                 logger.info(f"-> Dossier [{index_tender}/{total_tenders}] ({nom_dossier_offre}) finalisé avec succès.\n")
+                
+                # DÉCLENCHEMENT RAG ASYNCHRONE
+                try:
+                    # Vérifie si le Tender possède au moins
+                    # un document RAG-compatible.
+                    documents_rag = (
+                        db.query(TenderDocument)
+                        .filter(
+                            TenderDocument.tender_id == tender.id,
+                            TenderDocument.is_classified == True,
+                            TenderDocument.file_type.in_(
+                                ["CPS", "RC", "BDP"]
+                            )
+                        )
+                        .count()
+                    )
+                    if documents_rag > 0:
+                        logger.info("[RAG][TRIGGER] Classification terminée " "pour Tender ID=%s.", tender.id)
+                        logger.info("[RAG][TRIGGER] %s document(s) " "éligible(s) détecté(s).", documents_rag)
+                        lancer_rag_tender_async(tender.id)
+                    else:
+                        logger.info("[RAG][TRIGGER] Aucun document CPS/RC/BDP " "pour Tender ID=%s. RAG non déclenché.", tender.id)
+                except Exception as rag_trigger_error:
+                    logger.error("[RAG][TRIGGER] Impossible de lancer le RAG " "pour Tender ID=%s : %s", tender.id, rag_trigger_error, exc_info=True)
                 
             except Exception as tender_error:
                 db.rollback()
@@ -554,7 +581,7 @@ def executer_classification_post_scraping(target_tender_id: Optional[int] = None
         logger.info(f"Nombre total de lignes/documents traités : {total_lignes_traitees}")
         logger.info(f"Temps total d'exécution : {duree_totale:.2f} secondes (~{duree_totale/60:.2f} minutes)")    
         logger.info("=== FIN DU PIPELINE DE CLASSIFICATION ===")
-        
+                
     except Exception as global_error:
         logger.critical(f"Erreur globale dans le traitement : {global_error}", exc_info=True)
     finally:

@@ -356,3 +356,11 @@ GET http://localhost:8000/api/audit-logs/search/document/{document_id}
 GET http://localhost:8000/api/audit-logs/{audit_id}
 
 ##############################################################################
+
+POST http://localhost:8000/api/rag/analyze-document/{document_id}
+
+POST http://localhost:8000/api/rag/analyze-tender/{tender_id}
+
+GET http://localhost:8000/api/rag/stats/{tender_id}
+
+GET http://localhost:8000/api/rag/summary/{tender_id}
