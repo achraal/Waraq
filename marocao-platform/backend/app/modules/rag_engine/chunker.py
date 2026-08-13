@@ -14,7 +14,8 @@ class DocumentChunker:
     - leur nombre de mots.
     """
 
-    def __init__(self, chunk_size: int = 800, overlap: int = 150):
+    #def __init__(self, chunk_size: int = 800, overlap: int = 150):
+    def __init__(self, chunk_size: int = 450, overlap: int = 100):
         self.chunk_size = chunk_size
         self.overlap = overlap
         if overlap >= chunk_size:

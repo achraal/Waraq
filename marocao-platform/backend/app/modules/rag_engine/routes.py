@@ -5,9 +5,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from uuid import UUID
 from backend.app.database.connection import get_db, SessionLocal
-from backend.app.database.models import TenderDocument, RAGAnalysisResult, RAGStatus
+from backend.app.database.models import TenderDocument, RAGAnalysisResult, RAGStatus, Tender
 from backend.app.modules.rag_engine.rag_service import rag_pipeline_service
+from backend.app.modules.rag_engine.vector_store import chroma_manager
+from backend.app.modules.rag_engine.schemas import TenderRAGAnalysisResult, TenderRAGSummary
+from pydantic import ValidationError
+import logging
 
+logger = logging.getLogger("waraq.rag.routes")
 router = APIRouter(prefix="/v1/documents",tags=["Documents"])
 
 UPLOAD_DIR = "./uploaded_files"
@@ -286,117 +291,174 @@ async def obtenir_stats_rag(tender_id: UUID,db: Session = Depends(get_db)) -> Di
         },
         "documents_details": documents_stats
     }
-
-@router_rag.get("/summary/{tender_id}", status_code=status.HTTP_200_OK)
-async def obtenir_resume_rag(tender_id: UUID, db: Session = Depends(get_db)) -> Dict[str, Any]:
+@router_rag.get(
+    "/summary/{document_id}",
+    response_model=TenderRAGSummary,
+    status_code=status.HTTP_200_OK,
+)
+async def obtenir_resume_rag(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+) -> TenderRAGSummary:
     """
-    Retourne le résumé métier RAG déjà présent en base.
-    IMPORTANT :
-    Aucun appel à GLM-OCR, BGE ou Granite n'est effectué ici.
+    Retourne le résumé métier RAG déjà généré pour un document.
+
+    Aucun appel à Granite.
+    Aucun appel à GLM-OCR.
+    Aucun recalcul.
+    Aucun appel ChromaDB.
     """
-    docs = (db.query(TenderDocument).filter(TenderDocument.tender_id == tender_id,TenderDocument.file_type.in_(["CPS", "RC", "BDP"])).all())
 
-    if not docs:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Aucun document stratégique trouvé pour le tender {tender_id}.")
+    document = (
+        db.query(TenderDocument)
+        .filter(TenderDocument.id == document_id)
+        .first()
+    )
 
-    document_ids = [doc.id for doc in docs]
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document introuvable.",
+        )
 
-    rag_entries = (db.query(RAGAnalysisResult).filter(RAGAnalysisResult.document_id.in_(document_ids)).all())
+    rag_entry = (
+        db.query(RAGAnalysisResult)
+        .filter(
+            RAGAnalysisResult.document_id == document.id,
+            RAGAnalysisResult.status == RAGStatus.COMPLETED,
+        )
+        .first()
+    )
 
-    analyses = []
-    for entry in rag_entries:
-        if entry.status != RAGStatus.COMPLETED:
-            continue
-        if not entry.rag_analysis:
-            continue
-        analyses.append({"document_id": str(entry.document_id),"analysis": entry.rag_analysis})
+    if not rag_entry:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucune analyse RAG terminée disponible pour ce document.",
+        )
 
-    if not analyses:
-        return {
-            "tender_id": str(tender_id),
-            "status": "NOT_READY",
-            "message": (
-                "Aucune analyse RAG complète n'est encore disponible."
-            ),
-            "documents_analyzed": 0,
-            "summary": None
-        }
+    summary = rag_entry.summary
 
-    # VALEURS PAR DÉFAUT
-    summary = {
-        "objet_appel_offres": None,
-        "maitre_d_ouvrage": None,
-        "numero_reference": None,
-        "delai_execution": None,
-        "dates_importantes": {
-            "date_limite_depot": None,
-            "date_visite_lieux": None,
-            "date_ouverture_plis": None
-        },
-        "garanties_exigees": None,
-        "caution_provisoire": None,
-        "pieces_a_fournir": {"pieces_techniques": [],"pieces_administratives": []},
-        "criteres_evaluation": [],
-        "estimation_financiere": None,
-        "clauses_techniques_clefs": [],
-        "clauses_administratives_clefs": []
-    }
-    # FONCTIONS D'AGRÉGATION
+    if not summary:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucun résumé métier disponible pour ce document.",
+        )
 
-    def remplir_si_vide(cle, valeur):
-        if valeur is not None and valeur != "":
-            if summary.get(cle) in [None, "", [], {}]:
-                summary[cle] = valeur
+    try:
+        return TenderRAGSummary.model_validate(summary)
 
-    def ajouter_liste_unique(destination, valeurs):
-        if not valeurs:
-            return
-        if not isinstance(valeurs, list):
-            valeurs = [valeurs]
-        for valeur in valeurs:
-            if valeur and valeur not in destination:
-                destination.append(valeur)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "message": "Résumé RAG présent mais invalide.",
+                "errors": exc.errors(),
+            },
+        )
+        
+@router_rag.get("/vectors/tender/{tender_id}", status_code=status.HTTP_200_OK)
+async def visualiser_vecteurs_tender(
+    tender_id: UUID,
+    max_points: int = 500,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
 
-    # AGRÉGATION DES DOCUMENTS
-    for item in analyses:
-        analysis = item["analysis"]
-        if not isinstance(analysis, dict):
-            continue
+    try:
+        tender = (
+            db.query(Tender)
+            .filter(Tender.id == tender_id)
+            .first()
+        )
 
-        # Champs simples
-        remplir_si_vide("objet_appel_offres",analysis.get("objet_appel_offres"))
-        remplir_si_vide("maitre_d_ouvrage",analysis.get("maitre_d_ouvrage"))
-        remplir_si_vide("numero_reference",analysis.get("numero_reference"))
-        remplir_si_vide("delai_execution",analysis.get("delai_execution"))
-        remplir_si_vide("garanties_exigees",analysis.get("garanties_exigees"))
-        remplir_si_vide("caution_provisoire",analysis.get("garanties_exigees"))
-        remplir_si_vide("caution_provisoire",analysis.get("caution_provisoire"))
-        remplir_si_vide("estimation_financiere",analysis.get("estimation_financiere"))
-        # Dates
-        dates = analysis.get("dates_importantes",{})
-        if isinstance(dates, dict):
-            for date_key in ["date_limite_depot","date_visite_lieux","date_ouverture_plis"]:
-                if summary["dates_importantes"].get(date_key) is None and dates.get(date_key):
-                    summary["dates_importantes"][date_key] = dates.get(date_key)
-        # Pièces
-        pieces = analysis.get("pieces_a_fournir",{})
-        if isinstance(pieces, dict):
-            ajouter_liste_unique(summary["pieces_a_fournir"]["pieces_techniques"],pieces.get("pieces_techniques"))
-            ajouter_liste_unique(summary["pieces_a_fournir"]["pieces_administratives"],pieces.get("pieces_administratives"))
-        # Critères
-        ajouter_liste_unique(summary["criteres_evaluation"],analysis.get("criteres_evaluation"))
-        # Clauses techniques
-        ajouter_liste_unique(summary["clauses_techniques_clefs"],analysis.get("clauses_techniques_clefs"))
-        # Clauses administratives
-        ajouter_liste_unique(summary["clauses_administratives_clefs"],analysis.get("clauses_administratives_clefs"))
+        if not tender:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tender introuvable : {tender_id}"
+            )
 
-    return {
-        "tender_id": str(tender_id),
-        "status": "COMPLETED",
-        "documents_analyzed": len(analyses),
-        "documents_available": len(docs),
-        "summary": summary
-    }
+        result = chroma_manager.visualiser_vecteurs(
+            tender_reference=tender.reference,
+            document_id=None,
+            max_points=max_points
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "[RAG][VISUALIZATION][TENDER] Erreur"
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur visualisation ChromaDB : {str(exc)}"
+        )
+
+
+@router_rag.get("/vectors/document/{document_id}", status_code=status.HTTP_200_OK)
+async def visualiser_vecteurs_document(
+    document_id: UUID,
+    max_points: int = 500,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+
+    try:
+        document = (
+            db.query(TenderDocument)
+            .filter(TenderDocument.id == document_id)
+            .first()
+        )
+
+        if not document:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Document introuvable : {document_id}"
+            )
+
+        # Adapter cette ligne selon ta relation SQLAlchemy
+        tender = document.tender
+
+        if not tender:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tender associé introuvable pour le document : {document_id}"
+            )
+
+        result = chroma_manager.visualiser_vecteurs(
+            tender_reference=tender.reference,
+            document_id=str(document_id),
+            max_points=max_points
+        )
+
+        return result
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc)
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "[RAG][VISUALIZATION][DOCUMENT] Erreur"
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur visualisation ChromaDB : {str(exc)}"
+        )
 
 @router.post("/upload")
 async def upload_document(file: UploadFile = File(...)):

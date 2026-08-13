@@ -38,8 +38,18 @@ class Settings:
     
     # Chemin vers le dossier chroma_db
     CHROMA_PERSIST_DIR: Path = Path(os.getenv("CHROMA_PERSIST_DIR"))
-    LIBREOFFICE_PATH: str = (
-            r"C:\Program Files\LibreOffice\program\soffice.exe"
-        )    
+    LIBREOFFICE_PATH: str = r"C:\Program Files\LibreOffice\program\soffice.exe"  
+
+     # Racine unique de data_storage
+    DATA_STORAGE_PATH: Path = Path(os.getenv("DATA_STORAGE_PATH",
+            r"C:\Users\achra\Desktop\Intern\Project\marocao-platform\data_storage"))
+
+    # Alias pour compatibilité avec le code existant
+    STORAGE_ROOT: Path = DATA_STORAGE_PATH
+
+    # Dossiers métier
+    RAG_EXTRACTED_DIR: Path = DATA_STORAGE_PATH / "rag_extracted"
+    GENERATED_DIR: Path = DATA_STORAGE_PATH / "generated"
+    TEMPLATES_DIR: Path = DATA_STORAGE_PATH / "templates"  
 
 settings = Settings()

@@ -336,5 +336,618 @@ Pour distinguer les différents fichiers d'un même Tender, on attache les ident
 
 11-08
 
-* 
+* BUGS :
+- doc et docx nont pas ete traduit en pdf et mis dans rag_extracted il sest cree mais y a aucun documment
+- modeles non extrait :
+2026-08-10 16:27:01,293 - [INFO] - [RAG-EXTRACT] Extraction terminée : 13650 caractères | types détectés=['DECLARATION_HONNEUR', 'RC', 'CPS', 'DECLARATION_FISCALE', 'DECLARATION_SOCIALE']
+2026-08-10 16:27:01,306 - [INFO] - [RAG-EXTRACT] Extraction terminée : RC minibus.doc | 0 fichiers modèles générés | 0 zones administratives détectées
+2026-08-10 16:27:01,315 - [INFO] - [RAG] Extraction indépendante terminée : 13650 caractères | types=['DECLARATION_HONNEUR', 'RC', 'CPS', 'DECLARATION
+- amelioration du resume rag_analysis
+* ajout du champs administrative_zones 
+
+12-08 
+
+* visualiser les vecteurs de chaque document et de chaque tender
+* ajout du model rag logs
+* transforme les docx et les enregistres dans rag_extracted aussi 
+* -BUG sources hors arborescence
+bug : Erreur durant l'exécution du RAG: [RAG] L'extracteur RAG n'a extrait aucun texte.
+Traceback (most recent call last):
+  File "C:\Users\achra\Desktop\Intern\Project\marocao-platform\backend\app\modules\rag_engine\rag_service.py", line 626, in execute_rag_pipeline
+    raise ValueError("[RAG] L'extracteur RAG n'a extrait aucun texte.")
+ValueError: [RAG] L'extracteur RAG n'a extrait aucun texte.
+
+
+13-08
+
+
+Epic — Génération et préparation finale des documents Waraq
+WORKFLOW-01 — Structurer le workflow de génération
+Définir le workflow complet après le pipeline RAG.
+Définir les états : DISCOVERED → VALIDATED → READY → GENERATED → FINALIZED.
+Centraliser le traitement dans modules/workflows/.
+Ajouter les logs métier et techniques à chaque étape.
+Ajouter la gestion des erreurs et des traitements partiels.
+WORKFLOW-02 — Charger tous les documents d’un appel d’offres
+Créer un service permettant de charger tous les documents associés à un Tender.
+Parcourir rag_extracted/{année}/{mois}/{jour}/{reference}/.
+Parcourir également les documents restants dans extracted/ et/ou classified/.
+Ignorer _sources pour les documents métier sauf lorsqu'il contient le document source nécessaire.
+Identifier automatiquement les types :
+RC
+CPS
+BDP/BDR
+ACTE_ENGAGEMENT
+DECLARATION_HONNEUR
+autres pièces
+Éviter les doublons entre rag_extracted, classified et extracted.
+Ajouter les logs de découverte des documents.
+WORKFLOW-03 — Créer le registre des documents du dossier
+Créer une structure interne représentant chaque document.
+Stocker :
+nom
+type
+chemin source
+extension
+nombre de pages
+origine
+statut
+document obligatoire ou optionnel
+Préparer cette structure pour le frontend.
+Ajouter un endpoint de consultation des documents du dossier.
+WORKFLOW-04 — Vérifier la complétude du dossier
+Vérifier la présence du RC.
+Vérifier la présence du CPS.
+Vérifier la présence du BDP/BDR.
+Vérifier la présence de l'Acte d'Engagement.
+Vérifier la présence de la Déclaration sur l'Honneur.
+Identifier les documents manquants.
+Générer automatiquement les documents administratifs manquants.
+WORKFLOW-05 — Améliorer la détection et le découpage des documents
+Vérifier les documents issus du découpage RAG.
+Détecter les documents mal découpés.
+Réutiliser les règles existantes de document_splitter.py.
+Ajouter un découpage spécifique au workflow de génération.
+Identifier les documents contenant plusieurs pièces.
+Générer les fichiers séparés.
+Conserver les originaux.
+Ajouter les logs du découpage.
+WORKFLOW-06 — Supprimer un document incorrect
+Ajouter une méthode de suppression contrôlée d'un document.
+Supprimer uniquement le fichier du dossier de travail.
+Ne pas supprimer le document source original.
+Ajouter un endpoint :
+DELETE /workflows/documents/{document_id}
+Journaliser :
+utilisateur
+document
+raison
+date
+résultat de suppression.
+WORKFLOW-07 — Valider les documents du dossier
+Ajouter une méthode de validation globale.
+Vérifier que chaque document possède :
+un type valide
+un fichier existant
+un format exploitable
+une extraction correcte si nécessaire.
+Empêcher la finalisation si des documents obligatoires sont invalides.
+Ajouter un endpoint de validation.
+Persister le statut de validation.
+Ajouter les logs.
+Signature / préparation RC & CPS
+WORKFLOW-08 — Préparer la signature du RC et du CPS
+Implémenter un service de traitement PDF.
+Parcourir toutes les pages du RC.
+Parcourir toutes les pages du CPS.
+Ajouter une zone de signature en bas à droite.
+Ajouter la pagination/signature selon le format attendu.
+Ne pas masquer le contenu existant.
+Conserver la mise en page originale.
+WORKFLOW-09 — Détecter la mention « Lu et accepté »
+Détecter les cases ou zones contenant :
+Lu et accepté
+variantes OCR
+variantes françaises/arabe si nécessaire.
+Localiser la zone dans le document.
+Ajouter la signature dans cette zone lorsqu'elle existe.
+Utiliser OCR/ONNX pour les documents scannés.
+Ajouter les logs de détection.
+WORKFLOW-10 — Signer les pages RC/CPS
+Ajouter une méthode de signature automatique.
+Positionner la signature en bas à droite.
+Ajouter la référence/page si nécessaire.
+Traiter les PDF natifs.
+Traiter les PDF scannés.
+Générer un PDF final signé.
+Ajouter un endpoint :
+POST /workflows/sign/{tender_id}
+Journaliser le nombre de pages traitées.
+BDP / BDR
+WORKFLOW-11 — Détecter et charger le BDP/BDR
+Rechercher le BDP/BDR dans toutes les sources.
+Supporter :
+PDF
+DOCX
+XLS
+XLSX
+PDF scanné.
+Déterminer automatiquement le format.
+Utiliser OCR ONNX pour les documents scannés.
+WORKFLOW-12 — Extraire les champs du BDP/BDR
+Remplacer le parser regex actuel par un extracteur robuste.
+Extraire :
+numéro de prix
+désignation
+unité
+quantité
+prix unitaire
+montant
+total HT
+TVA
+total TTC
+autres colonnes présentes.
+Gérer les tableaux multi-pages.
+Gérer les colonnes variables.
+Gérer les documents bilingues FR/AR.
+Conserver les coordonnées/pages des champs lorsque nécessaire.
+WORKFLOW-13 — Préparer les champs BDP à remplir
+Transformer l'extraction en formulaire métier.
+Identifier les champs déjà renseignés.
+Identifier les champs manquants.
+Retourner au frontend uniquement les champs à compléter.
+Ajouter un endpoint :
+GET /workflows/bdp/{tender_id}/fields
+WORKFLOW-14 — Persister les données BDP
+Ajouter un endpoint de soumission des valeurs.
+Valider les types numériques.
+Calculer automatiquement les montants.
+Calculer :
+HT
+TVA
+TTC.
+Persister les valeurs saisies.
+Générer le BDP complété.
+Ajouter les logs de modification.
+WORKFLOW-15 — Générer le BDP final
+Réinjecter les valeurs utilisateur dans le document original.
+Supporter Excel et PDF lorsque possible.
+Générer un PDF final.
+Vérifier le document généré.
+Stocker le résultat dans generated/.
+Persister le chemin dans GeneratedDocument.
+Acte d'Engagement / Déclaration sur l'Honneur
+WORKFLOW-16 — Détecter les documents administratifs existants
+Rechercher :
+Acte d'Engagement
+Déclaration sur l'Honneur.
+Chercher dans :
+rag_extracted
+classified
+extracted.
+Supporter :
+DOCX
+DOC
+PDF
+PDF scanné.
+Utiliser OCR ONNX pour les documents scannés.
+WORKFLOW-17 — Extraire les champs administratifs
+Détecter automatiquement les champs à remplir.
+Adapter les champs au type de profil :
+personne physique
+auto-entrepreneur
+société
+établissement public
+coopérative.
+Utiliser CompanyProfile.
+Extraire notamment :
+raison sociale
+nom du gérant
+qualité
+adresse
+ICE
+RC
+CIN
+patente
+RIB
+banque
+capital social
+CNSS
+autres champs présents.
+Conserver les champs inconnus pour validation utilisateur.
+WORKFLOW-18 — Préremplir les documents administratifs
+Mapper automatiquement CompanyProfile vers les champs détectés.
+Préremplir les informations du Tender :
+objet
+référence
+acheteur
+lots.
+Retourner au frontend les champs nécessitant une intervention utilisateur.
+Ajouter un endpoint :
+GET /workflows/admin-docs/{tender_id}/fields
+WORKFLOW-19 — Compléter les documents administratifs
+Ajouter un endpoint de soumission des champs.
+Valider les valeurs.
+Fusionner :
+données du profil
+données de l'AO
+données utilisateur.
+Injecter les données dans le document source.
+Supporter DOCX/PDF.
+Pour les scans, produire une version reconstruite proprement.
+WORKFLOW-20 — Générer les documents administratifs manquants
+Si l'Acte d'Engagement est absent :
+utiliser le template Waraq.
+Si la Déclaration sur l'Honneur est absente :
+utiliser le template Waraq.
+Adapter le contenu au type de structure.
+Préremplir automatiquement les données disponibles.
+Marquer is_fallback_used = true.
+Marquer is_custom_template = false.
+WORKFLOW-21 — Convertir tous les documents finaux en PDF
+Convertir :
+DOC
+DOCX
+XLS
+XLSX
+PDF
+en PDF final.
+Utiliser LibreOffice pour les formats bureautiques.
+Conserver les PDF natifs lorsque possible.
+Vérifier que le PDF généré est lisible.
+Ajouter les logs de conversion.
+Stockage
+WORKFLOW-22 — Implémenter l'arborescence finale generated
+Modifier la structure actuelle :
+generated/
+└── année/
+    └── mois/
+        └── jour/
+            └── reference_ao/
+                ├── RC.pdf
+                ├── CPS.pdf
+                ├── BDP.pdf
+                ├── ACTE_ENGAGEMENT.pdf
+                └── DECLARATION_HONNEUR.pdf
+Ajouter éventuellement un sous-dossier utilisateur si nécessaire.
+Éviter les collisions de fichiers.
+Générer des noms déterministes.
+WORKFLOW-23 — Persister les documents générés
+Mettre à jour GeneratedDocument.
+Enregistrer :
+user_id
+tender_id
+doc_type
+file_name
+file_path
+is_custom_template
+is_fallback_used
+generation_metadata.
+Ajouter les timestamps.
+Garantir la cohérence DB/fichiers.
+API
+WORKFLOW-24 — Ajouter les endpoints de gestion documentaire
+
+Créer les endpoints :
+
+GET    /workflows/{tender_id}/documents
+DELETE /workflows/documents/{document_id}
+POST   /workflows/{tender_id}/validate
+WORKFLOW-25 — Ajouter les endpoints de signature
+
+Créer :
+
+POST /workflows/{tender_id}/sign
+WORKFLOW-26 — Ajouter les endpoints BDP
+
+Créer :
+
+GET  /workflows/bdp/{tender_id}/fields
+POST /workflows/bdp/{tender_id}/complete
+POST /workflows/bdp/{tender_id}/generate
+WORKFLOW-27 — Ajouter les endpoints administratifs
+
+Créer :
+
+GET  /workflows/admin-docs/{tender_id}/fields
+POST /workflows/admin-docs/{tender_id}/complete
+POST /workflows/admin-docs/{tender_id}/generate
+WORKFLOW-28 — Ajouter l'endpoint de génération finale
+
+Créer :
+
+POST /workflows/{tender_id}/finalize
+
+Cet endpoint doit :
+
+charger les documents ;
+vérifier leur validité ;
+vérifier les documents obligatoires ;
+signer RC/CPS ;
+compléter le BDP ;
+compléter/générer AE ;
+compléter/générer DH ;
+convertir tout en PDF ;
+stocker les fichiers ;
+persister GeneratedDocument ;
+retourner le dossier final.
+Logs / Audit
+WORKFLOW-29 — Ajouter le système de logs du workflow
+
+Utiliser RAGLog ou créer un WorkflowLog.
+
+Logger notamment :
+
+DOCUMENT_DISCOVERY
+DOCUMENT_VALIDATION
+DOCUMENT_DELETION
+DOCUMENT_SPLIT
+OCR
+BDP_EXTRACTION
+BDP_COMPLETION
+BDP_GENERATION
+ADMIN_DOC_EXTRACTION
+ADMIN_DOC_COMPLETION
+ADMIN_DOC_GENERATION
+SIGNATURE
+PDF_CONVERSION
+FINALIZATION
+ERROR
+
+Pour chaque événement :
+
+tender_id
+document_id
+user_id
+stage
+event
+message
+details
+duration_sec
+created_at
+Base de données
+WORKFLOW-30 — Étendre GeneratedDocument
+Ajouter les informations nécessaires au suivi du cycle de génération.
+Ajouter le statut :
+PENDING
+PROCESSING
+COMPLETED
+FAILED
+VALIDATED
+FINALIZED.
+Ajouter éventuellement :
+source_document_id
+version
+error_message
+validated_at
+finalized_at.
+WORKFLOW-31 — Ajouter les migrations Alembic
+Générer la migration des nouvelles colonnes/tables.
+Appliquer la migration.
+Vérifier les contraintes FK.
+Vérifier les ENUM PostgreSQL.
+Tester rollback/upgrade.
+Refactoring du code existant
+WORKFLOW-32 — Refactor admin_docs_generator.py
+Corriger l'import inexistant DocumentRAGAnalysis.
+Utiliser RAGAnalysisResult si nécessaire.
+Séparer :
+recherche du document
+extraction
+mapping
+injection
+conversion PDF
+persistance.
+Ajouter logs et gestion d'erreurs.
+WORKFLOW-33 — Refactor bdp_processor.py
+Remplacer le regex simpliste actuel.
+Ajouter support PDF/DOCX/XLS/XLSX.
+Ajouter OCR ONNX pour les scans.
+Ajouter extraction de tableaux.
+Ajouter validation des données.
+Ajouter persistance.
+WORKFLOW-34 — Refactor doc_generator.py
+Transformer DocumentGenerator en moteur central de génération.
+Ajouter :
+chargement template
+injection
+conversion PDF
+stockage
+persistance DB.
+Garder generate_summary_report() comme fonctionnalité secondaire.
+WORKFLOW-35 — Créer le service principal workflow_service.py
+Ajouter un orchestrateur unique du workflow.
+Méthodes principales :
+discover_documents()
+validate_documents()
+remove_document()
+split_documents()
+sign_rc_cps()
+extract_bdp_fields()
+complete_bdp()
+extract_admin_fields()
+complete_admin_document()
+generate_missing_admin_documents()
+convert_to_pdf()
+finalize_tender()
+Centraliser les logs.
+Centraliser la gestion des erreurs.
+Centraliser les chemins de stockage.
+WORKFLOW-36 — Créer document_service.py
+Gestion générique des fichiers.
+Détection extension.
+Conversion PDF.
+Comptage pages.
+Vérification intégrité.
+Détection PDF scanné.
+OCR ONNX.
+Suppression.
+Copie/déplacement.
+Génération des chemins.
+WORKFLOW-37 — Créer field_extractor.py
+Extraction générique de champs.
+Support :
+PDF natif
+PDF scan
+DOCX
+XLS
+XLSX.
+Réutiliser l'infrastructure OCR existante.
+Retourner les champs avec leur localisation et leur confiance.
+WORKFLOW-38 — Créer les schemas Pydantic Workflow
+
+Ajouter dans :
+
+backend/app/modules/workflows/schemas.py
+
+les modèles pour :
+
+WorkflowDocument
+DocumentValidation
+BDPField
+BDPCompletion
+AdminDocumentField
+AdminDocumentCompletion
+GeneratedDocumentResponse
+FinalizationResponse
+WORKFLOW-39 — Réorganiser routes.py
+Garder les routes très fines.
+Aucun traitement métier complexe dans les routes.
+Les routes appellent uniquement les services.
+Ajouter validation Pydantic.
+Ajouter authentification utilisateur.
+Vérifier que l'utilisateur possède le dossier AO.
+Tests
+WORKFLOW-40 — Tests de découverte documentaire
+
+Tester :
+
+dossier complet ;
+dossier incomplet ;
+documents dans rag_extracted ;
+documents uniquement dans extracted ;
+doublons ;
+_sources ;
+documents mal classifiés.
+WORKFLOW-41 — Tests OCR
+
+Tester :
+
+PDF natif ;
+PDF scanné ;
+DOCX ;
+XLSX ;
+documents français ;
+documents arabes ;
+documents mixtes.
+WORKFLOW-42 — Tests BDP
+
+Tester :
+
+extraction ;
+quantités ;
+prix unitaires ;
+calcul HT ;
+TVA ;
+TTC ;
+tableaux multi-pages ;
+Excel ;
+PDF ;
+scan.
+WORKFLOW-43 — Tests documents administratifs
+
+Tester :
+
+profil personne physique ;
+auto-entrepreneur ;
+société ;
+coopérative ;
+document existant ;
+document absent ;
+template Waraq ;
+document scanné.
+WORKFLOW-44 — Tests signature RC/CPS
+
+Tester :
+
+plusieurs pages ;
+PDF natif ;
+PDF scan ;
+présence de « Lu et accepté » ;
+absence de la mention ;
+position de signature ;
+conservation du contenu.
+WORKFLOW-45 — Tests finalisation
+
+Tester le workflow complet :
+
+Tender
+  ↓
+Discovery
+  ↓
+Validation
+  ↓
+BDP
+  ↓
+AE / DH
+  ↓
+RC / CPS
+  ↓
+Signature
+  ↓
+PDF
+  ↓
+generated/
+  ↓
+GeneratedDocument
+  ↓
+FINALIZED
+WORKFLOW-46 — Tests de non-régression RAG
+Vérifier que le nouveau workflow ne modifie pas :
+rag_extracted
+les documents sources
+ChromaDB
+RAGAnalysisResult.
+Vérifier que la génération utilise le résultat RAG sans le détériorer.
+WORKFLOW-47 — Tests de traçabilité
+Vérifier que chaque opération possède un log.
+Vérifier les durées.
+Vérifier les erreurs.
+Vérifier le lien user → tender → document → generated_document.
+Vérifier qu'un document final peut être retrouvé uniquement à partir du tender_id.
+Tâche finale d'intégration
+WORKFLOW-48 — Intégrer le workflow complet dans Waraq
+
+Objectif : permettre à l'utilisateur de passer d'un AO analysé par le RAG à un dossier de réponse final prêt à être utilisé, avec :
+
+RAG terminé
+    ↓
+Documents récupérés
+    ↓
+Documents vérifiés
+    ↓
+Documents mal découpés corrigés
+    ↓
+Documents incorrects supprimables
+    ↓
+RC + CPS préparés/signés
+    ↓
+BDP extrait et complété
+    ↓
+Acte d'engagement complété ou généré
+    ↓
+Déclaration sur l'honneur complétée ou générée
+    ↓
+Tous les documents convertis en PDF
+    ↓
+Validation finale
+    ↓
+generated/YYYY/MM/DD/{reference}/
+    ↓
+GeneratedDocument
+    ↓
+DOSSIER FINALISÉ
+
+* modifier diag de gantt
+
 

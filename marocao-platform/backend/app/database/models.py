@@ -38,6 +38,24 @@ class GeneratedDocType(str, enum.Enum):
     BDP_COMPLETED = "BDP_COMPLETED"
     SYNTHESE_CONFORMITE = "SYNTHESE_CONFORMITE"
 
+class PreparationDocumentStatus(str, enum.Enum):
+    DETECTED = "DETECTED"
+    VALID = "VALID"
+    INVALID = "INVALID"
+    DELETED = "DELETED"
+    GENERATED = "GENERATED"
+    FILLED = "FILLED"
+    SIGNED = "SIGNED"
+    READY = "READY"
+
+class PreparationStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    SCANNING = "SCANNING"
+    REVIEW = "REVIEW"
+    READY = "READY"
+    FINALIZED = "FINALIZED"
+    FAILED = "FAILED"
+
 # --- TABLE : UTILISATEURS ---
 class User(Base):
     __tablename__ = "users"
@@ -186,7 +204,8 @@ class TenderDocument(Base):
     ocr_duration_sec = Column(Float, nullable=True, comment="Temps consacré à l'OCR en secondes")
     analysis_metadata = Column(JSON, nullable=True, comment="Métriques et détails techniques de la classification IA")
     is_validated = Column(Boolean, default=False, nullable=False, server_default="false", doc="Indique si la classification a été revue/validée par un utilisateur humain")
-    validation_status = Column(String(50), nullable=True, doc="Statut de validation humaine : PENDING, VALIDATED, ou CORRECTED")    
+    validation_status = Column(String(50), nullable=True, doc="Statut de validation humaine : PENDING, VALIDATED, ou CORRECTED") 
+    administrative_zones = Column(JSONB,nullable=True,default=list)   
 
     tender = relationship("Tender", back_populates="documents") 
     audit_logs = relationship("ClassificationAuditLog", back_populates="document", cascade="all, delete-orphan")
@@ -220,7 +239,6 @@ class TenderLot(Base):
     reserve_pme = Column(String, nullable=True)
 
     tender = relationship("Tender", back_populates="lots")
-    
 
 class EmailNotification(Base):
     __tablename__ = "email_notifications"
@@ -308,29 +326,83 @@ class RAGAnalysisResult(Base):
     model_used = Column(String, default="Granite 4.1:3B", nullable=False)
     embedding_model_used = Column(String, default="BAAI/bge-m3", nullable=False)
     chroma_collection_name = Column(String, nullable=True)
+    summary = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relation vers TenderDocument
     document = relationship("TenderDocument", back_populates="rag_result")
 
+class RAGLog(Base):
+    __tablename__ = "rag_logs"
+
+    id = Column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)
+    document_id = Column(UUID(as_uuid=True),ForeignKey("tender_documents.id",ondelete="CASCADE"),nullable=True,index=True)
+    tender_id = Column(UUID(as_uuid=True),ForeignKey("tenders.id",ondelete="CASCADE"),nullable=True,index=True)
+    level = Column(String(20),nullable=False,default="INFO")
+    stage = Column(String(50),nullable=True,index=True)
+    event = Column(String(100),nullable=True,index=True)
+    message = Column(Text,nullable=False)
+    details = Column(JSONB,nullable=True)
+    duration_sec = Column(Float,nullable=True)
+    created_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),nullable=False,index=True)
+    document = relationship("TenderDocument",foreign_keys=[document_id])
+    tender = relationship("Tender",foreign_keys=[tender_id])
+
 # DOCUMENTS DE RÉPONSE GÉNÉRÉS ---
 class GeneratedDocument(Base):
     __tablename__ = "generated_documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    tender_id = Column(UUID(as_uuid=True), ForeignKey("tenders.id", ondelete="CASCADE"), nullable=False)    
+    user_id = Column(UUID(as_uuid=True),ForeignKey("users.id",ondelete="CASCADE"),nullable=False)
+    tender_id = Column(UUID(as_uuid=True),ForeignKey("tenders.id",ondelete="CASCADE"),nullable=False)
+    source_document_id = Column(UUID(as_uuid=True),ForeignKey("tender_documents.id", ondelete="SET NULL"),nullable=True)
     doc_type = Column(Enum(GeneratedDocType), nullable=False)
     file_name = Column(String, nullable=False)
     file_path = Column(Text, nullable=False)
-    is_custom_template = Column(Boolean, default=False)  # True si modèle DCE, False si modèle fallback Waraq
-    is_fallback_used = Column(Boolean, default=False, comment="True si les modèles standards Waraq ont été utilisés")
-    
-    # Métadonnées d'injection (ex: valeurs saisies, prix unitaires BDP, etc.)
+    is_custom_template = Column(Boolean, default=False, nullable=False)
+    is_fallback_used = Column(Boolean, default=False, nullable=False)
     generation_metadata = Column(JSONB, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-
-    # Relations
     user = relationship("User")
     tender = relationship("Tender")
+    source_document = relationship("TenderDocument")
+
+class TenderPreparation(Base):
+    __tablename__ = "tender_preparations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tender_id = Column(UUID(as_uuid=True),ForeignKey("tenders.id", ondelete="CASCADE"),unique=True,nullable=False)
+    user_id = Column(UUID(as_uuid=True),ForeignKey("users.id", ondelete="CASCADE"),nullable=False)
+    status = Column(Enum(PreparationStatus),default=PreparationStatus.PENDING,nullable=False,index=True)
+    can_finalize = Column(Boolean, default=False, nullable=False)
+    validation_errors = Column(JSONB, nullable=True)
+    created_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),nullable=False)
+    updated_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),onupdate=lambda: datetime.now(timezone.utc),nullable=False)
+    tender = relationship("Tender")
+    user = relationship("User")
+    documents = relationship("TenderPreparationDocument",back_populates="preparation",cascade="all, delete-orphan")
+
+class TenderPreparationDocument(Base):
+    __tablename__ = "tender_preparation_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    preparation_id = Column(UUID(as_uuid=True),ForeignKey("tender_preparations.id", ondelete="CASCADE"),nullable=False,index=True)
+    document_id = Column(UUID(as_uuid=True),ForeignKey("tender_documents.id", ondelete="SET NULL"),nullable=True)
+    generated_document_id = Column(UUID(as_uuid=True),ForeignKey("generated_documents.id", ondelete="SET NULL"),nullable=True)
+    document_type = Column(String(100), nullable=False, index=True)
+    file_name = Column(String, nullable=False)
+    file_path = Column(Text, nullable=False)
+    status = Column(Enum(PreparationDocumentStatus),default=PreparationDocumentStatus.DETECTED,nullable=False,index=True)
+    is_required = Column(Boolean, default=False, nullable=False)
+    is_user_provided = Column(Boolean, default=True, nullable=False)
+    is_generated = Column(Boolean, default=False, nullable=False)
+    is_signed = Column(Boolean, default=False, nullable=False)
+    is_filled = Column(Boolean, default=False, nullable=False)
+    validation_message = Column(Text, nullable=True)
+    metadata_json = Column(JSONB, nullable=True)
+    created_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),nullable=False)
+    updated_at = Column(DateTime,default=lambda: datetime.now(timezone.utc),onupdate=lambda: datetime.now(timezone.utc),nullable=False)
+    preparation = relationship("TenderPreparation",back_populates="documents")
+    document = relationship("TenderDocument")
+    generated_document = relationship("GeneratedDocument")

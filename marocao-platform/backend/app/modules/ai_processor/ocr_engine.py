@@ -1,9 +1,7 @@
-import os
-
+import os, time
 # Désactive l'optimisation oneDNN/MKLDNN qui fait crasher PIR sous Windows
 os.environ["FLAGS_use_onednn"] = "0"
 os.environ["FLAGS_enable_pir_api"] = "0"
-
 import docx, os, logging, openpyxl, tempfile, sys, subprocess, fitz
 from pypdf import PdfReader
 from paddleocr import PaddleOCR
@@ -12,7 +10,6 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 #from datetime import time
-import time
 from typing import Optional, List
 from backend.app.modules.ai_processor.fast_ocr_engine import extraire_texte_en_tete_fast_ocr
 
@@ -136,10 +133,7 @@ def extraire_texte_integral(file_path: str) -> dict:
     file_size_mb = round(os.path.getsize(file_path) / (1024 * 1024), 2)
     ocr_duration_total = 0.0
 
-    logger.info(
-        f"[METRICS INIT] {os.path.basename(file_path)} | "
-        f"ext={ext} | file_size_mb={file_size_mb}"
-    )
+    logger.info(f"[METRICS INIT] {os.path.basename(file_path)} | " f"ext={ext} | file_size_mb={file_size_mb}")
 
     try:
         # 1. PDF (Parcours page par page avec métadonnées)
@@ -472,11 +466,7 @@ def extraire_texte_page_pdf_avec_meta(doc_or_path, page_num: int = 0, path_pdf: 
                 else:
                     method = "FAST_OCR_ONNX_HEADER"
                 
-                result = {
-                    "text": texte_ocr,
-                    "is_scanned": True,
-                    "inspection_method": method
-                }
+                result = {"text": texte_ocr,"is_scanned": True,"inspection_method": method}
 
     except Exception as e:
         logger.error(f"[OCR PAGE] Erreur P.{page_num+1} sur '{doc_or_path}' : {e}")
@@ -520,7 +510,6 @@ def extraire_ocr_image(file_path: str) -> str:
     """Applique PaddleOCR sur un fichier image avec optimisation préalable si l'image est géante."""
     # 1. Optimiser l'image si elle est trop grande (ex: T2.jpg)
     chemin_a_analyser = optimiser_image_pour_analyse(file_path, max_side=2048)
-    
     try:
         # 2. Exécuter PaddleOCR sur le chemin (optimisé ou d'origine)
         return _executer_paddle_ocr(chemin_a_analyser)
