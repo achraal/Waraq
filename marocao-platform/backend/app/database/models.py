@@ -69,7 +69,6 @@ class User(Base):
     # Relation 1-to-1 avec cascade de suppression propre
     company_profile = relationship("CompanyProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
-
 # --- HÉRITAGE DE TABLES : PROFIL ENTREPRISE ---
 class CompanyProfile(Base):
     __tablename__ = "company_profiles"
@@ -98,7 +97,6 @@ class CompanyProfile(Base):
 
     user = relationship("User", back_populates="company_profile")
 
-
 class PhysicalPersonProfile(CompanyProfile):
     __tablename__ = "physical_person_profiles"
 
@@ -112,7 +110,6 @@ class PhysicalPersonProfile(CompanyProfile):
     __mapper_args__ = {
         "polymorphic_identity": "physical_person",
     }
-
 
 class LegalPersonProfile(CompanyProfile):
     __tablename__ = "legal_person_profiles"
@@ -406,3 +403,17 @@ class TenderPreparationDocument(Base):
     preparation = relationship("TenderPreparation",back_populates="documents")
     document = relationship("TenderDocument")
     generated_document = relationship("GeneratedDocument")
+
+class WorkflowLog(Base):
+    """
+    Journalise les étapes exécutées par les workflows IA/OCR/extraction.
+    """
+    __tablename__ = "workflow_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workflow_name = Column(String(100),nullable=False,index=True)
+    step_name = Column(String(100),nullable=False,index=True)
+    status = Column(String(30),nullable=False,index=True)
+    file_path = Column(Text,nullable=True)
+    message = Column(Text,nullable=True)
+    created_at = Column(DateTime,default=datetime.utcnow,nullable=False,index=True)

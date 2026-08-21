@@ -3,120 +3,98 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import { Routes, Route, useNavigate } from 'react-router-dom'
+import LandingPage from './components/LandingPage'
+import Login from './components/auth/Login'
+import Register from './components/auth/Register'
+import Profile from './components/auth/Profile'
+import UserProfile from './components/UserProfile';
+import MainLayout from './layouts/MainLayout';
+import AdminUsersManager from './components/admin/AdminUsersManager';
+import Dashboard from './components/dashboard/Dashboard';
+import AdminNotifications from './components/admin/AdminNotifications';
+import AdminVectorVisualizer from './components/admin/AdminVectorVisualizer';
+import TendersMinimal from './components/tenders/TendersMinimal';
+import TenderDetail from './components/tenders/TenderDetail';
+import TendersFullList from './components/tenders/TendersFullList';
+import ScraperManager from './components/ScraperManager';
+import DocumentClassifier from './components/classifier/DocumentClassifier';
+import TenderDocumentClassifier from './components/classifier/TenderDocumentClassifier';
+import AdminIntelligenceEngine from './components/admin/AdminIntelligenceEngine';
+import DocumentValidator from './components/classifier/DocumentValidator';
+import GlobalClassificationRunner from './components/classifier/GlobalClassificationRunner';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const navigate = useNavigate();
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  return(
+  <Routes>
+      {/* Route principale */}
+      <Route path="/" element={<LandingPage />} />
 
-      <div className="ticks"></div>
+      {/* Route de connexion */}
+      <Route 
+        path="/login" 
+        element={
+          <Login 
+            onSwitchToRegister={() => navigate('/register')} 
+            onSuccess={(data) => {
+              console.log('Connexion réussie:', data);
+              navigate('/dashboard'); // Rediriger vers votre tableau de bord
+            }} 
+          />
+        } 
+      />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {/* Route de création de compte (Étape 1) */}
+      <Route 
+        path="/register" 
+        element={
+          <Register 
+            onSwitchToLogin={() => navigate('/login')} 
+            onSuccessStep1={(data) => {
+              console.log('Étape 1 réussie:', data);
+              navigate('/profile'); // Passer à la configuration du profil
+            }} 
+          />
+        } 
+      />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Route de configuration du profil (Étape 2) */}
+      <Route 
+        path="/profile" 
+        element={
+          <Profile 
+            onBack={() => navigate('/register')} 
+            onSuccess={(data) => {
+              console.log('Profil enregistré avec succès:', data);
+              navigate('/login');
+            }} 
+          />
+        } 
+      />
+      {/* Routes Protégées (avec Sidebar) */}
+      <Route element={<MainLayout />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/userprofile" element={<UserProfile />} />
+        <Route path="/admin/users" element={<AdminUsersManager />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/admin/vectors" element={<AdminVectorVisualizer />} />
+        {/* Vue minimale (Candidats et Admins) */}
+        <Route path="/tenders" element={<TendersMinimal />} />
+        {/* Vue détaillée (Candidats et Admins) */}
+        <Route path="/tenders/:id" element={<TenderDetail />} />
+        {/* Vue tableau complet (Plutôt pour Admins, optionnel dans le menu) */}
+        <Route path="/tenders-full" element={<TendersFullList />} />
+        <Route path="/scraper" element={<ScraperManager />} />
+        <Route path="/classifier" element={<DocumentClassifier />} />
+        <Route path="/tenders/:id/classifier" element={<TenderDocumentClassifier />} />
+        <Route path="/admin/intelligence" element={<AdminIntelligenceEngine />} />
+        <Route path="/tenders/:tenderId/document/:documentId/validate" element={<DocumentValidator />} />
+        <Route path="/runner" element={<GlobalClassificationRunner />} />
+      </Route>
+    </Routes>
+  );
 }
 
 export default App

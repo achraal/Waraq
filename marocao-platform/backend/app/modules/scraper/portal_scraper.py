@@ -414,7 +414,7 @@
 from importlib import metadata
 from selenium import webdriver
 from backend.app.modules.scraper.utils import DATA_STORAGE_DIR
-import time, json, os, shutil, zipfile
+import time, json, os, shutil, zipfile, builtins
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -423,8 +423,28 @@ from backend.app.modules.scraper.parser import parse_tender_metadata, save_metad
 from backend.app.database import SessionLocal # Importe ta session DB
 from backend.app.modules.scraper.utils import TenderManager 
 
+def print_and_send(*args, **kwargs):
+    # 1. Exécute le vrai 'print' normal dans le terminal
+    builtins.print(*args, **kwargs)
+    
+    # 2. Capture le texte
+    message = " ".join(str(arg) for arg in args)
+    
+    # 3. IMPORT LOCAL : Résout l'import circulaire
+    try:
+        from backend.app.modules.scraper.routes import log_to_frontend
+        log_to_frontend(message)
+    except Exception:
+        pass
+
+# On remplace le 'print' par défaut de ce fichier par notre fonction custom
+print = print_and_send
+
+# On remplace le 'print' par défaut de ce fichier par notre fonction custom
+print = print_and_send
+
 class Scraper:
-    def __init__(self, config_path, data_storage_dir):
+    def __init__(self, config_path, data_storage_dir, use_remote_driver=False):
         self.config_path = config_path
         self.data_storage_dir = DATA_STORAGE_DIR
         self.config = self._load_config()
@@ -435,6 +455,7 @@ class Scraper:
         self.tender_manager = TenderManager(self.db, self.data_storage_dir)
         self.processed = 0
         self.current_page_index = 0
+        self.use_remote_driver = use_remote_driver
 
     def _load_config(self):
         with open(self.config_path, 'r', encoding='utf-8') as f:
@@ -442,17 +463,37 @@ class Scraper:
 
     def _init_driver(self):
         options = webdriver.ChromeOptions()
+        
+        # 1. On définit le chemin de téléchargement selon l'environnement
+        if self.use_remote_driver:
+            # Dans Docker (Linux), le dossier de l'utilisateur s'appelle 'seluser'
+            target_download_dir = "/home/seluser/Downloads"
+            options.add_argument("--start-maximized")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--no-sandbox")
+        else:
+            # Sur ton PC Windows
+            target_download_dir = self.download_dir
+
         if not os.path.exists(self.download_dir):
             os.makedirs(self.download_dir)
         
         prefs = {
-            "download.default_directory": self.download_dir,
+            "download.default_directory": target_download_dir, 
             "download.prompt_for_download": False,
             "download.directory_upgrade": True,
             "safebrowsing.enabled": True
         }
         options.add_experimental_option("prefs", prefs)
-        self.driver = webdriver.Chrome(options=options)
+
+        if self.use_remote_driver:
+            self.driver = webdriver.Remote(
+                command_executor="http://localhost:4444/wd/hub",
+                options=options
+            )
+        else:
+            self.driver = webdriver.Chrome(options=options)
+            
         self.driver.maximize_window()
         self.wait = WebDriverWait(self.driver, 15)
                     
@@ -844,6 +885,7 @@ def run_scraper():
     """Fonction helper pour exécuter le scraper depuis les routes FastAPI."""
     scraper = Scraper(
         config_path="backend/app/modules/scraper/config.json",
-        data_storage_dir=DATA_STORAGE_DIR
+        data_storage_dir=DATA_STORAGE_DIR,
+        use_remote_driver=True
     )
     scraper.run_scraper()

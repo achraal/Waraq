@@ -1,11 +1,56 @@
-import logging, chromadb
+import logging, chromadb, asyncio
 from pathlib import Path
 from chromadb.config import Settings
 from backend.app.config import settings
 import numpy as np
 from sklearn.decomposition import PCA
+from concurrent.futures import ThreadPoolExecutor
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
 
 logger = logging.getLogger("waraq.rag.vector_store")
+
+# Pool de threads pour éviter de bloquer l'Event Loop lors de réductions lourdes
+executor = ThreadPoolExecutor(max_workers=4)
+
+def _compute_3d_reduction(matrix: np.ndarray, method: str = "tsne") -> np.ndarray:
+    """Réduit la matrice d'embeddings en 3D avec normalisation [-5, 5]."""
+    n_samples, n_dimensions = matrix.shape
+
+    if n_samples == 1:
+        return np.array([[0.0, 0.0, 0.0]])
+
+    # Nettoyage et centrage
+    matrix_scaled = StandardScaler().fit_transform(matrix)
+
+    # Réduction 3D selon la méthode demandée
+    if method == "tsne" and n_samples >= 4:
+        perplexity = min(30, max(5, n_samples // 3))
+        reducer = TSNE(
+            n_components=3,
+            perplexity=perplexity,
+            init="pca",
+            learning_rate="auto",
+            random_state=42
+        )
+        reduced = reducer.fit_transform(matrix_scaled)
+    else:
+        # Repli sur PCA 3D si très peu de points ou méthode PCA demandée
+        n_comp = min(3, n_samples, n_dimensions)
+        pca = PCA(n_components=n_comp, random_state=42)
+        reduced = pca.fit_transform(matrix_scaled)
+        
+        # Complète avec des 0 si moins de 3 dimensions obtenues
+        if reduced.shape[1] < 3:
+            padding = np.zeros((n_samples, 3 - reduced.shape[1]))
+            reduced = np.hstack([reduced, padding])
+
+    # Normalisation dans une boîte [-5, 5] pour Three.js
+    max_val = np.max(np.abs(reduced))
+    if max_val > 0:
+        reduced = (reduced / max_val) * 5.0
+
+    return reduced
 
 class ChromaDBManager:
     def __init__(self):
@@ -99,91 +144,72 @@ class ChromaDBManager:
         except Exception as e:
             logger.warning(f"Impossible de supprimer le document {document_id}: {str(e)}")
 
-    def visualiser_vecteurs(self, tender_reference: str, document_id: str = None, max_points: int = 500) -> dict:
-
+    async def visualiser_vecteurs_async(
+        self, 
+        tender_reference: str, 
+        document_id: str = None, 
+        max_points: int = 500,
+        method: str = "tsne"
+    ) -> dict:
+        """Génération asynchrone non-bloquante de la représentation 3D."""
         collection_name = self._sanitize_collection_name(tender_reference)
 
         try:
             collection = self.client.get_collection(name=collection_name)
         except Exception as exc:
             logger.error("[CHROMA][VISUALIZATION] Collection introuvable : %s", collection_name)
-
             raise ValueError(f"Collection ChromaDB introuvable : {collection_name}") from exc
 
-        where = None
-
-        if document_id:
-            where = {"document_id": str(document_id)}
-
+        where = {"document_id": str(document_id)} if document_id else None
         data = collection.get(where=where, include=["embeddings", "documents", "metadatas"], limit=max_points)
 
-        # IMPORTANT : ne pas utiliser `or []`
+        
+        documents = data.get("documents") or []
+        metadatas = data.get("metadatas") or []
+        ids = data.get("ids") or []
         embeddings = data.get("embeddings")
-        documents = data.get("documents")
-        metadatas = data.get("metadatas")
-        ids = data.get("ids")
 
-        if embeddings is None:
-            embeddings = []
-        if documents is None:
-            documents = []
-        if metadatas is None:
-            metadatas = []
-        if ids is None:
-            ids = []
-        if len(embeddings) == 0:
+        if embeddings is None or len(embeddings) == 0:
             return {
                 "collection": collection_name,
                 "tender_reference": tender_reference,
                 "document_id": document_id,
                 "count": 0,
+                "dimensions_originales": 0,
+                "dimensions_visualisation": 3,
+                "method_used": method,
                 "points": []
             }
 
         matrix = np.asarray(embeddings, dtype=np.float32)
-        n_samples, n_dimensions = matrix.shape
-        if n_samples == 1:
-            coordinates = np.array([[0.0, 0.0]])
-            explained_variance = []
-        else:
-            n_components = min(2, n_samples, n_dimensions)
-            pca = PCA(n_components=n_components)
-            reduced = pca.fit_transform(matrix)
-            if n_components == 1:
-                coordinates = np.column_stack([reduced[:, 0], np.zeros(n_samples)])
-            else:
-                coordinates = reduced
-            explained_variance = (pca.explained_variance_ratio_.tolist())
+
+        # Exécution du calcul mathématique dans un thread séparé pour libérer l'Event Loop FastAPI
+        loop = asyncio.get_running_loop()
+        coordinates = await loop.run_in_executor(
+            executor, 
+            _compute_3d_reduction, 
+            matrix, 
+            method
+        )
+
         points = []
         for i, coord in enumerate(coordinates):
-
-            metadata = (
-                metadatas[i]
-                if i < len(metadatas)
-                else {}
-            )
-
-            document = (
-                documents[i]
-                if i < len(documents)
-                else ""
-            )
-
-            point_id = (
-                ids[i]
-                if i < len(ids)
-                else None
-            )
+            meta = metadatas[i] if i < len(metadatas) else {}
+            doc = documents[i] if i < len(documents) else ""
+            point_id = ids[i] if i < len(ids) else None
 
             points.append({
                 "id": point_id,
                 "x": float(coord[0]),
                 "y": float(coord[1]),
-                "document_id": metadata.get("document_id"),
-                "file_name": metadata.get("file_name"),
-                "doc_type": metadata.get("doc_type"),
-                "chunk_index": metadata.get("chunk_index"),
-                "text_preview": document[:300]
+                "z": float(coord[2]),
+                "coordinates": [float(coord[0]), float(coord[1]), float(coord[2])],
+                "document_id": meta.get("document_id"),
+                "file_name": meta.get("file_name"),
+                "doc_type": meta.get("doc_type"),
+                "chunk_index": meta.get("chunk_index"),
+                "text_preview": doc[:300],
+                "document": doc
             })
 
         return {
@@ -192,8 +218,8 @@ class ChromaDBManager:
             "document_id": document_id,
             "count": len(points),
             "dimensions_originales": int(matrix.shape[1]),
-            "dimensions_visualisation": 2,
-            "explained_variance_ratio": explained_variance,
+            "dimensions_visualisation": 3,
+            "method_used": method,
             "points": points
         }
 

@@ -1,4 +1,4 @@
-import os, shutil, time, logging, re, copy
+import os, shutil, time, logging, re, copy, builtins
 from pathlib import Path
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -12,21 +12,57 @@ from backend.app.modules.ai_processor.ocr_engine import extraire_texte_integral,
 from backend.app.modules.ai_processor.rules import nettoyer_nom_type, appliquer_types_primitifs
 from backend.app.modules.ai_processor.document_splitter import verifier_et_decouper_document, est_une_page_sommaire, filtrer_segments_parasites, contient_structure_tableau, analyser_haut_de_page
 from backend.app.modules.rag_engine.rag_trigger import lancer_rag_tender_async
-
 from typing import Optional, List
 
-# Configuration du logger pour ce module
+# 1. On crée une classe qui va écouter tous les logs et les envoyer au WebSocket
+class WebSocketLogHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            # Récupère le texte du log déjà formaté (avec la date, le niveau, etc.)
+            msg = self.format(record)
+            from backend.app.modules.ai_processor.routes import log_classifier_to_frontend
+            # Envoie au frontend via notre fonction pont
+            log_classifier_to_frontend(msg)
+        except Exception:
+            pass
+
+# Configuration de ton logger local
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# Optionnel mais ultra efficace : ajoute un Handler pour être sûr que ça sorte dans ton terminal
+# On prépare le format d'affichage (pour le terminal ET le web)
+formatter = logging.Formatter('%(asctime)s - [CLASSIFICATION] - %(levelname)s - %(message)s')
+
 if not logger.handlers:
+    # A. Le Handler classique pour continuer à voir les logs dans ton terminal IDE
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
-    # Remplacement de %(name)s par un label plus court et propre : [CLASSIFICATION]
-    formatter = logging.Formatter('%(asctime)s - [CLASSIFICATION] - %(levelname)s - %(message)s')
     ch.setFormatter(formatter)
     logger.addHandler(ch)
+
+# B. L'ASTUCE GLOBALE : On ajoute le Handler WebSocket au Logger "Racine" (Root)
+# Ainsi, TOUS tes fichiers (ocr_engine, llm_analyzer, etc.) qui utilisent logging
+# enverront automatiquement leurs logs vers ton Iframe React !
+root_logger = logging.getLogger()
+# On vérifie qu'on ne l'ajoute pas deux fois (utile en mode auto-reload de FastAPI)
+if not any(isinstance(h, WebSocketLogHandler) for h in root_logger.handlers):
+    ws_handler = WebSocketLogHandler()
+    ws_handler.setLevel(logging.INFO)
+    ws_handler.setFormatter(formatter)
+    root_logger.addHandler(ws_handler)
+
+# # Configuration du logger pour ce module
+# logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+
+# # Optionnel mais ultra efficace : ajoute un Handler pour être sûr que ça sorte dans ton terminal
+# if not logger.handlers:
+#     ch = logging.StreamHandler()
+#     ch.setLevel(logging.INFO)
+#     # Remplacement de %(name)s par un label plus court et propre : [CLASSIFICATION]
+#     formatter = logging.Formatter('%(asctime)s - [CLASSIFICATION] - %(levelname)s - %(message)s')
+#     ch.setFormatter(formatter)
+#     logger.addHandler(ch)
 
 # DOSSIER DE BASE ABSOLU
 BASE_STORAGE_DIR = Path(r"C:\Users\achra\Desktop\Intern\Project\marocao-platform\data_storage")

@@ -43,7 +43,6 @@ def obtenir_dernieres_metriques(db: Session = Depends(get_db)):
         )
     return metric
 
-
 @router.get("/metrics/history", status_code=status.HTTP_200_OK)
 def obtenir_historique_metriques(limit: int = 24, db: Session = Depends(get_db)):
     """

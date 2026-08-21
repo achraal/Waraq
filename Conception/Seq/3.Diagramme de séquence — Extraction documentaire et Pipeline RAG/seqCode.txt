@@ -1,0 +1,230 @@
+@startuml Waraq_Sequence_RAG
+
+title Waraq — Diagramme de séquence : Extraction documentaire et Pipeline RAG
+
+autonumber
+
+actor "Utilisateur / Système" as User
+
+participant "FastAPI" as API
+participant "RAGPipelineService" as RAG
+participant "RAG Document Extractor" as Extractor
+participant "ClassificationService" as Classifier
+participant "OCR Engine" as OCR
+participant "PyMuPDF" as PDF
+participant "RapidOCR / ONNX" as RapidOCR
+participant "Document Splitter" as Splitter
+database "Storage\nrag_extracted/" as Storage
+
+participant "GLM-OCR\nVision Model" as GLM
+participant "DocumentChunker" as Chunker
+participant "BGE-M3\nEmbedding Model" as BGE
+participant "ChromaDB" as Chroma
+participant "Granite 4.1:3B" as Granite
+
+database "PostgreSQL" as DB
+participant "RAGAnalysisResult" as Result
+
+== Déclenchement ==
+
+User -> API : Analyser document / tender
+activate API
+
+API -> RAG : execute_rag_pipeline(document_id / tender_id)
+activate RAG
+
+== Vérification du traitement ==
+
+RAG -> DB : Vérifier document + statut RAG
+DB --> RAG : Document / statut
+
+alt Document déjà traité
+
+    RAG --> API : Résultat existant
+    API --> User : Analyse disponible
+
+else Nouveau traitement
+
+    RAG -> DB : Créer RAGAnalysisResult\nstatus=PROCESSING
+
+    == Classification ==
+
+    RAG -> Classifier : Vérifier classification documentaire
+    Classifier --> RAG : types documentaires\n(CPS / RC / BDP / ...)
+
+    == Extraction indépendante ==
+
+    RAG -> Extractor : traiter_extraction_rag(document)
+    activate Extractor
+
+    Extractor -> OCR : analyser / extraire document
+    activate OCR
+
+    alt PDF texte natif
+
+        OCR -> PDF : Extraction texte
+        PDF --> OCR : Texte complet
+
+    else PDF scanné
+
+        OCR -> PDF : Conversion pages → images
+        PDF --> OCR : Images
+
+        loop Chaque page
+            OCR -> RapidOCR : OCR(page)
+            RapidOCR --> OCR : Texte page
+        end
+
+    else DOC / DOCX
+
+        OCR -> OCR : Extraction textuelle
+
+    else XLS / XLSX
+
+        OCR -> OCR : Lecture / conservation structure
+
+    else XML
+
+        OCR -> OCR : Parsing XML
+
+    end
+
+    OCR --> Extractor : Texte + métadonnées
+    deactivate OCR
+
+    == Détection documents internes ==
+
+    Extractor -> Extractor : Détecter types internes
+
+    note right
+      CPS
+      RC
+      BDP
+      Acte engagement
+      Déclaration honneur
+      Déclaration identité
+      CV
+      Modèles / annexes
+    end note
+
+    Extractor -> Splitter : Découpage si nécessaire
+    Splitter --> Extractor : Segments
+
+    Extractor -> Storage : Sauvegarder extraction
+    Storage --> Extractor : chemins + métadonnées
+
+    Extractor --> RAG : rag_extraction\ntexte + zones + types
+    deactivate Extractor
+
+    == Enrichissement Vision ==
+
+    RAG -> GLM : _call_glm_ocr(document)
+    activate GLM
+
+    GLM -> GLM : Analyse visuelle
+    GLM -> GLM : Reconstruction tableaux
+    GLM -> GLM : Compréhension FR / AR
+    GLM --> RAG : Texte enrichi + structure
+
+    deactivate GLM
+
+    == Sauvegarde extracted_text ==
+
+    RAG -> DB : Sauvegarder extracted_text
+    DB --> RAG : Texte enregistré
+
+    == Chunking ==
+
+    RAG -> Chunker : create_chunks(enriched_text)
+    activate Chunker
+
+    Chunker -> Chunker : Découpage par taille
+    Chunker -> Chunker : Overlap entre chunks
+    Chunker --> RAG : chunks + pages + métadonnées
+
+    deactivate Chunker
+
+    == Embeddings ==
+
+    loop Pour chaque chunk
+
+        RAG -> BGE : generate_embedding(chunk)
+        activate BGE
+        BGE --> RAG : vecteur sémantique
+        deactivate BGE
+
+    end
+
+    == Vector Store ==
+
+    RAG -> Chroma : store_document_chunks()
+    activate Chroma
+
+    Chroma -> Chroma : Créer / mettre à jour collection
+    Chroma -> Chroma : Stocker embeddings + métadonnées
+
+    Chroma --> RAG : Indexation terminée
+    deactivate Chroma
+
+    == Retrieval métier ==
+
+    RAG -> RAG : construire_query_metier()
+
+    loop Catégories métier
+
+        RAG -> Chroma : query_tender_context()
+        activate Chroma
+        Chroma --> RAG : chunks pertinents
+        deactivate Chroma
+
+    end
+
+    RAG -> RAG : Déduplication du contexte
+
+    == Analyse métier Granite ==
+
+    RAG -> Granite : build_granite_extraction_prompt()
+    activate Granite
+
+    Granite -> Granite : Analyse métier
+
+    note right
+      Objet AO
+      Référence
+      Dates
+      Finances
+      Pièces à fournir
+      Clauses
+      Critères d'évaluation
+      Délais
+      Livrables
+      Résumé
+    end note
+
+    Granite --> RAG : JSON structuré
+    deactivate Granite
+
+    == Nettoyage et validation ==
+
+    RAG -> RAG : nettoyer_resultat_granite()
+    RAG -> RAG : Validation dates / références /\ndélais suspects
+
+    == Persistance ==
+
+    RAG -> Result : Enregistrer analyse métier
+    Result -> DB : UPDATE RAGAnalysisResult
+    DB --> Result : OK
+    Result --> RAG : Analyse sauvegardée
+
+    RAG -> DB : status = COMPLETED
+    DB --> RAG : OK
+
+    RAG --> API : RAGAnalysisResult
+    API --> User : Résultat RAG
+
+end
+
+deactivate RAG
+deactivate API
+
+@enduml

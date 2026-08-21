@@ -1,7 +1,7 @@
 from unicodedata import category
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import cast, Date, Time
+from sqlalchemy import cast, Date, Time, String, or_
 from typing import List, Optional
 from datetime import datetime
 from backend.app.database.connection import get_db
@@ -9,7 +9,6 @@ from backend.app.database.models import Tender, User
 from backend.app.modules.tenders.schemas import TenderDelete, TenderFilter
 from backend.app.auth.routes import get_current_admin
 from dateutil import parser
-
 
 router = APIRouter(prefix="/tenders", tags=["Tenders Management"])
 
@@ -94,44 +93,68 @@ def get_tenders_minimal(
     return {"count": len(data), "data": data}
 
 # 4. POST : Filtrage des offres minimales
+
+
 @router.post("/minimal/filter")
 def filter_tenders_minimal(filters: TenderFilter, db: Session = Depends(get_db)):
-    query = db.query(Tender.id, Tender.reference, Tender.title, Tender.buyer, Tender.deadline)
+    # 1. Sélection explicite de toutes les colonnes requises par le frontend
+    query = db.query(
+        Tender.id, 
+        Tender.reference, 
+        Tender.title, 
+        Tender.buyer, 
+        Tender.deadline,
+        Tender.categorie
+    )
 
     if filters.is_consulted is not None:
         query = query.filter(Tender.is_consulted == filters.is_consulted)
     
-    if filters.deadline: 
-        query = query.filter(Tender.deadline.contains(filters.deadline))
+    # 2. Filtrage insensible à la casse sur la colonne `categorie`
+    if filters.category and filters.category.strip():
+        query = query.filter(Tender.categorie.ilike(f"%{filters.category.strip()}%"))
 
-    if filters.category:
-        # On utilise .ilike pour une recherche insensible à la casse 
-        # (ex: "Travaux" trouvera aussi "TRAVAUX")
-        query = query.filter(Tender.categorie.ilike(f"%{filters.category}%"))
-        
+    # 3. Traitement du filtre deadline (comparaison souple sur String)
+    if filters.deadline:
+        # Convertit la date YYYY-MM-DD du frontend en DD/MM/YYYY si nécessaire
+        raw_date = filters.deadline.strip()
+        parts = raw_date.split("-")
+        if len(parts) == 3:
+            formatted_fr = f"{parts[2]}/{parts[1]}/{parts[0]}"  # DD/MM/YYYY
+            # Cherche soit au format ISO (YYYY-MM-DD) soit au format FR (DD/MM/YYYY)
+            query = query.filter(
+                or_(
+                    Tender.deadline.contains(raw_date),
+                    Tender.deadline.contains(formatted_fr)
+                )
+            )
+        else:
+            query = query.filter(Tender.deadline.contains(raw_date))
+
     if filters.extraction_date:
         try:
-            # 1. On parse la donnée
             dt = parser.parse(filters.extraction_date)
-            
-            # 2. Si l'input ne contient pas de date (pas de '-', '/', ou 'T')
-            # On force le filtrage SQL uniquement sur l'heure (Time)
             if not any(c in filters.extraction_date for c in ["/", "-", "T"]):
-                # On compare l'heure de la base avec l'heure fournie
                 query = query.filter(cast(Tender.extraction_date, Time) >= dt.time())
             else:
-                # 3. Sinon, c'est une date complète (avec ou sans heure), on compare normalement
                 query = query.filter(Tender.extraction_date >= dt)
-                
         except (ValueError, TypeError):
             raise HTTPException(status_code=400, detail="Format de date invalide.")
-    
+
     tenders = query.all()
-    # On reconstruit les dictionnaires proprement
+
     data = [
-        {"id": t.id, "reference": t.reference, "title": t.title, "buyer": t.buyer, "deadline": t.deadline} 
+        {
+            "id": str(t.id),
+            "reference": t.reference,
+            "title": t.title,
+            "buyer": t.buyer,
+            "deadline": t.deadline,
+            "categorie": t.categorie,
+        }
         for t in tenders
     ]
+    
     return {"count": len(data), "data": data}
 
 # GET : Une offre spécifique avec ses documents
@@ -210,20 +233,19 @@ def mark_tender_as_unconsulted(tender_id: str, db: Session = Depends(get_db), ad
     return {"status": "success", "is_consulted": False}
 
 # GET : Rechercher une offre par sa référence (recherche exacte ou partielle)
-@router.get("/search/reference")
-def search_by_reference(
-    payload: dict = Body(...), 
-    db: Session = Depends(get_db)
-):
-    ref = payload.get("reference")
-    # Utilisation de .ilike pour une recherche insensible à la casse
-    # On retourne la première correspondance trouvée
-    tender = db.query(Tender).options(
-        joinedload(Tender.documents), 
-        joinedload(Tender.lots)
-    ).filter(Tender.reference.ilike(f"%{ref}%")).first()
+@router.post("/search/reference")
+def search_tender_by_reference(payload: dict, db: Session = Depends(get_db)):
+    ref = payload.get("reference", "").strip()
+    tender = db.query(Tender).filter(Tender.reference.ilike(f"%{ref}%")).first()
     
     if not tender:
-        raise HTTPException(status_code=404, detail="Aucune offre trouvée avec cette référence")
-    
-    return tender
+        return None
+
+    return {
+        "id": str(tender.id),
+        "reference": tender.reference,
+        "title": tender.title,
+        "buyer": tender.buyer,
+        "deadline": tender.deadline,
+        "categorie": tender.categorie
+    }

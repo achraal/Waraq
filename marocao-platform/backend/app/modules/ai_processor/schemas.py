@@ -17,12 +17,24 @@ class TenderDocumentResponse(BaseModel):
     file_path: str
     extracted_text: Optional[str] = None
     is_classified: bool
+    
+    # --- LES CHAMPS MANQUANTS QU'IL FALLAIT AJOUTER ---
+    rag_processed: bool
+    is_validated: bool
+    validation_status: Optional[str] = None
+    page_count: Optional[int] = None
+    word_count: Optional[int] = None
+    file_size_mb: Optional[float] = None
+    ocr_duration_sec: Optional[float] = None
+    administrative_zones: Optional[list] = None
+    # --------------------------------------------------
+
     classification_reason: Optional[str] = None
     classification_description: Optional[str] = None
     classified_at: Optional[datetime] = None
     classified_file_path: Optional[str] = None
     response_time: Optional[float] = None
-    analysis_metadata: Optional[dict] = None  # Représente le champ JSON
+    analysis_metadata: Optional[dict] = None 
 
     # Configuration Pydantic v2 pour lire directement les objets SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
@@ -39,6 +51,18 @@ class TenderDocumentUpdate(BaseModel):
     file_path: Optional[str] = None
     extracted_text: Optional[str] = None
     is_classified: Optional[bool] = None
+    
+    # --- AJOUTÉS POUR LE PATCH ---
+    rag_processed: Optional[bool] = None
+    is_validated: Optional[bool] = None
+    validation_status: Optional[str] = None
+    page_count: Optional[int] = None
+    word_count: Optional[int] = None
+    file_size_mb: Optional[float] = None
+    ocr_duration_sec: Optional[float] = None
+    administrative_zones: Optional[list] = None
+    # -----------------------------
+
     classification_reason: Optional[str] = None
     classification_description: Optional[str] = None
     classified_file_path: Optional[str] = None

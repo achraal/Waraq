@@ -951,3 +951,17 @@ DOSSIER FINALISÉ
 * modifier diag de gantt
 
 
+14-08 17-08
+
+* diagramme de sequence et diagramme d'activite 
+* metrre les diag en staruml
+* preparer le jeux de tests pour tester workflow
+* BUG AttributeError: type object 'PreparationStatus' has no attribute 'READY_FOR_FILLING'
+* arboresecnce non respecte moi jai dis annee/mois/jour/ref_HH_MM_SS
+* aussi les documents apres etre traduit en pdf ils doievnet pas etre mis dans extracted mais dans generated dans leur format 
+* LES DOCUMENTS signes doivent etre dans genrated pas extracted
+
+18-08
+
+* installation tailwind debut front end 
+* ajout du cors middleware

@@ -1,8 +1,7 @@
 # backend/app/auth/routes.py
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.functions import current_user
-from fastapi import Body
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Body, APIRouter, Depends, HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 import jwt
@@ -39,17 +38,18 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise credentials_exception
     return user
 
-
 # --- ENDPOINT : INSCRIPTION ---
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register_user(user_data: schemas.UserRegister, db: Session = Depends(get_db)):
+    # 1. Vérifier si l'email existe D'ABORD
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cet email est déjà associé à un compte."
         )
-    
+
+    # 2. Créer et enregistrer l'utilisateur en BDD
     new_user = User(
         email=user_data.email,
         password_hash=SecurityManager.hash_password(user_data.password),
@@ -57,9 +57,24 @@ def register_user(user_data: schemas.UserRegister, db: Session = Depends(get_db)
     )
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
-    return {"message": "Compte créé avec succès", "user_id": str(new_user.id)}
+    db.refresh(new_user)  # Récupère l'ID généré par la BDD
 
+    # 3. Générer le token d'accès AVEC LA MÊME STRUCTURE QUE LOGIN
+    token_data = {
+        "sub": new_user.email,
+        "role": new_user.role,
+        "user_id": str(new_user.id)
+    }
+    access_token = SecurityManager.create_access_token(data=token_data)
+
+    # 4. Retourner la réponse avec le token
+    return {
+        "message": "Compte créé avec succès",
+        "user_id": str(new_user.id),
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": new_user.role
+    }
 
 # --- ENDPOINT : CONNEXION ---
 @router.post("/login", response_model=schemas.Token)
@@ -155,11 +170,25 @@ def create_or_update_profile(
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Erreur de validation des données de l'entreprise : {str(e)}")
 
+# --- GET : OBTENIR L'UTILISATEUR COURANT ---
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "role": current_user.role
+    }
+
 # --- GET : VOIR SON PROFIL ---
 @router.get("/profile")
 def get_my_profile(current_user: User = Depends(get_current_user)):
+    # Si c'est un admin, retourner directement un statut sans chercher de profil
+    if current_user.role == UserRole.ADMIN:
+        return {"is_admin": True, "message": "Les administrateurs n'ont pas de profil entreprise."}
+        
     if not current_user.company_profile:
         raise HTTPException(status_code=404, detail="Aucun profil configuré.")
+        
     return current_user.company_profile
 
 # --- ADMIN : LISTER TOUS LES UTILISATEURS AVEC LEURS PROFILS ---

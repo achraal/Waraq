@@ -1,0 +1,110 @@
+┌────────────────────────────────────────────────────────┐
+│             Document Entrant (Multi-format)            │
+│          (PDF / DOC / DOCX / XLS / XLSX / XML)         │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│              Classification (inchangée)                │
+│                                                        │
+│  • PyMuPDF (texte natif)                               │
+│  • RapidOCR ONNX (OCR)                                 │
+│  • Détection des scans                                 │
+│  • Découpage des documents                             │
+│  • Qwen (classification IA)                            │
+└───────────────────────────┬────────────────────────────┘
+                            │
+               Résultat de classification
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│               Extracteur RAG indépendant               │
+│                                                        │
+│  ├── PDF texte ───> Extraction complète                │
+│  ├── PDF scanné ──> OCR RapidOCR page par page         │
+│  ├── DOC / DOCX ──> Extraction textuelle               │
+│  ├── XLS / XLSX ──> Conservation + Lecture             │
+│  └── XML ─────────> Conservation + Parsing             │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│            Détection des documents internes            │
+│                                                        │
+│  ├── CPS                                               │
+│  ├── RC                                                │
+│  ├── BDP                                               │
+│  ├── Acte d'engagement                                 │
+│  ├── Déclaration sur l'honneur                         │
+│  ├── Déclaration d'identité                            │
+│  ├── CV                                                │
+│  └── Autres modèles                                    │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 Dossier rag_extracted/                 │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│        GLM-OCR (Vision Language Model / RAG)           │
+│                                                        │
+│  • Compréhension visuelle                              │
+│  • Extraction intelligente                             │
+│  • Structure des tableaux                              │
+│  • Support Multilingue (FR / AR)                       │
+│  • Nettoyage du texte                                  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                    Granite 4.1:3B                      │
+│                                                        │
+│  Analyse métier :                                      │
+│  • Résumé du document                                  │
+│  • Clauses administratives                             │
+│  • Clauses techniques                                  │
+│  • Pièces à fournir                                    │
+│  • Critères d'évaluation                               │
+│  • Délais et dates importantes                         │
+│  • Informations financières                            │
+│  • Livrables attendus                                  │
+│  • Génération du JSON structuré                        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                    extracted_text                      │
+│                                                        │
+│  • Texte enrichi                                       │
+│  • Résumé                                              │
+│  • Métadonnées                                         │
+│  • Informations métier                                 │
+│  • JSON complet 					                     │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 DocumentChunker                        │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│             BGE-M3 (Embedding Model)                   │
+│                                                        │
+│  • Génération des embeddings                           │
+│  • Vecteurs sémantiques                                │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                       ChromaDB                         │
+│                                                        │
+│  • Stockage des embeddings                             │
+│  • Indexation vectorielle                              │
+│  • Recherche sémantique                                │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+     Assistant IA / Recherche RAG / Recommandations

@@ -2,7 +2,7 @@ import os, shutil, mimetypes
 from datetime import timezone
 from pathlib import Path
 from pypdf import PdfReader, PdfWriter
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status, Query
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, status, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from pypdf.errors import PdfStreamError
 from typing import Dict, Any, List, Optional
@@ -296,11 +296,7 @@ def obtenir_statistiques_globales(db: Session = Depends(get_db)) -> Dict[str, An
     finally:
         db.close()
         
-@router.get(
-    "/documents/latest-classified", 
-    response_model=LatestClassifiedPaginatedResponse, 
-    status_code=status.HTTP_200_OK
-)
+@router.get("/documents/latest-classified", response_model=LatestClassifiedPaginatedResponse, status_code=status.HTTP_200_OK)
 def get_latest_classified_documents(
     limit: Optional[int] = Query(default=None, ge=1, description="Nombre maximal de documents à retourner (Optionnel)"),
     db: Session = Depends(get_db)
@@ -725,11 +721,7 @@ def lancer_entrainement_local():
             detail=f"Échec matériel (Hardware Restriction) : {str(e)}"
         )
         
-@router.get(
-    "/documents/stats/classification-reasons",
-    response_model=ClassificationStatsResponse,
-    status_code=status.HTTP_200_OK
-)
+@router.get("/documents/stats/classification-reasons", response_model=ClassificationStatsResponse, status_code=status.HTTP_200_OK)
 def get_classification_reason_stats(db: Session = Depends(get_db)):
     """
     Retourne les statistiques des documents regroupés par classification_reason :
@@ -770,15 +762,8 @@ def get_classification_reason_stats(db: Session = Depends(get_db)):
         by_reason=by_reason_list
     )
     
-@router.post(
-    "/unclassify",
-    response_model=UnclassifyDocumentsResponse,
-    status_code=status.HTTP_200_OK
-)
-def unclassify_documents_by_ids(
-    payload: UnclassifyDocumentsRequest,
-    db: Session = Depends(get_db)
-):
+@router.post("/unclassify", response_model=UnclassifyDocumentsResponse, status_code=status.HTTP_200_OK)
+def unclassify_documents_by_ids(payload: UnclassifyDocumentsRequest,db: Session = Depends(get_db)):
     """
     POST : Réinitialise le statut de classification pour une liste de documents.
     Passe `is_classified` à False et remet à None le type et les raisons associées.
@@ -822,9 +807,7 @@ def unclassify_documents_by_ids(
     }
     
 @router.get("/metrics/stats")
-def get_ai_processor_stats(
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
+def get_ai_processor_stats(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
     Retourne les statistiques et métriques globales sur la classification des documents
     directement calculées depuis la table `tender_documents`.
@@ -923,3 +906,64 @@ def get_ai_processor_stats(
             status_code=500, 
             detail=f"Erreur lors du calcul des métriques de classification: {str(e)}"
         )
+
+# 1. Gestionnaire de connexions WebSocket
+class LogConnectionManager:
+    def __init__(self):
+        # Stocke les connexions actives par ID de Tender
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+
+    async def connect(self, websocket: WebSocket, tender_id: str):
+        await websocket.accept()
+        if tender_id not in self.active_connections:
+            self.active_connections[tender_id] = []
+        self.active_connections[tender_id].append(websocket)
+
+    def disconnect(self, websocket: WebSocket, tender_id: str):
+        if tender_id in self.active_connections:
+            self.active_connections[tender_id].remove(websocket)
+
+    async def broadcast(self, message: str, tender_id: str):
+        if tender_id in self.active_connections:
+            for connection in self.active_connections[tender_id]:
+                try:
+                    await connection.send_text(message)
+                except:
+                    pass
+
+ws_manager = LogConnectionManager()
+
+# 2. La route WebSocket (Celle appelée par ton React)
+@router.websocket("/ws/logs/{tender_id}")
+async def websocket_logs_endpoint(websocket: WebSocket, tender_id: str):
+    await ws_manager.connect(websocket, tender_id)
+    try:
+        while True:
+            # Maintient la connexion ouverte
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, tender_id)
+
+import asyncio
+
+# Fonction helper pour diffuser les logs à TOUS les websockets ouverts
+def log_classifier_to_frontend(message: str):
+    """
+    Pont thread-safe pour envoyer un log du thread BackgroundTasks vers les WebSockets.
+    """
+    async def _send_broadcast():
+        # Diffuse à tous les tenders connectés (utile pour la classification globale)
+        for tender_id, connections in ws_manager.active_connections.items():
+            for connection in connections:
+                try:
+                    await connection.send_text(message)
+                except:
+                    pass
+
+    # Exécution sécurisée depuis un thread synchrone
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_send_broadcast())
+    except RuntimeError:
+        # S'il n'y a pas de boucle active dans ce thread, on en crée une temporaire
+        asyncio.run(_send_broadcast())

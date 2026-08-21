@@ -1,0 +1,168 @@
+                         ┌─────────────────────────┐
+                         │      TENDER ACTUEL      │
+                         │ tender_id + user_id     │
+                         └────────────┬────────────┘
+                                      │
+                                      ▼
+                    ┌──────────────────────────────┐
+                    │ 1. COLLECTE DES DOCUMENTS   │
+                    │                              │
+                    │ rag_extracted/{date}/{ref}/  │
+                    │ + extracted/classified       │
+                    │ + _sources                   │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 2. INVENTAIRE / VALIDATION   │
+                    │                              │
+                    │ RC                          │
+                    │ CPS                         │
+                    │ BDR                         │
+                    │ ACTE_ENGAGEMENT              │
+                    │ DECLARATION_HONNEUR          │
+                    │ AUTRES                       │
+                    └──────────────┬───────────────┘
+                                   │
+                         ┌─────────┴─────────┐
+                         │                   │
+                         ▼                   ▼
+                Document présent      Document absent
+                         │                   │
+                         │                   ▼
+                         │       ┌─────────────────────┐
+                         │       │ 3. GÉNÉRATION       │
+                         │       │ ACTE ENGAGEMENT     │
+                         │       │ DECLARATION HONNEUR │
+                         │       │ modèle Waraq        │
+                         │       └──────────┬──────────┘
+                         │                  │
+                         └────────┬─────────┘
+                                  ▼
+                    ┌──────────────────────────────┐
+                    │ 4. CONTRÔLE / RE-DÉCOUPAGE  │
+                    │                              │
+                    │ RAG mal découpé ?            │
+                    │        │                     │
+                    │       OUI                    │
+                    │        ▼                     │
+                    │ découpage automatique        │
+                    │                              │
+                    │ Document incorrect ?         │
+                    │        │                     │
+                    │       OUI                    │
+                    │        ▼                     │
+                    │ suppression / remplacement  │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 5. PRÉPARATION RC / CPS      │
+                    │                              │
+                    │ PDF / Scan                   │
+                    │       │                      │
+                    │       ▼                      │
+                    │ ONNX OCR si nécessaire       │
+                    │       │                      │
+                    │       ▼                      │
+                    │ détection "Lu et accepté"    │
+                    │       │                      │
+                    │       ▼                      │
+                    │ signature bas-droite         │
+                    │ + numérotation/signature     │
+                    │ sur toutes les pages         │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 6. TRAITEMENT BDR / BDP      │
+                    │                              │
+                    │ PDF / DOC / XLS / XLSX       │
+                    │ Scan ou natif                │
+                    │       │                      │
+                    │       ▼                      │
+                    │ ONNX OCR si nécessaire       │
+                    │       │                      │
+                    │       ▼                      │
+                    │ extraction des champs         │
+                    │       │                      │
+                    │       ▼                      │
+                    │ formulaire utilisateur       │
+                    │       │                      │
+                    │       ▼                      │
+                    │ injection valeurs             │
+                    │       │                      │
+                    │       ▼                      │
+                    │ PDF final                    │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 7. ACTE + DÉCLARATION       │
+                    │                              │
+                    │ document existant ?           │
+                    │       │                      │
+                    │       ▼                      │
+                    │ OCR ONNX si scan             │
+                    │       │                      │
+                    │ extraction champs             │
+                    │       │                      │
+                    │       ▼                      │
+                    │ mapping profil entreprise    │
+                    │       │                      │
+                    │       ▼                      │
+                    │ injection données             │
+                    │       │                      │
+                    │       ▼                      │
+                    │ PDF final                    │
+                    │                              │
+                    │ sinon                         │
+                    │       │                      │
+                    │       ▼                      │
+                    │ template Waraq               │
+                    │       │                      │
+                    │       ▼                      │
+                    │ profil entreprise             │
+                    │       │                      │
+                    │       ▼                      │
+                    │ PDF final                    │
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 8. VALIDATION GLOBALE        │
+                    │                              │
+                    │ RC ✓                         │
+                    │ CPS ✓                        │
+                    │ BDR ✓                        │
+                    │ ACTE ✓                       │
+                    │ DECLARATION ✓                │
+                    │                              │
+                    │ Tous les documents conformes?│
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 9. PERSISTANCE FINALE        │
+                    │                              │
+                    │ generated/                   │
+                    │   2026/                      │
+                    │     08/                      │
+                    │       13/                    │
+                    │         AO-123/              │
+                    │           RC.pdf             │
+                    │           CPS.pdf            │
+                    │           BDP.pdf            │
+                    │           acte_engagement.pdf│
+                    │           declaration_honneur│
+                    └──────────────┬───────────────┘
+                                   │
+                                   ▼
+                    ┌──────────────────────────────┐
+                    │ 10. FINALISATION             │
+                    │                              │
+                    │ GeneratedDocument             │
+                    │ + métadonnées                 │
+                    │ + logs                        │
+                    │ + statut READY                │
+                    └──────────────────────────────┘

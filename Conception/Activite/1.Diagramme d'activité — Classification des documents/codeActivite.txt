@@ -1,0 +1,88 @@
+@startuml Waraq_Activity_Classification
+
+title Waraq — Diagramme d'activité : Classification des documents
+
+start
+
+:Document entrant;
+note right
+PDF / Word
+end note
+
+:Inspection rapide avec PyMuPDF;
+
+if (PDF scanné ?) then (Oui)
+
+    :Conversion des pages en images;
+    :OCR PaddleOCR / ONNX Runtime;
+    :Reconstruction du texte page par page;
+
+else (Non)
+
+    :Extraction du texte natif avec PyMuPDF;
+
+endif
+
+:Normalisation du texte;
+:Nettoyage des espaces;
+:Suppression des caractères inutiles;
+:Normalisation OCR;
+
+:Analyse des primitives structurelles;
+note right
+Layout
+Headers
+Titres
+Ancres
+Structure des tableaux
+end note
+
+:Analyse heuristique et règles;
+
+if (Nombre de pages < 20 ?) then (Oui)
+
+    :Conserver le document global;
+    :Lister modèles et annexes;
+
+else (Non)
+
+    :Scanner les en-têtes / titres;
+    
+    if (Rupture majeure détectée ?) then (Oui)
+
+        :Découpage physique du document;
+        :Créer les sous-documents;
+        :Lister modèles et annexes;
+
+    else (Non)
+
+        :Conserver le document global;
+
+    endif
+
+endif
+
+:Appliquer les règles primitives;
+
+if (Type déterminé avec certitude ?) then (Oui)
+
+    :Valider le type;
+
+else (Non)
+
+    :Construire prompt Few-Shot;
+    :Envoyer au modèle Qwen;
+    :Recevoir classification sémantique;
+
+endif
+
+:Vérifier les règles métier;
+:Vérifier surcharge par nom de fichier;
+:Valider la classification finale;
+
+:Enregistrer document classifié;
+:Enregistrer résultat en base;
+
+stop
+
+@enduml

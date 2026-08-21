@@ -1,0 +1,128 @@
+@startuml Waraq_Activity_RAG
+
+title Waraq — Diagramme d'activité : Extraction et Pipeline RAG
+
+start
+
+:Document entrant;
+
+:Classification du document;
+
+:Déterminer le type et le format;
+
+:Extraction RAG indépendante;
+
+if (PDF ?) then (Oui)
+
+    if (PDF scanné ?) then (Oui)
+
+        :Conversion des pages;
+        :OCR RapidOCR / ONNX;
+        :Reconstruction du texte;
+
+    else (Non)
+
+        :Extraction complète du texte;
+
+    endif
+
+elseif (DOC / DOCX ?) then (Oui)
+
+    :Extraction textuelle;
+
+elseif (XLS / XLSX ?) then (Oui)
+
+    :Lecture et conservation de la structure;
+
+elseif (XML ?) then (Oui)
+
+    :Parsing XML;
+
+else (Autre)
+
+    :Conserver les données disponibles;
+
+endif
+
+:Détecter les documents internes;
+
+note right
+CPS
+RC
+BDP
+Acte d'engagement
+Déclaration sur l'honneur
+Déclaration d'identité
+CV
+Modèles / annexes
+end note
+
+if (Découpage nécessaire ?) then (Oui)
+
+    :Analyser les frontières;
+    :Découper les documents;
+    :Créer les segments;
+
+endif
+
+:Sauvegarder dans rag_extracted/;
+
+:Préparer le texte extrait;
+
+:Enrichissement avec GLM-OCR;
+
+note right
+Compréhension visuelle
+Tableaux
+FR / AR
+Structure documentaire
+end note
+
+:Produire le texte enrichi;
+
+:Sauvegarder extracted_text;
+
+:Créer les chunks avec DocumentChunker;
+
+:Pour chaque chunk;
+
+:Générer embedding avec BGE-M3;
+
+:Stocker embeddings et métadonnées dans ChromaDB;
+
+:Construire les requêtes métier;
+
+:Rechercher les chunks pertinents dans ChromaDB;
+
+:Dédupliquer le contexte;
+
+:Construire le prompt Granite;
+
+:Envoyer le contexte à Granite 4.1:3B;
+
+:Recevoir le JSON métier;
+
+note right
+Objet
+Référence
+Dates
+Finances
+Pièces
+Clauses
+Évaluation
+Délais
+Livrables
+end note
+
+:Nettoyer le résultat Granite;
+
+:Valider les dates;
+:Valider références et délais;
+
+:Enregistrer RAGAnalysisResult;
+
+:Mettre le statut à COMPLETED;
+
+stop
+
+@enduml

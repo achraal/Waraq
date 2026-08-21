@@ -24,15 +24,15 @@ class AdminFieldsExtractor:
 
     # PATTERNS GÉNÉRIQUES
     EMPTY_LINE_PATTERN = re.compile(
-        r"^(?P<label>[^:]{2,100})"
+        r"^(?P<label>.+?)"
         r"\s*[:：]\s*"
-        r"(?P<value>[_\.]{2,}|)$",
+        r"(?P<value>[_\.…·]{2,}|)$",
         re.IGNORECASE,
     )
     UNDERSCORE_PATTERN = re.compile(
-        r"(?P<label>[A-Za-zÀ-ÿ\u0600-\u06FF0-9 /().,'-]{2,100})"
-        r"\s*[:：]\s*"
-        r"(?P<value>_{2,}|\.{3,}|)$"
+        r"^(?P<label>.+?)"
+        r"\s+(?P<value>[_\.…·]{3,})$",
+        re.IGNORECASE,
     )
     LABEL_PATTERN = re.compile(
         r"^(?P<label>"
@@ -87,6 +87,74 @@ class AdminFieldsExtractor:
             "courriel",
         ],
     }
+    
+    def _is_valid_field_label(self, label: str) -> bool:
+        """
+        Vérifie qu'une ligne correspond réellement à une zone à remplir
+        et non à un titre ou à une phrase descriptive.
+        """
+        label = self.normalize_text(label)
+
+        if len(label) < 3 or len(label) > 150:
+            return False
+
+        normalized = label.lower()
+
+        # Titres de sections : pas des champs
+        excluded_titles = [
+            "partie réservée",
+            "partie commune",
+            "pour les personnes physiques",
+            "pour les personnes morales",
+            "lorsque le marché est conclu",
+            "en vertu des pouvoirs",
+            "après avoir pris connaissance",
+            "après avoir apprécié",
+            "nous soussignés",
+            "je soussigné",
+        ]
+
+        if any(title in normalized for title in excluded_titles):
+            return False
+
+        # Phrases longues : généralement du texte juridique et non un champ
+        if len(label.split()) > 20:
+            return False
+
+        # Une vraie zone possède généralement un indicateur administratif
+        keywords = [
+            "nom",
+            "prénom",
+            "qualité",
+            "adresse",
+            "domicile",
+            "siège",
+            "raison sociale",
+            "forme juridique",
+            "capital",
+            "numéro",
+            "registre",
+            "commerce",
+            "taxe",
+            "identifiant",
+            "ice",
+            "affilié",
+            "affiliée",
+            "mandataire",
+            "membre",
+            "montant",
+            "taux",
+            "compte",
+            "banque",
+            "postal",
+            "rib",
+            "localité",
+            "titulaire",
+            "fait à",
+            "le",
+        ]
+
+        return any(keyword in normalized for keyword in keywords)
 
     # NORMALISATION
 
@@ -174,6 +242,8 @@ class AdminFieldsExtractor:
             if match:
 
                 label = match.group("label").strip()
+                if not self._is_valid_field_label(label):
+                    continue
                 value = match.group("value").strip()
                 key = label.lower()
                 if key not in seen_labels:
@@ -194,6 +264,8 @@ class AdminFieldsExtractor:
             match = self.LABEL_PATTERN.match(line)
             if match:
                 label = match.group("label").strip()
+                if not self._is_valid_field_label(label):
+                    continue
                 key = label.lower()
                 if key not in seen_labels:
                     fields.append(self._build_field(label=label,value=None,line_number=line_number,))
@@ -206,6 +278,8 @@ class AdminFieldsExtractor:
 
             if match:
                 label = match.group("label").strip()
+                if not self._is_valid_field_label(label):
+                    continue
                 value = match.group("value").strip()
                 key = label.lower()
                 if key not in seen_labels:

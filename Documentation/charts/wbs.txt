@@ -1,0 +1,150 @@
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'fontFamily': 'Arial, sans-serif',
+      'fontSize': '32px',
+      'clusterBkg': '#F8FAFC',
+      'clusterBorder': '#64748B',
+      'lineColor': '#334155',
+      'textColor': '#0F172A',
+      'nodePadding': 25,
+      'clusterPadding': 35
+    },
+    'flowchart': {
+      'nodeSpacing': 50,
+      'rankSpacing': 120,
+      'curve': 'basis'
+    }
+  }
+}%%
+flowchart LR
+    %% Noeud Central - Hexagone Impactant
+    projet{{"<b>Projet Waraq</b><br/>Plateforme intelligente de traitement<br/>des appels d'offres publics"}}
+
+    %% Subgraphs
+    subgraph conception ["1. Conception & Architecture"]
+        cdc(["Analyse du CDC"])
+        uml(["Diagrammes UML"])
+        archi(["Architecture technique"])
+        bdd[("PostgreSQL SQL")]
+    end
+
+    subgraph ingestion ["2. Web Scraping & Ingestion"]
+        scraper(["Scraper marchés publics"])
+        metadata(["Extraction métadonnées"])
+        archives(["Décompression ZIP"])
+        pmmp(["Monitoring emails PMMP"])
+    end
+
+    subgraph auth ["3. Authentification & Profils"]
+        jwt(["JWT & Argon2id"])
+        rbac(["RBAC Admin / Candidat"])
+        profiles(["5 Profils juridiques"])
+    end
+
+    subgraph idp ["4. IDP & IA Hybride"]
+        ocr(["OCR Multi-format"])
+        classification(["Classification Règles + Qwen"])
+        split(["Découpage intelligent"])
+        hitl{"Human-in-the-Loop"}
+    end
+
+    subgraph rag ["5. RAG & Workflows IA"]
+        embeddings(["BAAI BGE-M3"])
+        chroma[("ChromaDB Vector")]
+        extraction(["Granite 4.1:3B"])
+        generation(["Génération .docx / BDP"])
+        signature(["Tampon & Paraphe"])
+    end
+
+    subgraph frontend ["6. Interface & Dashboard"]
+        dashboard(["Dashboard Marchés"])
+        viewer(["Viewer Documents"])
+        stats(["Statistiques"])
+    end
+
+    subgraph automation ["7. Automation & Exports"]
+        workflows(["Workflows Métier"])
+        alerts(["Alertes & Notifications"])
+        exports>Exports Excel]
+    end
+
+    subgraph monitoring ["8. Télémétrie & Audit"]
+        telemetry(["Metrics CPU/RAM/DB"])
+        audit(["Logs Classification"])
+        health(["Healthcheck LLM/Scraper"])
+    end
+
+    subgraph tests ["9. Tests & Livraison"]
+        unit(["Tests Unitaires"])
+        integration(["Tests Intégration"])
+        e2e(["Tests E2E & Recette"])
+        report(["Rapport & Soutenance"])
+    end
+
+    %% Flèches principales
+    projet ==> conception
+    projet ==> ingestion
+    projet ==> auth
+    projet ==> idp
+    projet ==> rag
+    projet ==> frontend
+    projet ==> automation
+    projet ==> monitoring
+    projet ==> tests
+
+    %% --- STYLES HARMONIEUX & HAUTE LISIBILITÉ ---
+    
+    %% Nœud Central
+    style projet fill:#0F172A,stroke:#2563EB,stroke-width:5px,color:#FFFFFF,font-size:36px
+
+    %% Subgraphs
+    style conception fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style ingestion fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style auth fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style idp fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style rag fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style frontend fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style automation fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style monitoring fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+    style tests fill:#F1F5F9,stroke:#64748B,stroke-width:2px,font-size:32px
+
+    %% Nœuds Fonctionnels (Bleu Ardoise)
+    style cdc fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style uml fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style archi fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style scraper fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style metadata fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style archives fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style pmmp fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style jwt fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style rbac fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style profiles fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style ocr fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style classification fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style split fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style embeddings fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style extraction fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style generation fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style signature fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style dashboard fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style viewer fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style stats fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style workflows fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style alerts fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style telemetry fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style audit fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style health fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style unit fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style integration fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style e2e fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style report fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+
+    %% Bases de Données (Bleu Océan)
+    style bdd fill:#0284C7,stroke:#0369A1,color:#FFFFFF,stroke-width:3px
+    style chroma fill:#0284C7,stroke:#0369A1,color:#FFFFFF,stroke-width:3px
+
+    %% Nœuds Clés (Ambre / Émeraude)
+    style hitl fill:#D97706,stroke:#B45309,color:#FFFFFF,stroke-width:3px
+    style exports fill:#059669,stroke:#047857,color:#FFFFFF,stroke-width:3px

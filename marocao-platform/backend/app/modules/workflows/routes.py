@@ -9,8 +9,8 @@ from backend.app.modules.workflows.schemas import (BDPFillRequest,AdminFieldsFil
 from backend.app.modules.workflows.preparation_service import TenderPreparationService
 from backend.app.modules.workflows.document_signer import DocumentSigner
 # Branche ici ton vrai moteur OCR existant.
-from backend.app.modules.ai_processor.fast_ocr_engine import (FastOCREngine)
 from backend.app.config import settings
+from backend.app.modules.workflows.document_ocr import WorkflowOCRService
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +21,19 @@ STORAGE_ROOT: Path = settings.DATA_STORAGE_PATH
 RAG_EXTRACTED_DIR: Path = settings.RAG_EXTRACTED_DIR
 GENERATED_DIR: Path = settings.GENERATED_DIR
 TEMPLATES_DIR: Path = settings.TEMPLATES_DIR
+ 
+ocr_service = WorkflowOCRService()
 
-ocr_engine = FastOCREngine()
-ocr_service = __import__("backend.app.modules.workflows.document_ocr",fromlist=["WorkflowOCRService"]).WorkflowOCRService(ocr_engine)
-preparation_service = TenderPreparationService(storage_root=STORAGE_ROOT,templates_dir=TEMPLATES_DIR,ocr_service=ocr_service)
+preparation_service = TenderPreparationService(
+    storage_root=STORAGE_ROOT,
+    templates_dir=TEMPLATES_DIR,
+    ocr_service=ocr_service,
+)
 
 # PRÉPARATION
 @router.post("/tenders/{tender_id}/preparation/scan")
 def scan_tender(tender_id: UUID,user_id: UUID = Body(..., embed=True),db: Session = Depends(get_db)):
-    """Analyse les documents du tender et construit son inventaire."""
+    """Analyse les documents du tender et construit son inventaire.""" 
     try:
         return preparation_service.scan_tender(db=db,tender_id=tender_id,user_id=user_id)
 
@@ -159,7 +163,8 @@ def sign_document(
     )
 
     try:
-        generated_path = DocumentSigner.sign_pdf(
+        signer = DocumentSigner()
+        generated_path = signer.sign_pdf(
             input_path=input_path,
             output_path=output_path,
             signer_name=signer_name,

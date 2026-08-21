@@ -1,0 +1,175 @@
+@startuml Waraq_Activity_Document_Generation
+
+title Waraq — Diagramme d'activité : Génération et préparation des documents
+
+start
+
+:Recevoir les documents du workflow;
+
+partition "RC / CPS" {
+
+    :Charger RC / CPS;
+
+    if (Document scanné ?) then (Oui)
+
+        :OCR ONNX page par page;
+
+    else (Non)
+
+        :Extraction du texte natif;
+
+    endif
+
+    :Détecter "Lu et accepté";
+
+    :Détecter la zone de signature;
+
+    :Positionner la signature bas-droite;
+
+    :Ajouter numérotation;
+
+    :Appliquer signature / numérotation;
+
+    :Générer RC / CPS final;
+
+}
+
+partition "BDP / BDR" {
+
+    :Charger BDP / BDR;
+
+    if (Document scanné ?) then (Oui)
+
+        :OCR ONNX;
+
+    else (Non)
+
+        :Lecture native;
+
+    endif
+
+    :Détecter automatiquement la structure;
+
+    :Extraire dynamiquement les champs;
+
+    :Afficher les champs dans le formulaire utilisateur;
+
+    :Utilisateur saisit / confirme les valeurs;
+
+    :Récupérer les valeurs confirmées;
+
+    :Injecter les valeurs dans le document;
+
+    :Générer BDP final;
+
+}
+
+partition "Acte d'engagement" {
+
+    if (Acte existant ?) then (Oui)
+
+        :Charger Acte existant;
+
+        if (Document scanné ?) then (Oui)
+
+            :OCR ONNX;
+            :Extraire les champs;
+
+        else (Non)
+
+            :Extraire les champs;
+
+        endif
+
+        :Charger profil entreprise;
+        :Mapper les données entreprise;
+        :Injecter les données;
+
+    else (Non)
+
+        :Charger template Waraq;
+        :Charger profil entreprise;
+        :Construire Acte d'engagement;
+
+    endif
+
+    :Générer Acte d'engagement final;
+
+}
+
+partition "Déclaration d'honneur" {
+
+    if (Déclaration existante ?) then (Oui)
+
+        :Charger déclaration existante;
+
+        if (Document scanné ?) then (Oui)
+
+            :OCR ONNX;
+            :Extraire les champs;
+
+        else (Non)
+
+            :Extraire les champs;
+
+        endif
+
+        :Charger profil entreprise;
+        :Mapper les données entreprise;
+        :Injecter les données;
+
+    else (Non)
+
+        :Charger template Waraq;
+        :Charger profil entreprise;
+        :Construire déclaration;
+
+    endif
+
+    :Générer déclaration finale;
+
+}
+
+partition "Validation globale" {
+
+    :Vérifier RC;
+    :Vérifier CPS;
+    :Vérifier BDP;
+    :Vérifier Acte;
+    :Vérifier Déclaration;
+
+    if (Tous les documents sont conformes ?) then (Oui)
+
+        :Validation = READY;
+
+    else (Non)
+
+        :Validation = INCOMPLETE;
+
+    endif
+
+}
+
+partition "Persistance" {
+
+    :Créer dossier generated/;
+
+    :Sauvegarder RC.pdf;
+    :Sauvegarder CPS.pdf;
+    :Sauvegarder BDP.pdf;
+    :Sauvegarder Acte_engagement.pdf;
+    :Sauvegarder Declaration_honneur.pdf;
+
+    :Créer GeneratedDocument;
+
+    :Enregistrer métadonnées;
+
+    :Enregistrer logs;
+
+    :Statut final = READY;
+
+}
+
+stop
+
+@enduml

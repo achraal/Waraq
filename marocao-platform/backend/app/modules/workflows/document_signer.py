@@ -179,27 +179,70 @@ class DocumentSigner:
         lu_accepte: bool = False,
     ):
         """
-        Crée uniquement la signature graphique à l'intérieur de la bbox détectée.
-        IMPORTANT : aucune pagination n'est dessinée ici.
+        Crée un PDF temporaire contenant la signature dans la bbox fournie.
+
+        Le buffer reste attaché au PdfReader afin d'éviter les erreurs
+        de type "Stream has ended unexpectedly" lors du merge.
         """
+
         x0, y0, x1, y1 = map(float, bbox)
+
         buffer = BytesIO()
-        pdf = canvas.Canvas(buffer,pagesize=(page_width, page_height))
+
+        pdf = canvas.Canvas(
+            buffer,
+            pagesize=(page_width, page_height)
+        )
+
         box_width = x1 - x0
         box_height = y1 - y0
-        # Positionnement dans la partie basse/droite de la bbox.
-        text = f"Lu et accepté - {signer_name}" if lu_accepte else f"Lu et signé - {signer_name}"
-        font_size = min(9,max(6, box_width / max(len(text), 1) * 0.7))
+
+        text = (
+            f"Lu et accepté - {signer_name}"
+            if lu_accepte
+            else f"Lu et signé - {signer_name}"
+        )
+
+        font_size = min(
+            9,
+            max(
+                6,
+                box_width / max(len(text), 1) * 0.7
+            )
+        )
+
         pdf.setFont("Helvetica", font_size)
-        # Marge interne
+
         margin_x = min(8, box_width * 0.05)
         margin_y = min(8, box_height * 0.08)
+
         signature_x = x1 - margin_x
-        signature_y = y0 + margin_y
-        pdf.drawRightString(signature_x,signature_y,text)
+        signature_y = page_height - y1 + margin_y
+
+        pdf.drawRightString(
+            signature_x,
+            signature_y,
+            text
+        )
+
         pdf.save()
         buffer.seek(0)
-        return PdfReader(buffer).pages[0]
+
+        reader = PdfReader(buffer)
+        overlay_page = reader.pages[0]
+
+        # On conserve le buffer et le reader avec la page.
+        overlay_page._signature_buffer = buffer
+        overlay_page._signature_reader = reader
+
+        logger.debug(
+            "Overlay signature créé | bbox=%s | signer=%s | lu_accepte=%s",
+            bbox,
+            signer_name,
+            lu_accepte,
+        )
+
+        return overlay_page
 
     # SIGNATURE DU PDF
     def sign_pdf(

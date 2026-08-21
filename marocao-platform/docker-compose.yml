@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  chrome-vnc:
+    image: selenium/standalone-chrome:latest
+    container_name: chrome_scraper
+    ports:
+      - "7900:7900" # Port pour afficher l'écran via noVNC (l'iframe React)
+      - "4444:4444" # Port pour que ton code Python contrôle Chrome
+    shm_size: 2g # Très important pour éviter que Chrome ne crash
+    volumes:
+      # L'ASTUCE EST ICI : On connecte ton dossier Windows au dossier Linux de Docker.
+      # Quand Chrome (Docker) télécharge un fichier, il apparaîtra instantanément dans ton dossier Windows !
+      - ./temp_downloads:/home/seluser/Downloads

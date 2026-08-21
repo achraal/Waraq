@@ -1,0 +1,113 @@
+%%{
+  init: {
+    'theme': 'base',
+    'themeVariables': {
+      'fontFamily': 'Arial, sans-serif',
+      'fontSize': '32px',
+      'lineColor': '#334155',
+      'textColor': '#0F172A',
+      'nodePadding': 20
+    },
+    'flowchart': {
+      'nodeSpacing': 45,
+      'rankSpacing': 90,
+      'curve': 'basis',
+      'htmlLabels': true
+    }
+  }
+}%%
+
+flowchart TB
+
+    %% ============================================================
+    %% LIGNE 1 — GAUCHE → DROITE
+    %% ============================================================
+
+    debut(("<b>Démarrage<br/>du projet</b>"))
+    t1(["<b>T1</b><br/>Cadrage & CDC"])
+    t2(["<b>T2</b><br/>Conception UML & BDD"])
+    t3(["<b>T3</b><br/>Configuration Env."])
+
+    debut ==> t1 ==> t2 ==> t3
+
+
+    %% ============================================================
+    %% LIGNE 2 — DROITE → GAUCHE
+    %% ============================================================
+
+    t4(["<b>T4</b><br/>Scraping & Ingestion"])
+    t5(["<b>T5</b><br/>Auth & Profils"])
+    t6(["<b>T6</b><br/>OCR Multi-format"])
+    t7(["<b>T7</b><br/>Classification Hybride"])
+
+    t3 ==> t7 ==> t6 ==> t4
+
+
+    %% ============================================================
+    %% LIGNE 3 — GAUCHE → DROITE
+    %% ============================================================
+
+    t8(["<b>T8</b><br/>Human-in-the-Loop"])
+    t9(["<b>T9</b><br/>RAG & ChromaDB"])
+    t10(["<b>T10</b><br/>Extraction Métier"])
+    t11(["<b>T11</b><br/>Génération & Signature"])
+
+    t4 ==> t8 ==> t9 ==> t10 ==> t11
+
+
+    %% ============================================================
+    %% LIGNE 4 — DROITE → GAUCHE
+    %% ============================================================
+
+    t12(["<b>T12</b><br/>Interface React"])
+    t13(["<b>T13</b><br/>Tests & Recette"])
+    t14(["<b>T14</b><br/>Rapport & Soutenance"])
+    livraison(("<b>Livraison<br/>du projet</b>"))
+
+    t11 ==> t14 ==> t13 ==> t12 ==> livraison
+
+
+    %% ============================================================
+    %% DÉPENDANCES SECONDAIRES
+    %% ============================================================
+
+    t3 --> t5
+    t5 --> t11
+    t7 --> t8
+
+
+    %% ============================================================
+    %% STYLES — DÉBUT / FIN
+    %% ============================================================
+
+    style debut fill:#059669,stroke:#047857,color:#FFFFFF,stroke-width:5px,font-size:38px
+    style livraison fill:#059669,stroke:#047857,color:#FFFFFF,stroke-width:5px,font-size:38px
+
+
+    %% ============================================================
+    %% STYLES — TÂCHES PRINCIPALES
+    %% ============================================================
+
+    style t1 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t2 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t3 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+
+    style t4 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t6 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t7 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+
+    style t9 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t10 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t11 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+
+    style t12 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t13 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+    style t14 fill:#1E293B,stroke:#334155,color:#FFFFFF,stroke-width:2px
+
+
+    %% ============================================================
+    %% STYLES — TÂCHES PARALLÈLES
+    %% ============================================================
+
+    style t5 fill:#0284C7,stroke:#0369A1,color:#FFFFFF,stroke-width:3px
+    style t8 fill:#D97706,stroke:#B45309,color:#FFFFFF,stroke-width:3px

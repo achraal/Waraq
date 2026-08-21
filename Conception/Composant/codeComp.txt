@@ -1,0 +1,213 @@
+@startuml Waraq_Component_Diagram
+
+title Waraq — Diagramme de composants
+
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+allowmixing
+
+package "Frontend" {
+
+    component "Waraq Web UI" as Frontend
+
+    component "Tender Management" as TenderUI
+    component "Classification UI" as ClassificationUI
+    component "RAG / Assistant UI" as RAGUI
+    component "Generation UI" as GenerationUI
+
+    Frontend --> TenderUI
+    Frontend --> ClassificationUI
+    Frontend --> RAGUI
+    Frontend --> GenerationUI
+}
+
+package "Backend — FastAPI" {
+
+    component "REST API" as REST
+
+    component "Tender Service" as TenderService
+    component "Document Service" as DocumentService
+
+    component "Classification Service" as ClassificationService
+    component "Learning Service" as LearningService
+
+    component "OCR Engine" as OCREngine
+    component "Fast OCR Engine" as FastOCREngine
+
+    component "Document Splitter" as DocumentSplitter
+    component "Rule Engine" as RuleEngine
+
+    package "RAG Engine" {
+
+        component "RAG Trigger" as RAGTrigger
+        component "RAG Pipeline Service" as RAGService
+        component "RAG Document Extractor" as RAGExtractor
+        component "Document Chunker" as Chunker
+        component "Embedding Service" as EmbeddingService
+        component "Vector Store Manager" as VectorStore
+    }
+
+    package "Generation Engine" {
+
+        component "Generation Workflow" as GenerationWorkflow
+        component "Document Inventory" as Inventory
+        component "RC / CPS Processor" as RCCPS
+        component "BDP Processor" as BDPProcessor
+        component "Acte / Declaration Processor" as FormProcessor
+        component "PDF Generator" as PDFGenerator
+        component "Validation Service" as ValidationService
+    }
+}
+
+package "AI / ML Services" {
+
+    component "Qwen LLM" as Qwen
+    component "GLM-OCR" as GLMOCR
+    component "Granite 4.1:3B" as Granite
+    component "BGE-M3" as BGEM3
+}
+
+package "External / Technical Engines" {
+
+    component "PyMuPDF" as PyMuPDF
+    component "PaddleOCR / ONNX Runtime" as PaddleOCR
+}
+
+package "Persistence" {
+
+    database "PostgreSQL" as PostgreSQL
+    database "ChromaDB" as ChromaDB
+
+    folder "data_storage" as Storage
+
+    folder "classified/" as Classified
+    folder "extracted/" as Extracted
+    folder "rag_extracted/" as RAGExtracted
+    folder "generated/" as Generated
+    folder "templates/" as Templates
+    folder "_sources/" as Sources
+}
+
+' =========================
+' FRONTEND → BACKEND
+' =========================
+
+Frontend --> REST : HTTP / JSON
+
+TenderUI --> TenderService
+ClassificationUI --> ClassificationService
+RAGUI --> RAGTrigger
+GenerationUI --> GenerationWorkflow
+
+' =========================
+' API SERVICES
+' =========================
+
+REST --> TenderService
+REST --> DocumentService
+REST --> ClassificationService
+REST --> RAGTrigger
+REST --> GenerationWorkflow
+
+' =========================
+' CLASSIFICATION
+' =========================
+
+DocumentService --> ClassificationService
+
+ClassificationService --> OCREngine
+ClassificationService --> DocumentSplitter
+ClassificationService --> RuleEngine
+ClassificationService --> Qwen
+
+OCREngine --> PyMuPDF
+OCREngine --> PaddleOCR
+
+FastOCREngine --> PyMuPDF
+ClassificationService ..> FastOCREngine : (Fast-path)
+
+ClassificationService --> Classified
+ClassificationService --> PostgreSQL
+
+ClassificationService --> LearningService
+LearningService --> PostgreSQL
+
+' =========================
+' RAG
+' =========================
+
+RAGTrigger --> RAGService
+
+RAGService --> RAGExtractor
+RAGService --> GLMOCR
+RAGService --> Chunker
+RAGService --> EmbeddingService
+RAGService --> VectorStore
+RAGService --> Granite
+
+RAGExtractor --> OCREngine
+RAGExtractor --> DocumentSplitter
+
+RAGExtractor --> RAGExtracted
+
+GLMOCR --> RAGService
+
+Chunker --> EmbeddingService
+EmbeddingService --> BGEM3
+
+EmbeddingService --> VectorStore
+VectorStore --> ChromaDB
+
+RAGService --> PostgreSQL
+
+RAGService --> RAGExtracted
+
+' =========================
+' GENERATION
+' =========================
+
+GenerationWorkflow --> Inventory
+GenerationWorkflow --> RCCPS
+GenerationWorkflow --> BDPProcessor
+GenerationWorkflow --> FormProcessor
+GenerationWorkflow --> PDFGenerator
+GenerationWorkflow --> ValidationService
+
+Inventory --> RAGExtracted
+Inventory --> Classified
+Inventory --> Sources
+
+RCCPS --> OCREngine
+RCCPS --> PDFGenerator
+
+BDPProcessor --> OCREngine
+BDPProcessor --> PDFGenerator
+
+FormProcessor --> OCREngine
+FormProcessor --> FastOCREngine
+FormProcessor --> Templates
+FormProcessor --> PostgreSQL
+FormProcessor --> PDFGenerator
+
+PDFGenerator --> Generated
+
+ValidationService --> Generated
+ValidationService --> PostgreSQL
+
+GenerationWorkflow --> PostgreSQL
+GenerationWorkflow --> Generated
+
+' =========================
+' STORAGE
+' =========================
+
+Storage --> Classified
+Storage --> Extracted
+Storage --> RAGExtracted
+Storage --> Generated
+Storage --> Templates
+Storage --> Sources
+
+@enduml

@@ -1,0 +1,109 @@
+@startuml
+skinparam handwritten false
+autonumber
+
+actor "Client / Admin" as Client
+participant "ScraperRoutes\n<<control>>" as Routes
+participant "portal_scraper.py\n<<script/CLI>>" as CLI
+participant "Scraper" as Scraper
+participant "TenderManager" as Manager
+participant "Parser\n<<utility>>" as Parser
+participant "PipelineUtils\n<<utility>>" as Utils
+database "PostgreSQL" as DB
+
+== Option A : Déclenchement via API REST (3 Endpoints séparés) ==
+
+' --- ÉTAPE 1 : SCRAPING ---
+Client -> Routes : POST /start-scraping
+activate Routes
+
+alt scraper_status["is_running"] == true
+    Routes --> Client : HTTPException 400 ("Déjà en cours")
+else
+    Routes -> Routes : background_tasks.add_task(run_scraper_task)
+    Routes --> Client : 200 OK {"status": "success", "message": "Scraping démarré..."}
+    deactivate Routes
+    
+    note right of Routes : Exécution asynchrone (Background Tasks)
+    [-> Scraper : run_scraper()
+    activate Scraper
+    
+    loop Pour chaque appel d'offre
+        Scraper -> Parser : parse_tender_metadata() / parse_tender_lots()
+        activate Parser
+        Parser --> Scraper : données parsées
+        deactivate Parser
+        
+        Scraper -> Manager : is_already_processed(ref)
+        activate Manager
+        Manager -> DB : SELECT 1 FROM tender WHERE reference=ref
+        DB --> Manager : résultat
+        Manager --> Scraper : boolean
+        deactivate Manager
+        
+        alt si nouvelle offre
+            Scraper -> Scraper : Téléchargement & Extraction ZIP
+            Scraper -> Utils : get_storage_paths()
+            Scraper -> Parser : save_metadata()
+        end
+    end
+    
+    Scraper -> Scraper : _cleanup_temp_files()
+    deactivate Scraper
+end
+
+... Attente de la fin du Scraping ...
+
+' --- ÉTAPE 2 : SYNCHRONISATION BDD ---
+Client -> Routes : POST /sync
+activate Routes
+Routes -> Utils : sync_local_tenders_to_db(db)
+activate Utils
+
+loop Pour chaque dossier local
+    Utils -> Utils : extract_date_from_path() & normalize_text()
+    Utils -> DB : Insertion / Maj (Tender, TenderLot, TenderDocument)
+end
+
+Utils --> Routes : results (dict)
+deactivate Utils
+Routes --> Client : 200 OK {"message": "X nouvelles offres ajoutées", "details": ...}
+deactivate Routes
+
+' --- ÉTAPE 3 : EXPORT EXCEL ---
+Client -> Routes : POST /export-excel
+activate Routes
+Routes -> DB : count_db = db.query(Tender).count()
+
+alt count_db == count_excel
+    Routes --> Client : 200 OK ("Fichier Excel déjà à jour")
+else
+    Routes -> Utils : export_all_tenders_to_excel(db)
+    activate Utils
+    Utils --> Routes : void
+    deactivate Utils
+    Routes --> Client : 200 OK ("Export Excel généré avec succès")
+end
+deactivate Routes
+
+
+== Option B : Déclenchement Direct via Script CLI (portal_scraper.py) ==
+
+Client -> CLI : python portal_scraper.py
+activate CLI
+CLI -> Scraper : instancie & run_scraper()
+activate Scraper
+Scraper -> Parser : parse_tender_metadata()
+Scraper -> Manager : is_already_processed()
+Scraper -> Scraper : Extraction & Sauvegarde locale
+deactivate Scraper
+
+CLI -> Utils : sync_local_tenders_to_db(db)
+activate Utils
+Utils -> DB : Écriture PostgreSQL (ORM)
+deactivate Utils
+
+CLI --> Client : Fin de l'exécution en terminal
+deactivate CLI
+
+@enduml

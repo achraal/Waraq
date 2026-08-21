@@ -1,0 +1,149 @@
+@startuml Waraq_Sequence_Classification
+
+autonumber
+
+actor "Utilisateur / Scraper" as User
+participant "API FastAPI" as API
+participant "ClassificationService" as CS
+participant "OCREngine" as OCR
+participant "PyMuPDF" as PDF
+participant "PaddleOCR / ONNX" as Paddle
+participant "DocumentSplitter" as Splitter
+participant "Rule Engine" as Rules
+participant "Qwen LLM" as Qwen
+database "Base de données" as DB
+collections "Storage\nclassified/" as Storage
+
+User -> API : Soumettre / recevoir document
+activate API
+
+API -> CS : classifier_document(file_path)
+activate CS
+
+== Inspection initiale ==
+
+CS -> OCR : extraire_texte_integral(file_path)
+activate OCR
+
+OCR -> PDF : Ouvrir / inspecter document
+activate PDF
+PDF --> OCR : Métadonnées + pages + texte natif
+deactivate PDF
+
+alt PDF natif avec texte exploitable
+
+    OCR --> CS : texte + is_scanned=false\npage_count + métadonnées
+
+else PDF scanné
+
+    OCR -> PDF : Convertir pages en images
+    PDF --> OCR : Images des pages
+
+    loop Pour chaque page
+        OCR -> Paddle : OCR image(page)
+        Paddle --> OCR : Texte de la page
+    end
+
+    OCR --> CS : texte reconstruit\nis_scanned=true
+
+end
+
+deactivate OCR
+
+== Normalisation ==
+
+CS -> CS : normaliser_ocr()
+CS -> CS : Nettoyer espaces / caractères\nUniformiser le texte
+
+== Analyse structurelle ==
+
+CS -> Rules : analyser_structure(text)
+activate Rules
+
+Rules -> Rules : Détection titres / ancres
+Rules -> Rules : Détection structure documentaire
+Rules -> Rules : Détection modèles / annexes
+Rules --> CS : primitives + indices structurels
+
+deactivate Rules
+
+== Découpage conditionnel ==
+
+alt Document < 20 pages
+
+    CS -> CS : Conserver document global
+
+else Document >= 20 pages
+
+    CS -> Rules : analyser_haut_de_page()
+    Rules --> CS : titres / ruptures potentielles
+
+    alt Rupture majeure détectée\n(CPS / RC / BDP...)
+
+        CS -> Splitter : verifier_et_decouper_document()
+        activate Splitter
+        Splitter -> Splitter : Détecter frontières
+        Splitter -> Storage : Créer sous-documents
+        Storage --> Splitter : chemins des segments
+        Splitter --> CS : liste des sous-documents
+        deactivate Splitter
+
+    else Pas de rupture majeure
+
+        CS -> CS : Conserver document global
+
+    end
+
+end
+
+== Classification primitive / règles ==
+
+CS -> Rules : appliquer_types_primitifs()
+Rules --> CS : type potentiel / règles appliquées
+
+alt Type déterminé avec certitude
+
+    CS -> CS : Valider classification
+
+else Vérification nécessaire
+
+    == Classification sémantique ==
+
+    CS -> Qwen : verifier_ou_classifier_par_llm(\ntexte + type candidat + Few-Shot)
+    activate Qwen
+
+    Qwen --> CS : type final + confiance + justification
+    deactivate Qwen
+
+end
+
+== Validation ==
+
+CS -> CS : Vérifier règles métier
+CS -> CS : Vérifier surcharge nom fichier
+CS -> CS : Vérifier cohérence classification
+
+alt Document majeur à découper
+
+    CS -> Storage : Enregistrer CPS / RC / BDP...
+    Storage --> CS : fichiers classifiés
+
+else Document simple
+
+    CS -> Storage : Enregistrer document classifié
+    Storage --> CS : chemin
+
+end
+
+== Persistance ==
+
+CS -> DB : Enregistrer résultat classification
+DB --> CS : Classification enregistrée
+
+CS --> API : ClassificationResult
+deactivate CS
+
+API --> User : Résultat classification
+deactivate API
+
+@enduml

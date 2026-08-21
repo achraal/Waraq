@@ -729,3 +729,368 @@ Priorité : High
 Story Points : 1 SP
 
 Description : Résolution de l'absence du binaire soffice.exe dans la variable d'environnement PATH, entraînant l'échec de la conversion automatique des anciens fichiers .doc et .xls.
+
+
+🟩 USER STORIES & IMPROVEMENTS (Stories & Improvements)MAO-STORY-03 : Orchestration du Workflow de Génération et Découverte Documentaire Multi-SourcesType : User Story 🟢Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighestStory Points : 8 SPDescription : Implémentation de la machine à états du workflow (DISCOVERED $\rightarrow$ VALIDATED $\rightarrow$ READY $\rightarrow$ GENERATED $\rightarrow$ FINALIZED) et du service de découverte de documents explorant récursivement rag_extracted, classified et extracted (en ignorant _sources) pour construire le registre unifié.Sous-tâches (Sub-tasks ┖) :┖ [Workflow-01] Définir la machine à états et l'orchestrateur workflow_service.py👉 Priorité : Highest | Estimation : 1d (1 SP)┖ [Workflow-02] Développer le service de découverte documentaire multi-sources avec dédoublonnage👉 Priorité : High | Estimation : 1d (1 SP)┖ [Workflow-03] Construire le registre unifié et le schéma Pydantic WorkflowDocument👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [Workflow-04] Implémenter le vérificateur de complétude documentaire (RC, CPS, BDP, AE, DH)👉 Priorité : High | Estimation : 0.5d (0.5 SP)MAO-STORY-04 : Traitement Intelligents du Bordereau des Prix (BDP / BDR Multi-Formats)Type : User Story 🟢Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighestStory Points : 8 SPDescription : Remplacement de l'ancien parser par un extracteur tolérant aux tableaux multi-pages, bilingues (FR/AR) et multi-formats (PDF, DOCX, XLS, XLSX, Scans via OCR ONNX). Extraction des prix, calcul automatique (HT, TVA, TTC) et réinjection utilisateur.Sous-tâches (Sub-tasks ┖) :┖ [Workflow-11/12] Développer field_extractor.py pour l'extraction de tableaux BDP/BDR multi-formats👉 Priorité : Highest | Estimation : 1.5d (2 SP)┖ [Workflow-13/14] Implémenter le formulaire interactif BDP avec calcul automatique HT/TVA/TTC👉 Priorité : High | Estimation : 1d (1 SP)┖ [Workflow-15/33] Refactor bdp_processor.py pour la réinjection des prix et génération du PDF final👉 Priorité : High | Estimation : 1d (1 SP)MAO-STORY-05 : Complétion et Génération des Actes Administratifs (AE / DH / Fallbacks)Type : User Story 🟢Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighStory Points : 5 SPDescription : Moteur d'extraction et de mapping automatique du CompanyProfile (personne physique, SARL, coopérative...) vers les pièces administratives (Acte d'Engagement, Déclaration sur l'Honneur). Génération via modèles Waraq (is_fallback_used = true) si la pièce est absente.Sous-tâches (Sub-tasks ┖) :┖ [Workflow-16/17] Extraire les zones administratives et mapper le profil entreprise (ICE, RC, CIN, RIB)👉 Priorité : High | Estimation : 1d (1 SP)┖ [Workflow-18/19] Préremplir et fusionner les données Tender + Profil + Saisie utilisateur👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [Workflow-20/32] Refactor admin_docs_generator.py et injection fallback Waraq via doc_generator.py👉 Priorité : High | Estimation : 1d (1 SP)MAO-STORY-06 : Préparation et Signature Numérique Automatisée RC / CPSType : User Story 🟢Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighStory Points : 5 SPDescription : Service d'annotation et de signature PDF détectant par OCR la mention « Lu et accepté » (ou équivalents FR/AR) et apposant le tampon/signature en bas à droite sans altérer le texte d'origine.Sous-tâches (Sub-tasks ┖) :┖ [Workflow-08/09] Implémenter la détection OCR/ONNX de la zone « Lu et accepté » sur PDF natifs et scannés👉 Priorité : High | Estimation : 1d (1 SP)┖ [Workflow-10] Générer la signature automatique et la pagination en bas à droite du RC/CPS👉 Priorité : High | Estimation : 1d (1 SP)MAO-ENH-09 : Amélioration de la Restitution RAG et Visualisation des VecteursType : Improvement 🟡Epic : EPIC-9 : Engine RAG, Extraction Métier & WorkflowsPriorité : MediumStory Points : 3 SPDescription : Amélioration du résumé généré dans RAGAnalysisResult, ajout du champ administrative_zones dans les schémas RAG, et création des outils d'inspection des embeddings vectoriels par document et par Tender.Sous-tâches (Sub-tasks ┖) :┖ [RAG] Ajouter le champ administrative_zones et améliorer la synthèse rag_analysis👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)┖ [RAG] Créer un endpoint d'inspection et visualisation des vecteurs ChromaDB par Tender et Document👉 Priorité : Low | Estimation : 0.5d (0.5 SP)🟦 TÂCHES TECHNIQUES (Tasks)MAO-TASK-33 : Implémentation du Stockage Déterministe et Conversion PDF HeadlessType : Task 🟦Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighStory Points : 3 SPDescription : Mise en place de la structure de stockage déterministe generated/YYYY/MM/DD/reference_ao/ et du service générique document_service.py pilotant les conversions PDF multi-formats via LibreOffice.Sous-tâches (Sub-tasks ┖) :┖ [Workflow-21/36] Créer document_service.py pour le contrôle d'intégrité et la conversion PDF👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [Workflow-22/23] Implémenter l'arborescence generated/ et la persistance déterministe👉 Priorité : High | Estimation : 0.5d (0.5 SP)MAO-TASK-34 : Exposition API REST et Contrôle d'Accès pour les WorkflowsType : Task 🟦Epic : EPIC-10 : Workflow de Génération WaraqPriorité : HighStory Points : 3 SPDescription : Création des endpoints FastAPI modulaires (GET/DELETE documents, POST sign, GET/POST bdp, GET/POST admin-docs, POST finalize) et refactoring de routes.py pour isoler la logique métier dans les services.Sous-tâches (Sub-tasks ┖) :┖ [API] Créer les routes REST pour la gestion documentaire, BDP et documents administratifs👉 Priorité : High | Estimation : 1d (1 SP)┖ [API] Implémenter l'endpoint POST /workflows/{tender_id}/finalize d'orchestration finale👉 Priorité : Highest | Estimation : 0.5d (0.5 SP)MAO-TASK-35 : Traçabilité, Logs Métiers et Migrations Alembic WorkflowType : Task 🟦Epic : EPIC-10 : Workflow de Génération WaraqPriorité : MediumStory Points : 3 SPDescription : Création du modèle d'audit WorkflowLog / RAGLog enregistrant 15 événements clés du cycle de vie, extension de GeneratedDocument avec son énum de statut, et application des migrations Alembic.Sous-tâches (Sub-tasks ┖) :┖ [Database] Étendre GeneratedDocument et créer WorkflowLog avec la gestion des ENUMs PostgreSQL👉 Priorité : High | Estimation : 0.5d (0.5 SP)┖ [Database] Appliquer les migrations Alembic et tester les scénarios d'upgrade/rollback👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)MAO-TASK-36 : Actualisation de la Planification et Diagramme de GanttType : Task 🟦Epic : EPIC-1 : Conception & ArchitecturePriorité : LowStory Points : 1 SPDescription : Reconfiguration du planning global et ajustement du diagramme de Gantt du rapport pour y intégrer les phases d'implémentation du RAG, des workflows BDP/Admin, et de finalisation.🔴 CORRECTIONS DE BUGS (Bugs)MAO-BUG-29 : Erreur de Conversion et Absence de Fichiers .doc/.docx dans rag_extractedType : Bug 🔴Epic : EPIC-9 : Engine RAG, Extraction Métier & WorkflowsPriorité : HighestStory Points : 2 SPDescription : Fix du bug empêchant la conversion des fichiers .doc et .docx en PDF texte exploitable lors de l'extraction RAG, laissant le répertoire cible rag_extracted vide.MAO-BUG-30 : Échec d'Extraction des Fichiers Modèles et Détection 0 Modèle / ZoneType : Bug 🔴Epic : EPIC-9 : Engine RAG, Extraction Métier & WorkflowsPriorité : HighestStory Points : 2 SPDescription : Correction du dysfonctionnement où le moteur d'extraction RAG retournait 0 fichiers modèles générés et 0 zones administratives détectées sur des documents de type RC/CPS.MAO-BUG-31 : Crash ValueError : Extracteur RAG N'ayant Extrait Aucun Texte (_sources Hors Arborescence)Type : Bug 🔴Epic : EPIC-9 : Engine RAG, Extraction Métier & WorkflowsPriorité : HighestStory Points : 2 SPDescription : Résolution de l'exception ValueError: [RAG] L'extracteur RAG n'a extrait aucun texte causée par une mauvaise résolution des chemins _sources hors de l'arborescence du projet.MAO-BUG-32 : Enregistrement Automatique des Fichiers .docx Transformés dans rag_extractedType : Bug 🔴Epic : EPIC-9 : Engine RAG, Extraction Métier & WorkflowsPriorité : HighStory Points : 1 SPDescription : Correction du pipeline d'extraction pour assurer la copie et l'enregistrement explicite des documents Word transformés directement dans le répertoire rag_extracted.
+
+
+
+
+🎨 1. EPIC-6 : Interface React, UI/UX & Dashboard
+🟩 USER STORIES & IMPROVEMENTS
+MAO-STORY-07 : Initialisation du Front-end React et Intégration du Design System (Tailwind CSS & Stitch UI)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Mise en place et configuration de l'environnement client React avec Tailwind CSS, intégration des composants visuels inspirés de Stitch UI, et activation du middleware CORS sur le backend FastAPI pour autoriser les requêtes cross-origin.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Installation et configuration de Tailwind CSS dans le projet React
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Backend] Configurer et activer le CORSMiddleware sur l'API FastAPI
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Frontend] Intégrer la charte graphique et les composants UI (Stitch UI kit)
+
+👉 Priorité : Medium | Estimation : 1d (1 SP)
+
+🚀 2. EPIC-10 : Workflow de Génération & Finalisation des Documents (Waraq Engine)
+🟩 USER STORIES & IMPROVEMENTS
+MAO-ENH-10 : Sécurisation du RAG, Extraction Profil-Dépendante (AE/DH) et Traçabilité Log
+Type : Improvement 🟡
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Endurcissement du résumé RAG, amélioration de la précision du découpage physique, adaptation de l'extraction des champs d'Acte d'Engagement (AE) et Déclaration sur l'Honneur (DH) au profil juridique (CompanyProfile), et enregistrement systématique dans WorkflowLog.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [RAG/IDP] Consolider la génération du résumé RAG et corriger les découpages d'angles
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Workflow] Adapter l'extraction de l'AE et la DH selon le type de profil juridique (Personne Physique / Morale)
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Database] Activer l'enregistrement automatique de chaque étape dans la table WorkflowLog
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+🟦 TÂCHES TECHNIQUES (Tasks)
+MAO-TASK-37 : Préparation du Jeu de Tests d'Intégration et Validation du Workflow
+Type : Task 🟦
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Conception et exécution d'un jeu de données de test complet pour valider l'ensemble du pipeline (découverte, extraction BDP/Admin, signature, conversion et finalisation).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [QA] Préparer le jeu de données d'appels d'offres réels et profil de test
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [QA] Exécuter les tests de bout en bout et valider l'absence de blocage lors du remplissage ("no filling")
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+🔴 CORRECTIONS DE BUGS (Bugs)
+MAO-BUG-33 : Fix AttributeError: PreparationStatus has no attribute 'READY_FOR_FILLING'
+Type : Bug 🔴
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : Highest
+
+Story Points : 1 SP
+
+Description : Correction de l'erreur d'attribut inexistant sur l'Énum PreparationStatus en ajoutant la valeur READY_FOR_FILLING dans les modèles et la migration SQLAlchemy.
+
+MAO-BUG-34 : Non-respect de l'Arborescence Déterministe /generated/AAAA/MM/DD/ref_HH_MM_SS
+Type : Bug 🔴
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : Highest
+
+Story Points : 2 SP
+
+Description : Correction du système de stockage pour forcer le chemin exact generated/AAAA/MM/DD/ref_HH_MM_SS/ lors de la sauvegarde des fichiers générés au lieu de dépôts désordonnés.
+
+MAO-BUG-35 : Emplacement Incorrect des Documents Convertis en PDF et Fichiers Signés
+Type : Bug 🔴
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : Highest
+
+Story Points : 2 SP
+
+Description : Correction de l'erreur déposant les fichiers PDF issus de conversion ou de signature dans /extracted au lieu de les rediriger exclusivement vers le dossier /generated dans leur format final.
+
+MAO-BUG-36 : Correction de l'Invisibilité de la Signature et Support des Fichiers .docx
+Type : Bug 🔴
+
+Epic : EPIC-10 : Workflow de Génération Waraq
+
+Priorité : Highest
+
+Story Points : 3 SP
+
+Description : Résolution du bug où aucune signature n'apparaissait sur le document final après exécution. Adaptation de l'endpoint de signature « Lu et accepté » pour supporter directement les fichiers source au format .docx.
+
+📊 3. EPIC-7 : Télémétrie, Monitoring & Observabilité
+MAO-TASK-38 : Extension des Métriques de Télémétrie pour RAG & Workflows
+Type : Task 🟦
+
+Epic : EPIC-7 : Télémétrie & Monitoring
+
+Priorité : Medium
+
+Story Points : 2 SP
+
+Description : Intégration de nouveaux indicateurs de performance dans le module de télémétrie pour mesurer le temps d'exécution RAG (indexation, recherche, génération) et les durées de traitement des workflows.
+
+📄 4. EPIC-1 : Conception & Architecture
+MAO-TASK-39 : Modélisation sous StarUML (Diagrammes de Séquence et d'Activité) & Gantt
+Type : Task 🟦
+
+Epic : EPIC-1 : Conception & Architecture
+
+Priorité : High
+
+Story Points : 3 SP
+
+Description : Conception et vectorisation sous StarUML des diagrammes d'activité et de séquence retraçant le moteur de workflow et le pipeline RAG. Réajustement du diagramme de Gantt global pour le rapport final.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [UML] Concevoir le diagramme d'activité complet du workflow sous StarUML
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [UML] Concevoir les diagrammes de séquence du pipeline RAG et de signature sous StarUML
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Doc] Mettre à jour le diagramme de Gantt dans le rapport
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+
+
+
+🎨 EPIC-6 : Interface React, UI/UX & Dashboard
+🟩 USER STORIES & IMPROVEMENTS
+MAO-STORY-08 : Refonte de la Structure SPA React 19 et Routage Declaratif (React Router v7)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : Highest
+
+Story Points : 8 SP
+
+Description : Mise en place du squelette SPA moderne sous React 19 / Vite 8. Implémentation de la table de routage déclarative via React Router DOM v7 dans App.jsx, séparant les routes publiques (/, /login, /register, /profile) des routes protégées encapsulées dans <MainLayout/>.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Configurer Vite 8 et la structure d'arborescence src/ (assets, components, context, layouts, services)
+
+👉 Priorité : Highest | Estimation : 1d (1 SP)
+
+┖ [Frontend] Implémenter le routage React Router v7 dans App.jsx et la coquille MainLayout.jsx
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer la navigation contextuelle selon le rôle (Sidebar.jsx : links Candidat vs Admin)
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+MAO-STORY-09 : Intégration du Design System Material You (Tailwind CSS v3 Token Schema)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Implémentation du système de design Material You / Material Design 3 via tailwind.config.js. Définition des tokens sémantiques (bg-primary #7e0001, surface, error), intégration des polices (Geist Sans, Plus Jakarta Sans, JetBrains Mono) et configuration des Material Symbols Outlined.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Configurer tailwind.config.js avec la palette sémantique Material You et la typographie
+
+👉 Priorité : High | Estimation : 0.5d (0.5 SP)
+
+┖ [Frontend] Charger les polices web et les Material Symbols Outlined dans index.css
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+┖ [Frontend] Implémenter la gestion personnalisée du border-radius (quirk rounded-full = 12px)
+
+👉 Priorité : Low | Estimation : 0.5d (0.5 SP)
+
+MAO-STORY-10 : Module d'Authentification et Gestion d'État JWT (AuthContext.jsx)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : Highest
+
+Story Points : 5 SP
+
+Description : Création du wrapper d'authentification AuthContext.jsx gérant la persistance du jeton JWT dans le localStorage, la récupération automatique du profil /api/auth/me, et l'exposition du helper d'interception réseau fetchWithAuth.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Créer AuthContext.jsx avec la gestion des états token, user, saveToken et logout
+
+👉 Priorité : Highest | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer fetchWithAuth pour l'injection du Bearer Token et l'interception automatique des 401
+
+👉 Priorité : Highest | Estimation : 1d (1 SP)
+
+┖ [Frontend] Connecter les vues auth (Login.jsx, Register.jsx, Profile.jsx) au contexte d'authentification
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+MAO-STORY-11 : Console Scraper Interactive et Stream VNC Live Chrome (ScraperManager.jsx)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Interface de pilotage du scraper de marchés publics intégrant le suivi en temps réel par polling (/api/scraper/scraper-status), le streaming de logs par WebSocket (ws://...), et la visualisation interactive de l'instance Chrome via un iframe VNC (noVNC).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Implémenter le polling status 3s et la connexion WebSocket pour les logs du scraper
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Intégrer l'iframe dynamique VNC Chrome via la variable d'environnement VITE_VNC_CHROME_URL
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+MAO-STORY-12 : Visualiseur 3D d'Embeddings RAG Vectoriels (AdminVectorVisualizer.jsx)
+Type : User Story 🟢
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : Medium
+
+Story Points : 5 SP
+
+Description : Développer le module de rendu graphique 3D utilisant Three.js et Plotly.js pour projeter l'espace vectoriel des chunks de documents enregistrés dans ChromaDB (réductions de dimensionnalité PCA / t-SNE).
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Intégrer la scène Three.js avec lumières, caméra, OrbitControls et raycasting
+
+👉 Priorité : Medium | Estimation : 1.5d (2 SP)
+
+┖ [Frontend] Connecter l'API d'embeddings pour mapper les coordonnées 3D et afficher les métadonnées au clic
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+🟦 TÂCHES TECHNIQUES (Tasks)
+MAO-TASK-40 : Intégration des Vues Métier Candidat (TendersMinimal & TenderDetail)
+Type : Task 🟦
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : High
+
+Story Points : 5 SP
+
+Description : Développement des interfaces de consultation des opportunités pour les soumissionnaires, avec filtrage tabulaire, détails des lots, classification IDP et interface d'interaction RAG.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Développer TendersMinimal.jsx avec filtres de recherche et badges de statut
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer TenderDetail.jsx avec l'affichage de la structure multi-lots et des documents
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Intégrer l'interface de validation de document (DocumentValidator.jsx)
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+MAO-TASK-41 : Développement du Panneau d'Administration et Monitoring (/admin/*)
+Type : Task 🟦
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : Medium
+
+Story Points : 5 SP
+
+Description : Implémentation des vues d'administration restreintes aux utilisateurs possédant le rôle ADMIN.
+
+Sous-tâches (Sub-tasks ┖) :
+
+┖ [Frontend] Développer AdminUsersManager.jsx (table utilisateurs, switch rôle ADMIN/CANDIDATE)
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer Dashboard.jsx (commutateur Telemetry, Audit Logs, RAG Logs)
+
+👉 Priorité : High | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer TendersFullList.jsx (vue spreadsheet complète des marchés)
+
+👉 Priorité : Medium | Estimation : 1d (1 SP)
+
+┖ [Frontend] Développer AdminNotifications.jsx et AdminIntelligenceEngine.jsx
+
+👉 Priorité : Medium | Estimation : 0.5d (0.5 SP)
+
+🔴 CORRECTIONS DE BUGS (Bugs)
+MAO-BUG-37 : Correction du Comportement de rounded-full sur les Avatars et Boutons Circulaires
+Type : Bug 🔴
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : Medium
+
+Story Points : 1 SP
+
+Description : Résolution des problèmes de rendu visuel sur les avatars et boutons d'icônes dus à la surcharge de rounded-full à 0.75rem (12px) dans tailwind.config.js. Application explicite du style borderRadius: 9999px.
+
+MAO-BUG-38 : Interception Incomplète des Erreurs 401 et Boucle de Redirection /login
+Type : Bug 🔴
+
+Epic : EPIC-6 : Interface React & Dashboard
+
+Priorité : High
+
+Story Points : 2 SP
+
+Description : Fix du wrapper fetchWithAuth en cas d'expiration du token JWT pour purger proprement le localStorage et déclencher une redirection propre vers la page /login sans boucle de rafraîchissement.

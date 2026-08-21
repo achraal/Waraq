@@ -1,16 +1,15 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, status
-import os, shutil
-from typing import Dict, Any
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, status, Query
+import os, shutil, math, logging
+from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from uuid import UUID
 from backend.app.database.connection import get_db, SessionLocal
-from backend.app.database.models import TenderDocument, RAGAnalysisResult, RAGStatus, Tender
+from backend.app.database.models import TenderDocument, RAGAnalysisResult, RAGStatus, Tender, RAGLog
 from backend.app.modules.rag_engine.rag_service import rag_pipeline_service
 from backend.app.modules.rag_engine.vector_store import chroma_manager
-from backend.app.modules.rag_engine.schemas import TenderRAGAnalysisResult, TenderRAGSummary
+from backend.app.modules.rag_engine.schemas import TenderRAGAnalysisResult, TenderRAGSummary, RAGLogResponse, RAGLogsPaginatedResponse, RAGStatsResponse, VectorPoint3D, Visualization3DResponse
 from pydantic import ValidationError
-import logging
 
 logger = logging.getLogger("waraq.rag.routes")
 router = APIRouter(prefix="/v1/documents",tags=["Documents"])
@@ -291,15 +290,9 @@ async def obtenir_stats_rag(tender_id: UUID,db: Session = Depends(get_db)) -> Di
         },
         "documents_details": documents_stats
     }
-@router_rag.get(
-    "/summary/{document_id}",
-    response_model=TenderRAGSummary,
-    status_code=status.HTTP_200_OK,
-)
-async def obtenir_resume_rag(
-    document_id: UUID,
-    db: Session = Depends(get_db),
-) -> TenderRAGSummary:
+
+@router_rag.get("/summary/{document_id}", response_model=TenderRAGSummary,status_code=status.HTTP_200_OK,)
+async def obtenir_resume_rag(document_id: UUID, db: Session = Depends(get_db),) -> TenderRAGSummary:
     """
     Retourne le résumé métier RAG déjà généré pour un document.
 
@@ -356,19 +349,11 @@ async def obtenir_resume_rag(
             },
         )
         
-@router_rag.get("/vectors/tender/{tender_id}", status_code=status.HTTP_200_OK)
-async def visualiser_vecteurs_tender(
-    tender_id: UUID,
-    max_points: int = 500,
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-
+@router_rag.get("/vectors/tender/{tender_id}", response_model=Visualization3DResponse, status_code=status.HTTP_200_OK)
+async def visualiser_vecteurs_tender(tender_id: UUID, max_points: int = Query(default=300, ge=10, le=1000),
+    method: str = Query(default="tsne", pattern="^(tsne|pca)$"), db: Session = Depends(get_db)):
     try:
-        tender = (
-            db.query(Tender)
-            .filter(Tender.id == tender_id)
-            .first()
-        )
+        tender = db.query(Tender).filter(Tender.id == tender_id).first()
 
         if not tender:
             raise HTTPException(
@@ -376,47 +361,32 @@ async def visualiser_vecteurs_tender(
                 detail=f"Tender introuvable : {tender_id}"
             )
 
-        result = chroma_manager.visualiser_vecteurs(
+        return await chroma_manager.visualiser_vecteurs_async(
             tender_reference=tender.reference,
             document_id=None,
-            max_points=max_points
+            max_points=max_points,
+            method=method
         )
-
-        return result
 
     except HTTPException:
         raise
-
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except Exception as exc:
-        logger.exception(
-            "[RAG][VISUALIZATION][TENDER] Erreur"
-        )
-
+        logger.exception("[RAG][VISUALIZATION][TENDER] Erreur")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur visualisation ChromaDB : {str(exc)}"
         )
 
-
-@router_rag.get("/vectors/document/{document_id}", status_code=status.HTTP_200_OK)
+@router_rag.get("/vectors/document/{document_id}", response_model=Visualization3DResponse, status_code=status.HTTP_200_OK)
 async def visualiser_vecteurs_document(
     document_id: UUID,
-    max_points: int = 500,
-    db: Session = Depends(get_db)
-) -> Dict[str, Any]:
-
+    max_points: int = Query(default=300, ge=10, le=1000),
+    method: str = Query(default="tsne", pattern="^(tsne|pca)$"),
+    db: Session = Depends(get_db)):
     try:
-        document = (
-            db.query(TenderDocument)
-            .filter(TenderDocument.id == document_id)
-            .first()
-        )
+        document = db.query(TenderDocument).filter(TenderDocument.id == document_id).first()
 
         if not document:
             raise HTTPException(
@@ -424,37 +394,26 @@ async def visualiser_vecteurs_document(
                 detail=f"Document introuvable : {document_id}"
             )
 
-        # Adapter cette ligne selon ta relation SQLAlchemy
         tender = document.tender
-
         if not tender:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Tender associé introuvable pour le document : {document_id}"
             )
 
-        result = chroma_manager.visualiser_vecteurs(
+        return await chroma_manager.visualiser_vecteurs_async(
             tender_reference=tender.reference,
             document_id=str(document_id),
-            max_points=max_points
+            max_points=max_points,
+            method=method
         )
-
-        return result
 
     except HTTPException:
         raise
-
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc)
-        )
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     except Exception as exc:
-        logger.exception(
-            "[RAG][VISUALIZATION][DOCUMENT] Erreur"
-        )
-
+        logger.exception("[RAG][VISUALIZATION][DOCUMENT] Erreur")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur visualisation ChromaDB : {str(exc)}"
@@ -478,3 +437,152 @@ async def upload_document(file: UploadFile = File(...)):
         }
     except Exception as e:
         raise HTTPException(status_code=500,detail=f"Erreur d'upload : {str(e)}")
+
+@router_rag.get("/stats", response_model=RAGStatsResponse)
+def get_rag_logs_stats(db: Session = Depends(get_db)):
+    """
+    Calcule les métriques globales du pipeline RAG (Total, Erreurs, Warnings, Durée moyenne).
+    URL finale : GET /api/rag/stats
+    """
+    total_logs = db.query(func.count(RAGLog.id)).scalar() or 0
+    error_count = db.query(func.count(RAGLog.id)).filter(RAGLog.level.ilike("ERROR")).scalar() or 0
+    warning_count = db.query(func.count(RAGLog.id)).filter(RAGLog.level.ilike("WARNING")).scalar() or 0
+    
+    avg_duration = db.query(func.avg(RAGLog.duration_sec)).filter(RAGLog.duration_sec.isnot(None)).scalar()
+
+    return {
+        "total_logs": total_logs,
+        "error_count": error_count,
+        "warning_count": warning_count,
+        "avg_duration_sec": round(avg_duration, 3) if avg_duration else 0.0
+    }
+
+@router_rag.get("/", response_model=RAGLogsPaginatedResponse)
+def get_rag_logs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(15, ge=1, le=100),
+    level: Optional[str] = Query(None, description="INFO, WARNING, ERROR"),
+    stage: Optional[str] = Query(None, description="Filtre par étape de pipeline"),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère les logs RAG de manière paginée.
+    URL finale : GET /api/rag/?skip=0&limit=15
+    """
+    query = db.query(RAGLog)
+
+    if level:
+        query = query.filter(RAGLog.level.ilike(level))
+    if stage:
+        query = query.filter(RAGLog.stage.ilike(f"%{stage}%"))
+
+    total_count = query.count()
+    logs = query.order_by(RAGLog.created_at.desc()).offset(skip).limit(limit).all()
+
+    return {
+        "total_count": total_count,
+        "data": logs
+    }
+
+@router_rag.get("/tender/{tender_id}", response_model=List[RAGLogResponse])
+def get_rag_logs_by_tender(
+    tender_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère les logs RAG pour un appel d'offres spécifique.
+    URL finale : GET /api/rag/tender/{tender_id}
+    """
+    logs = db.query(RAGLog).filter(
+        RAGLog.tender_id == tender_id
+    ).order_by(RAGLog.created_at.desc()).all()
+
+    return logs
+
+@router_rag.get("/document/{document_id}", response_model=List[RAGLogResponse])
+def get_rag_logs_by_document(
+    document_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère les logs RAG associés à un document précis.
+    URL finale : GET /api/rag/document/{document_id}
+    """
+    logs = db.query(RAGLog).filter(
+        RAGLog.document_id == document_id
+    ).order_by(RAGLog.created_at.desc()).all()
+
+    return logs
+
+@router_rag.get("/{rag_id}", response_model=RAGLogResponse)
+def get_rag_log_by_id(
+    rag_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère un log RAG par son identifiant unique.
+    URL finale : GET /api/rag/{rag_id}
+    """
+    log = db.query(RAGLog).filter(RAGLog.id == rag_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Log RAG non trouvé")
+    return log
+
+@router_rag.get("/vectors/lookup/tenders", status_code=status.HTTP_200_OK)
+async def lookup_tenders(
+    query: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    stmt = db.query(Tender)
+    if query:
+        stmt = stmt.filter(Tender.reference.ilike(f"%{query}%"))
+    
+    total_count = stmt.count()
+    total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+    
+    tenders = stmt.offset((page - 1) * page_size).limit(page_size).all()
+    
+    return {
+        "total": total_count,
+        "page": page,
+        "total_pages": total_pages,
+        "items": [
+            {
+                "id": str(t.id),
+                "reference": t.reference,
+                "title": getattr(t, "title", "Sans titre")
+            } 
+            for t in tenders
+        ]
+    }
+
+@router_rag.get("/vectors/lookup/documents", status_code=status.HTTP_200_OK)
+async def lookup_documents(
+    query: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 10,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    stmt = db.query(TenderDocument)
+    if query:
+        stmt = stmt.filter(TenderDocument.file_name.ilike(f"%{query}%"))
+        
+    total_count = stmt.count()
+    total_pages = math.ceil(total_count / page_size) if total_count > 0 else 1
+    
+    docs = stmt.offset((page - 1) * page_size).limit(page_size).all()
+    
+    return {
+        "total": total_count,
+        "page": page,
+        "total_pages": total_pages,
+        "items": [
+            {
+                "id": str(d.id),
+                "filename": getattr(d, "file_name", "Document sans nom")
+            } 
+            for d in docs
+        ]
+    }

@@ -1,0 +1,371 @@
+@startuml Waraq_Sequence_Workflow_Generation
+
+title Waraq — Diagramme de séquence : Workflow de génération des documents
+
+autonumber
+
+actor "Utilisateur" as User
+
+participant "Frontend Waraq" as Front
+participant "Generation API" as API
+participant "Generation Workflow" as Workflow
+
+database "PostgreSQL" as DB
+
+collections "rag_extracted/" as RAG
+collections "classified/" as Classified
+collections "_sources/" as Sources
+collections "templates/" as Templates
+collections "generated/" as Generated
+
+participant "Document Inventory" as Inventory
+participant "Document Splitter" as Splitter
+participant "OCR / ONNX" as OCR
+participant "RC/CPS Processor" as RC_CPS
+participant "BDP Processor" as BDP
+participant "Form Processor" as Forms
+participant "PDF Generator" as PDF
+participant "Validation Service" as Validator
+
+== 1. Déclenchement du workflow ==
+
+User -> Front : Lancer la génération
+Front -> API : generate(tender_id, user_id)
+
+activate API
+
+API -> Workflow : execute_workflow(tender_id, user_id)
+activate Workflow
+
+== 2. Initialisation ==
+
+Workflow -> DB : Vérifier tender_id
+DB --> Workflow : Tender
+
+Workflow -> DB : Vérifier user_id
+DB --> Workflow : Profil utilisateur
+
+== 3. Collecte des documents ==
+
+Workflow -> RAG : Lire rag_extracted/{date}/{ref}/
+RAG --> Workflow : Documents extraits
+
+Workflow -> Classified : Lire documents classifiés
+Classified --> Workflow : Documents classifiés
+
+Workflow -> Sources : Lire sources et métadonnées
+Sources --> Workflow : Métadonnées
+
+== 4. Inventaire documentaire ==
+
+Workflow -> Inventory : Construire inventaire
+activate Inventory
+
+Inventory -> Inventory : Rechercher RC
+Inventory -> Inventory : Rechercher CPS
+Inventory -> Inventory : Rechercher BDP / BDR
+Inventory -> Inventory : Rechercher ACTE_ENGAGEMENT
+Inventory -> Inventory : Rechercher DECLARATION_HONNEUR
+Inventory -> Inventory : Rechercher AUTRES
+
+Inventory --> Workflow : Inventaire complet
+
+deactivate Inventory
+
+== 5. Vérification des documents obligatoires ==
+
+Workflow -> Workflow : Vérifier documents requis
+
+alt Document obligatoire absent
+
+    Workflow -> Workflow : Identifier document manquant
+
+    alt ACTE_ENGAGEMENT absent
+
+        Workflow -> Templates : Charger modèle Acte Engagement
+        Templates --> Workflow : Template Acte
+
+        Workflow -> Forms : Préparer Acte Engagement
+        activate Forms
+
+        Forms -> DB : Charger profil entreprise
+        DB --> Forms : Données entreprise
+
+        Forms -> PDF : Générer Acte
+        PDF --> Forms : Acte PDF
+
+        Forms --> Workflow : Acte généré
+        deactivate Forms
+
+    end
+
+    alt DECLARATION_HONNEUR absente
+
+        Workflow -> Templates : Charger modèle Déclaration
+        Templates --> Workflow : Template Déclaration
+
+        Workflow -> Forms : Préparer Déclaration
+        activate Forms
+
+        Forms -> DB : Charger profil entreprise
+        DB --> Forms : Données entreprise
+
+        Forms -> PDF : Générer Déclaration
+        PDF --> Forms : Déclaration PDF
+
+        Forms --> Workflow : Déclaration générée
+        deactivate Forms
+
+    end
+
+else Tous les documents obligatoires présents
+
+    Workflow -> Workflow : Continuer le workflow
+
+end
+
+== 6. Contrôle du découpage ==
+
+Workflow -> Inventory : Vérifier cohérence des documents
+
+alt RAG mal découpé
+
+    Inventory --> Workflow : Découpage incorrect
+
+    Workflow -> Splitter : Redécouper automatiquement
+    activate Splitter
+
+    Splitter -> Splitter : Détecter frontières documentaires
+    Splitter -> Splitter : Identifier CPS / RC / BDP
+    Splitter -> Splitter : Créer sous-documents
+
+    Splitter --> Workflow : Documents corrigés
+    deactivate Splitter
+
+else Découpage correct
+
+    Inventory --> Workflow : Découpage valide
+
+end
+
+== 7. Contrôle de la qualité documentaire ==
+
+Workflow -> Inventory : Vérifier type de chaque document
+
+alt Document incorrect
+
+    Inventory --> Workflow : Document incorrect
+
+    Workflow -> Workflow : Supprimer document incorrect
+    Workflow -> Workflow : Chercher remplacement
+
+    alt Remplacement trouvé
+
+        Workflow -> Workflow : Utiliser document corrigé
+
+    else Aucun remplacement
+
+        Workflow -> Workflow : Marquer document manquant
+
+    end
+
+else Documents corrects
+
+    Inventory --> Workflow : Documents conformes
+
+end
+
+== 8. Préparation RC / CPS ==
+
+loop RC et CPS
+
+    Workflow -> OCR : Vérifier document
+    activate OCR
+
+    OCR --> Workflow : Scan / texte natif
+
+    alt Document scanné
+
+        Workflow -> OCR : OCR ONNX
+        OCR --> Workflow : Texte extrait
+
+    else Document natif
+
+        Workflow -> OCR : Extraction texte
+        OCR --> Workflow : Texte
+
+    end
+
+    deactivate OCR
+
+    Workflow -> RC_CPS : Préparer RC/CPS
+    activate RC_CPS
+
+    RC_CPS -> RC_CPS : Détecter "Lu et accepté"
+    RC_CPS -> RC_CPS : Détecter zone de signature
+    RC_CPS -> RC_CPS : Positionner signature bas-droite
+    RC_CPS -> RC_CPS : Ajouter numérotation
+    RC_CPS -> RC_CPS : Appliquer signature sur les pages
+
+    RC_CPS -> PDF : Générer PDF final
+    PDF --> RC_CPS : PDF RC/CPS
+
+    RC_CPS --> Workflow : RC/CPS prêts
+    deactivate RC_CPS
+
+end
+
+== 9. Traitement BDP / BDR ==
+
+alt BDP / BDR présent
+
+    Workflow -> BDP : process_bdp()
+    activate BDP
+
+    BDP -> OCR : Vérifier si scan
+    OCR --> BDP : Statut
+
+    alt BDP scanné
+
+        BDP -> OCR : OCR ONNX
+        OCR --> BDP : Texte
+
+    else BDP natif
+
+        BDP -> OCR : Extraction native
+        OCR --> BDP : Texte
+
+    end
+
+    BDP -> BDP : Extraire dynamiquement les champs
+    BDP -> BDP : Détecter structure du tableau
+
+    BDP --> Front : Champs métier extraits
+    deactivate BDP
+
+    Front --> User : Afficher formulaire BDP
+
+    User -> Front : Saisir / modifier valeurs
+
+    Front -> API : Envoyer valeurs BDP
+    API -> Workflow : Valeurs BDP confirmées
+
+    Workflow -> BDP : Injecter valeurs
+
+    BDP -> PDF : Générer BDP final
+    PDF --> BDP : PDF BDP
+
+    BDP --> Workflow : BDP final
+
+else BDP absent
+
+    Workflow -> Workflow : Marquer BDP comme manquant
+
+end
+
+== 10. Traitement Acte / Déclaration ==
+
+loop Acte d'engagement et Déclaration
+
+    Workflow -> Forms : process_document()
+    activate Forms
+
+    Forms -> OCR : Vérifier scan
+    OCR --> Forms : Statut
+
+    alt Document scanné
+
+        Forms -> OCR : OCR ONNX
+        OCR --> Forms : Texte
+
+    else Document natif
+
+        Forms -> Forms : Extraction native
+
+    end
+
+    Forms -> Forms : Extraire champs
+
+    Forms -> DB : Charger profil entreprise
+    DB --> Forms : Profil entreprise
+
+    Forms -> Forms : Mapper les champs
+
+    Forms -> PDF : Injecter les données
+    PDF --> Forms : PDF final
+
+    Forms --> Workflow : Document finalisé
+    deactivate Forms
+
+end
+
+== 11. Validation globale ==
+
+Workflow -> Validator : validate_workflow()
+activate Validator
+
+Validator -> Validator : Vérifier RC
+Validator -> Validator : Vérifier CPS
+Validator -> Validator : Vérifier BDP
+Validator -> Validator : Vérifier Acte
+Validator -> Validator : Vérifier Déclaration
+
+Validator --> Workflow : Résultat validation
+
+deactivate Validator
+
+alt Tous les documents conformes
+
+    Workflow -> DB : Mettre workflow = READY
+    DB --> Workflow : OK
+
+else Documents incomplets / incorrects
+
+    Workflow -> DB : Mettre workflow = INCOMPLETE
+    DB --> Workflow : OK
+
+end
+
+== 12. Persistance finale ==
+
+Workflow -> Generated : Créer dossier génération
+Generated --> Workflow : Dossier créé
+
+Workflow -> Generated : Sauvegarder RC.pdf
+Generated --> Workflow : OK
+
+Workflow -> Generated : Sauvegarder CPS.pdf
+Generated --> Workflow : OK
+
+Workflow -> Generated : Sauvegarder BDP.pdf
+Generated --> Workflow : OK
+
+Workflow -> Generated : Sauvegarder Acte Engagement.pdf
+Generated --> Workflow : OK
+
+Workflow -> Generated : Sauvegarder Declaration Honneur.pdf
+Generated --> Workflow : OK
+
+== 13. Enregistrement des métadonnées ==
+
+Workflow -> DB : Créer GeneratedDocument
+DB --> Workflow : ID document
+
+Workflow -> DB : Enregistrer métadonnées
+DB --> Workflow : OK
+
+Workflow -> DB : Enregistrer logs
+DB --> Workflow : OK
+
+Workflow -> DB : Mettre statut = READY
+DB --> Workflow : OK
+
+Workflow --> API : WorkflowGenerationResult
+deactivate Workflow
+
+API --> Front : Résultat + documents générés
+deactivate API
+
+Front --> User : Documents prêts
+
+@enduml

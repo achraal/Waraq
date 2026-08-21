@@ -1,0 +1,309 @@
+@startuml Waraq_Deployment_Diagram
+
+title Waraq — Diagramme de déploiement
+
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam nodeStyle rectangle
+
+' ============================================================
+' POSTE UTILISATEUR
+' ============================================================
+
+node "Poste utilisateur" as Client {
+
+    artifact "Navigateur Web" as Browser
+
+}
+
+' ============================================================
+' SERVEUR WARAQ
+' ============================================================
+
+node "Serveur Waraq" as Server {
+
+    node "Application Backend" as Backend {
+
+        artifact "FastAPI" as FastAPI
+        artifact "REST API" as REST
+
+        component "Tender Service" as TenderService
+        component "Document Service" as DocumentService
+
+        component "Classification Service" as Classification
+        component "Learning Service" as Learning
+
+        component "OCR Engine" as OCR
+        component "Document Splitter" as Splitter
+        component "Rule Engine" as Rules
+
+        node "RAG Engine" as RAGEngine {
+
+            component "RAG Trigger" as RAGTrigger
+            component "RAG Pipeline Service" as RAG
+            component "RAG Document Extractor" as Extractor
+            component "Document Chunker" as Chunker
+            component "Embedding Service" as Embedding
+
+        }
+
+        node "Generation Engine" as GenerationEngine {
+
+            component "Generation Workflow" as Workflow
+            component "Document Inventory" as Inventory
+
+            component "RC / CPS Processor" as RCCPS
+            component "BDP / BDR Processor" as BDP
+            component "Acte / Déclaration Processor" as Forms
+
+            component "PDF Generator" as PDF
+            component "Validation Service" as Validator
+
+        }
+
+    }
+
+    ' ========================================================
+    ' SCRAPING
+    ' ========================================================
+
+    node "Scraping Engine" as ScrapingEngine {
+
+        component "Scraping Scheduler" as Scheduler
+        component "Tender Scraper" as TenderScraper
+        component "Document Downloader" as Downloader
+        component "Source Monitor" as SourceMonitor
+
+    }
+
+    ' ========================================================
+    ' OCR / DOCUMENT PROCESSING
+    ' ========================================================
+
+    node "Document Processing" as Processing {
+
+        artifact "PyMuPDF" as PyMuPDF
+        artifact "PaddleOCR / RapidOCR" as OCRModel
+        artifact "ONNX Runtime" as ONNX
+
+    }
+
+    ' ========================================================
+    ' IA / OLLAMA
+    ' ========================================================
+
+    node "Ollama / Local AI Runtime" as Ollama {
+
+        artifact "Qwen" as Qwen
+        artifact "GLM-OCR" as GLM
+        artifact "Granite 4.1:3B" as Granite
+        artifact "BGE-M3" as BGE
+
+    }
+
+    ' ========================================================
+    ' BASES DE DONNEES
+    ' ========================================================
+
+    database "PostgreSQL" as PostgreSQL
+    database "ChromaDB" as ChromaDB
+
+    ' ========================================================
+    ' STOCKAGE DOCUMENTAIRE
+    ' ========================================================
+
+    folder "Waraq Data Storage" as Storage {
+
+        folder "archives/" as Archives
+        folder "classified/" as Classified
+        folder "extracted/" as Extracted
+        folder "rag_extracted/" as RAGExtracted
+        folder "generated/" as Generated
+        folder "templates/" as Templates
+        folder "_sources/" as Sources
+        folder "temp_files/" as Temp
+
+    }
+
+}
+
+' ============================================================
+' SOURCES EXTERNES
+' ============================================================
+
+cloud "Portails / Sources externes" as ExternalSources {
+
+    component "Portails des marchés publics" as PublicPortals
+    component "Sources documentaires" as DocumentSources
+
+}
+
+' ============================================================
+' MONITORING
+' ============================================================
+
+node "Monitoring" as Monitoring {
+
+    artifact "Application Logs" as Logs
+    artifact "Metrics / Monitoring" as Metrics
+
+}
+
+' ============================================================
+' UTILISATEUR → APPLICATION
+' ============================================================
+
+Browser --> FastAPI : HTTP / HTTPS
+
+FastAPI --> REST
+
+REST --> TenderService
+REST --> DocumentService
+REST --> Classification
+REST --> RAGTrigger
+REST --> Workflow
+
+' ============================================================
+' SCRAPING
+' ============================================================
+
+Scheduler --> TenderScraper : Déclenchement périodique
+
+TenderScraper --> PublicPortals : HTTP / Selenium
+PublicPortals --> TenderScraper : AO + métadonnées
+
+TenderScraper --> Downloader
+Downloader --> PublicPortals : Télécharger documents
+
+Downloader --> Sources : Sources originales
+Downloader --> Archives : Documents bruts
+
+SourceMonitor --> TenderScraper : Surveillance / contrôle
+
+TenderScraper --> PostgreSQL : Métadonnées AO
+TenderScraper --> Storage : Documents téléchargés
+
+' ============================================================
+' SCRAPING → DOCUMENT SERVICE
+' ============================================================
+
+TenderScraper --> TenderService : Nouveaux AO
+Downloader --> DocumentService : Documents entrants
+
+' ============================================================
+' CLASSIFICATION
+' ============================================================
+
+DocumentService --> Classification
+
+Classification --> OCR
+Classification --> Splitter
+Classification --> Rules
+Classification --> Qwen
+
+OCR --> PyMuPDF
+OCR --> OCRModel
+OCR --> ONNX
+
+Classification --> Classified
+Classification --> PostgreSQL
+
+Classification --> Learning
+Learning --> PostgreSQL
+
+' ============================================================
+' RAG
+' ============================================================
+
+RAGTrigger --> RAG
+
+RAG --> Extractor
+RAG --> GLM
+RAG --> Granite
+RAG --> Chunker
+RAG --> Embedding
+
+Extractor --> OCR
+Extractor --> Splitter
+
+Extractor --> RAGExtracted
+
+Chunker --> Embedding
+Embedding --> BGE
+Embedding --> ChromaDB
+
+RAG --> PostgreSQL
+RAG --> RAGExtracted
+
+' ============================================================
+' WORKFLOW DE GENERATION
+' ============================================================
+
+Workflow --> Inventory
+
+Inventory --> RAGExtracted
+Inventory --> Classified
+Inventory --> Sources
+
+Workflow --> RCCPS
+Workflow --> BDP
+Workflow --> Forms
+Workflow --> PDF
+Workflow --> Validator
+
+' ============================================================
+' RC / CPS
+' ============================================================
+
+RCCPS --> OCR
+RCCPS --> PDF
+
+' ============================================================
+' BDP / BDR
+' ============================================================
+
+BDP --> OCR
+BDP --> PDF
+
+' ============================================================
+' ACTE / DECLARATION
+' ============================================================
+
+Forms --> OCR
+Forms --> Templates
+Forms --> PostgreSQL
+Forms --> PDF
+
+' ============================================================
+' GENERATION
+' ============================================================
+
+PDF --> Generated
+
+Validator --> Generated
+Validator --> PostgreSQL
+
+Workflow --> Generated
+Workflow --> PostgreSQL
+
+' ============================================================
+' PERSISTENCE
+' ============================================================
+
+TenderService --> PostgreSQL
+DocumentService --> PostgreSQL
+
+' ============================================================
+' MONITORING
+' ============================================================
+
+FastAPI --> Logs
+TenderScraper --> Logs
+Classification --> Logs
+RAG --> Logs
+Workflow --> Logs
+
+PostgreSQL --> Metrics
+Logs --> Metrics
+
+@enduml

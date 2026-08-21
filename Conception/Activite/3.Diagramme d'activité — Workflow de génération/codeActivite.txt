@@ -1,0 +1,134 @@
+@startuml Waraq_Activity_Workflow_Generation
+
+title Waraq — Diagramme d'activité : Workflow de génération
+
+start
+
+:Tender actuel;
+note right
+tender_id
+user_id
+end note
+
+:Initialiser le workflow;
+
+:Collecter les documents;
+
+fork
+
+    :Lire rag_extracted/;
+
+fork again
+
+    :Lire classified/;
+
+fork again
+
+    :Lire _sources/;
+
+end fork
+
+:Construire l'inventaire documentaire;
+
+:Rechercher RC;
+:Rechercher CPS;
+:Rechercher BDP / BDR;
+:Rechercher ACTE_ENGAGEMENT;
+:Rechercher DECLARATION_HONNEUR;
+:Rechercher autres documents;
+
+if (Documents obligatoires présents ?) then (Oui)
+
+    :Continuer le workflow;
+
+else (Non)
+
+    :Identifier les documents manquants;
+
+    if (Acte d'engagement absent ?) then (Oui)
+
+        :Charger le modèle Waraq;
+        :Préparer l'Acte d'engagement;
+        :Générer le document;
+
+    endif
+
+    if (Déclaration d'honneur absente ?) then (Oui)
+
+        :Charger le modèle Waraq;
+        :Préparer la déclaration;
+        :Générer le document;
+
+    endif
+
+endif
+
+:Contrôler le découpage RAG;
+
+if (RAG mal découpé ?) then (Oui)
+
+    :Détecter les frontières incorrectes;
+    :Redécouper automatiquement;
+    :Remplacer les segments incorrects;
+
+else (Non)
+
+    :Conserver le découpage;
+
+endif
+
+:Contrôler la cohérence des documents;
+
+if (Document incorrect ?) then (Oui)
+
+    :Supprimer le document incorrect;
+
+    if (Remplacement disponible ?) then (Oui)
+
+        :Utiliser le document de remplacement;
+
+    else (Non)
+
+        :Marquer le document comme manquant;
+
+    endif
+
+else (Non)
+
+    :Conserver le document;
+
+endif
+
+:Préparer RC et CPS;
+
+:Traiter BDP / BDR;
+
+:Traiter Acte d'engagement;
+
+:Traiter Déclaration d'honneur;
+
+:Effectuer la validation globale;
+
+if (Tous les documents sont conformes ?) then (Oui)
+
+    :Statut du workflow = READY;
+
+else (Non)
+
+    :Statut du workflow = INCOMPLETE;
+
+endif
+
+:Persister les documents dans generated/;
+
+:Créer les GeneratedDocument;
+
+:Enregistrer les métadonnées;
+
+:Enregistrer les logs;
+
+:Finaliser le workflow;
+
+stop
+
+@enduml

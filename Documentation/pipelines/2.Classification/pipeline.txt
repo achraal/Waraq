@@ -1,0 +1,76 @@
+┌─────────────────────────────────────────────────────────┐
+                        │             DOCUMENT ENTRANT (PDF / Word)               │
+                        └────────────────────────────┬────────────────────────────┘
+                                                     │
+                                        PyMuPDF : Inspection Rapide
+                                (Détection Texte Natif vs PDF Scanné + Nombre de Pages)
+                                                     │
+         ┌───────────────────────────────────────────┴───────────────────────────────────────────┐
+         ▼                                                                                       ▼
+┌─────────────────────────────────┐                                             ┌─────────────────────────────────┐
+│     CAS A : PDF NATIF (Texte)   │                                             │     CAS B : PDF SCANNÉ (Image)  │
+└────────────────┬────────────────┘                                             └────────────────┬────────────────┘
+                 │                                                                               │
+                 │ - Extraction du texte avec PyMuPDF                                            │ - Conversion des pages en image (PyMuPDF)
+                 │ - Lecture directe des pages                                                   │ - OCR PaddleOCR via ONNX Runtime (CPU)
+                 │                                                                               │ - Reconstruction du texte page par page
+                 │                                                                               │
+                 └───────────────────────────────────────┬───────────────────────────────────────┘
+                                                         │
+                                                         ▼
+                        ┌──────────────────────────────────────────────────────────┐
+                        │        NORMALISATION ET PRÉTRAITEMENT DU TEXTE           │
+                        │                                                          │
+                        │  • Nettoyage du texte & uniformisation des espaces       │
+                        │  • Suppression des caractères inutiles                   │
+                        │  • 1. Optical / Structural Sensing (Layout / Primitives) │
+                        └────────────────────────────┬─────────────────────────────┘
+                                                     │
+                                                     ▼
+                        ┌──────────────────────────────────────────────────────────┐
+                        │       LOGIQUE DE DÉCOUPAGE ET D'ANALYSE STRUCTURELLE     │
+                        │                                                          │
+                        │  • 2. Heuristic & Rule Engine (Regex, Headers, Ancre)    │
+                        └────────────────────────────┬─────────────────────────────┘
+                                                     │
+                                     Analyse du nombre de pages
+                                                     │
+                         ┌───────────────────────────┴───────────────────────────┐
+                         ▼                                                       ▼
+           ┌───────────────────────────┐                           ┌───────────────────────────┐
+           │        < 20 Pages         │                           │        >= 20 Pages        │
+           └─────────────┬─────────────┘                           └─────────────┬─────────────┘
+                         │                                                       │
+                         │ 1. PAS de découpage physique.                         │ 1. Scan des en-têtes/titres en haut de page.
+                         │ 2. Classifier le document global.                     │ 2. Si rupture majeure (ex: RC, CPS) :
+                         │ 3. Lister les modèles / annexes.                      │    └─► Découpage Physique du document.
+                         │                                                       │ 3. Lister les annexes/modèles détectés.
+                         │                                                       │
+                         └───────────────────────────┬───────────────────────────┘
+                                                     │
+                                                     ▼
+                        ┌──────────────────────────────────────────────────────────┐
+                        │           3. GENERATIVE & SEMANTIC LLM (Qwen)            │
+                        │                                                          │
+                        │  • Verification Few-Shot Prompting                       │
+                        │  • Classification finale globale / sous-documents        │
+                        │    (CPS, RC, BDR, etc.)        │
+                        └────────────────────────────┬─────────────────────────────┘
+                                                     │
+                                                     ▼
+                        ┌──────────────────────────────────────────────────────────┐
+                        │         EXTRACTION CIBLÉE DES INFORMATIONS PAR TYPE       │
+                        │                                                          │
+                        │  • Prompts Few-Shot spécialisés                          │
+                        │  • Extraction des champs métier                          │
+                        │  • Validation et structuration des résultats             │
+                        └────────────────────────────┬─────────────────────────────┘
+                                                     │
+                                                     ▼
+                        ┌──────────────────────────────────────────────────────────┐
+                        │                STRUCTURATION DES DONNÉES                 │
+                        │                                                          │
+                        │  • Format JSON                                           │
+                        │  • Enregistrement en base de données                     │
+                        │  • Mise à disposition pour les modules Waraq             │
+                        └──────────────────────────────────────────────────────────┘

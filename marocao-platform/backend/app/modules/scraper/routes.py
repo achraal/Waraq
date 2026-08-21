@@ -1,12 +1,12 @@
 # backend/app/modules/scraper/routes.py
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Body
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Body, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from typing import List
 from backend.app.database.connection import get_db
 from backend.app.database.models import Tender, EmailNotification
 from backend.app.modules.scraper.utils import sync_local_tenders_to_db, export_all_tenders_to_excel
 from openpyxl import load_workbook
-import os, threading
+import os, threading, asyncio
 from backend.app.modules.scraper.portal_scraper import run_scraper 
 from backend.app.modules.scraper.email_monitor import fetch_marche_publics, save_emails_to_db
 from backend.app.database.connection import SessionLocal
@@ -75,6 +75,7 @@ def start_scraping(background_tasks: BackgroundTasks):
     
     # Lancement en arrière-plan via FastAPI
     background_tasks.add_task(run_scraper_task)
+    log_to_frontend("[API] Scraping simple démarré en arrière-plan.")
     return {"status": "success", "message": "Scraping démarré en arrière-plan."}
 
 @router.get("/scraper-status")
@@ -89,28 +90,29 @@ def run_full_pipeline(background_tasks: BackgroundTasks, db: Session = Depends(g
     def execute_pipeline():
         scraper_status["is_running"] = True
         # On crée une session propre à ce thread d'arrière-plan
-        db = SessionLocal()
+        db_bg = SessionLocal()
         try:
-            print("--- Étape 1 : Démarrage du Scraper ---")
-            run_scraper()
+            log_to_frontend("--- Étape 1 : Démarrage du Scraper ---")
+            run_scraper()  # ⚠️ Pense à mettre des log_to_frontend() à l'intérieur de cette fonction aussi !
             
-            print("--- Étape 2 : Synchronisation des données ---")
-            sync_local_tenders_to_db(db)
+            log_to_frontend("--- Étape 2 : Synchronisation des données ---")
+            sync_local_tenders_to_db(db_bg)
             
-            print("--- Étape 3 : Export Excel ---")
-            export_all_tenders_to_excel(db)
+            log_to_frontend("--- Étape 3 : Export Excel ---")
+            export_all_tenders_to_excel(db_bg)
             
-            print("--- Pipeline terminé avec succès ---")
+            log_to_frontend("--- Pipeline terminé avec succès ---")
         except Exception as e:
-            print(f"--- Erreur dans le pipeline : {e} ---")
+            log_to_frontend(f"--- Erreur dans le pipeline : {e} ---")
         finally:
-            db.close() # Important : On ferme la session manuellement ici
+            db_bg.close() # Important : On ferme la session manuellement ici
             scraper_status["is_running"] = False
+            log_to_frontend("--- Fin du processus. Scraper arrêté. ---")
 
     background_tasks.add_task(execute_pipeline)
     return {"status": "success", "message": "Le pipeline complet a été lancé en arrière-plan."}
 
-@router.post("/scraper/refresh-emails")
+@router.post("/refresh-emails")
 def refresh_emails(db: Session = Depends(get_db)):
     # 1. Récupération depuis le serveur mail
     raw_emails = fetch_marche_publics()
@@ -135,7 +137,7 @@ def get_notifications(db: Session = Depends(get_db)):
     }
 
 # 1. Marquer une sélection (ou un seul) comme lu
-@router.post("/scraper/notifications/mark-read")
+@router.post("/notifications/mark-read")
 def mark_notifications_read(
     ids: List[int] = Body(...), 
     db: Session = Depends(get_db)
@@ -148,7 +150,7 @@ def mark_notifications_read(
     return {"status": "success", "updated_count": len(ids)}
 
 # 2. Marquer TOUT comme lu
-@router.post("/scraper/notifications/mark-all-read")
+@router.post("/notifications/mark-all-read")
 def mark_all_read(db: Session = Depends(get_db)):
     """Marque toutes les notifications non lues comme lues."""
     db.query(EmailNotification).filter(EmailNotification.is_read == False).update(
@@ -182,3 +184,46 @@ def get_read_notifications(db: Session = Depends(get_db)):
         "total": len(read_notifications),
         "data": read_notifications
     }
+
+# 1. Gestionnaire de WebSockets pour les logs
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except:
+                pass
+
+manager = ConnectionManager()
+
+# Fonction pour logger à la fois dans le terminal et sur le frontend
+
+def log_to_frontend(message: str):
+    print(message) # Affiche dans le terminal Python
+    # Envoie au frontend via WebSocket
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.broadcast(message))
+    except RuntimeError:
+        asyncio.run(manager.broadcast(message))
+
+# 2. Endpoint WebSocket
+@router.websocket("/ws/logs")
+async def websocket_logs(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Maintient la connexion ouverte
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)

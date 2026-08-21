@@ -15,6 +15,7 @@ from backend.app.modules.tenders.routes import router as tenders_router
 from backend.app.modules.ai_processor.routes import router as classification_router
 from backend.app.modules.scraper.email_monitor import fetch_marche_publics, save_emails_to_db
 import os
+from fastapi.middleware.cors import CORSMiddleware
 from backend.app.modules.telemetry.routes import router as telemetry_router
 from backend.app.modules.audit.routes import router as audit_router
 from backend.app.modules.rag_engine.routes import router as rag
@@ -106,6 +107,20 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MarocAO API",
     lifespan=lifespan # Utiliser lifespan au lieu d'appeler create_all en dehors
+)
+
+# --- CONFIGURATION CORS (À ajouter ici) ---
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,       # Autorise React Vite
+    allow_credentials=True,      # Autorise les cookies/headers d'authentification
+    allow_methods=["*"],         # Autorise toutes les méthodes (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],         # Autorise tous les headers (Content-Type, Authorization, etc.)
 )
 
 # Inclusion du routeur sous le préfixe général de l'API

@@ -23,20 +23,50 @@ logger.setLevel(logging.INFO)
 Initialisation unique des moteurs PaddleOCR
 Utiliser det_limit_side_len au lieu de max_side_limit
 Initialisation explicite sur CPU (use_gpu=False est crucial)"""
-ocr_fr = PaddleOCR(
-    use_angle_cls=False, 
-    lang='fr',
-    enable_mkldnn=False,
-    device='cpu',  # <-- On utilise 'device' au lieu de 'use_gpu'
-    det_limit_side_len=736
-)
-ocr_ar = PaddleOCR(
-    use_angle_cls=False, 
-    lang='ar',
-    enable_mkldnn=False,
-    device='cpu',  # <-- On utilise 'device' au lieu de 'use_gpu'
-    det_limit_side_len=736
-)
+# ocr_fr = PaddleOCR(
+#     use_angle_cls=False, 
+#     lang='fr',
+#     enable_mkldnn=False,
+#     device='cpu',  # <-- On utilise 'device' au lieu de 'use_gpu'
+#     det_limit_side_len=736
+# )
+# ocr_ar = PaddleOCR(
+#     use_angle_cls=False, 
+#     lang='ar',
+#     enable_mkldnn=False,
+#     device='cpu',  # <-- On utilise 'device' au lieu de 'use_gpu'
+#     det_limit_side_len=736
+# )
+
+""" Clean initialization of French and Arabic OCR engines (Lazy Loading) """
+ocr_fr = None
+ocr_ar = None
+
+def get_ocr_fr():
+    global ocr_fr
+    if ocr_fr is None:
+        logger.info("[INIT] Chargement de PaddleOCR Français en mémoire...")
+        ocr_fr = PaddleOCR(
+            use_angle_cls=False, 
+            lang='fr',
+            enable_mkldnn=False,
+            device='cpu',
+            det_limit_side_len=736
+        )
+    return ocr_fr
+
+def get_ocr_ar():
+    global ocr_ar
+    if ocr_ar is None:
+        logger.info("[INIT] Chargement de PaddleOCR Arabe en mémoire...")
+        ocr_ar = PaddleOCR(
+            use_angle_cls=False, 
+            lang='ar',
+            enable_mkldnn=False,
+            device='cpu',
+            det_limit_side_len=736
+        )
+    return ocr_ar
 
 LIBREOFFICE_PATH = r"C:\Program Files\LibreOffice\program\soffice.exe"
 
@@ -524,12 +554,14 @@ def extraire_ocr_image(file_path: str) -> str:
 def _executer_paddle_ocr(image_path: str) -> str:
     """Utilise PaddleOCR (FR puis AR si échec)."""
     lines = []
-    res = ocr_fr.ocr(image_path)
+    modele_fr = get_ocr_fr()
+    res = modele_fr.ocr(image_path)
     if res and res[0]:
         lines = [line[1][0] for line in res[0]]
     
     if len(lines) < 3:
-        res_ar = ocr_ar.ocr(image_path)
+        modele_ar = get_ocr_ar()
+        res_ar = modele_ar.ocr(image_path)
         if res_ar and res_ar[0]:
             lines = [line[1][0] for line in res_ar[0]]
             

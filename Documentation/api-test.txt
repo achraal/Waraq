@@ -363,4 +363,79 @@ POST http://localhost:8000/api/rag/analyze-tender/{tender_id}
 
 GET http://localhost:8000/api/rag/stats/{tender_id}
 
+GET http://localhost:8000/api/rag/vectors/document/{document_id}
+
+GET http://localhost:8000/api/rag/vectors/tender/{tender_id}
+
 GET http://localhost:8000/api/rag/summary/{tender_id}
+
+GET http://localhost:8000/api/rag/stats
+
+GET http://localhost:8000/api/rag/
+
+GET http://localhost:8000/api/rag/tender/{tender_id}
+
+GET http://localhost:8000/api/rag/document/{document_id}
+
+GET http://localhost:8000/api/rag/{rag_id}
+
+GET http://localhost:8000/api/rag/vectors/lookup/tenders
+
+GET http://localhost:8000/api/rag/vectors/lookup/documents
+
+#############################################################################
+
+POST http://localhost:8000/api/worflows/tenders/{tender_id}/preparation/scan
+
+{
+    "user_id":"7cc50c5e-ddbe-4ae9-b882-c3120514d546"
+}
+
+GET http://localhost:8000/api/worflows/tenders/{tender_id}/preparation
+
+POST http://localhost:8000/api/worflows/preparation/documents/{document_id}/validate
+
+{
+  "valid": true,
+  "message": "Document valide"
+}
+
+DELETE http://localhost:8000/api/worflows/preparation/documents/{document_id} 
+
+POST http://localhost:8000/api/worflows/tenders/{tender_id}/bdp/analyze
+
+POST http://localhost:8000/api/worflows/preparation/documents/{document_id}/bdp/fill
+
+POST http://localhost:8000/api/worflows/preparation/documents/{document_id}/admin/extract-fields
+
+POST http://localhost:8000/api/worflows/preparation/documents/{document_id}/admin/fill
+
+{
+  "values": {
+    "adresse_du_domicile_lu": "Casablanca, Maroc",
+    "affili_2_sous_le_num_ro": "CNSS 123456",
+    "inscrit_au_registre_du_commerce_de_localit_sous_le_num_ro": "RC Casablanca 123456",
+    "inscrite_la_taxe_professionnelle_sous_le_num_ro": "TP 789456",
+    "num_ro_de_l_identifiant_commun_de_l_entreprise": "ICE 001234567890123",
+    "adresse_du_si_ge_social_de_la_soci_t": "123 Boulevard Hassan II, Casablanca",
+    "affili_e_2_sous_le_num_ro": "CNSS 123456",
+    "inscrite_au_registre_du_commerce_localit_sous_le_num_ro": "RC Casablanca 123456"
+  }
+}
+
+POST http://localhost:8000/api/worflows/tenders/{tender_id}/sign
+
+{
+  "signer_name": "Achraf BERRADA"
+}
+
+POST http://localhost:8000/api/worflows/sign-document/{document_id}
+
+KEY	VALUE
+user_id	
+signer_name
+
+POST http://localhost:8000/api/worflows/tenders/{tender_id}/finalize
+{
+    "user_id": "7cc50c5e-ddbe-4ae9-b882-c3120514d546"
+}

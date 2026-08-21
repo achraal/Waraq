@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 from uuid import UUID
@@ -29,6 +30,31 @@ class TenderPreparationService:
         self.converter = DocumentConverter()
         self.finalizer = TenderFinalizer(storage_root / "generated", self.converter)
         self.ocr = ocr_service
+        
+    def _get_generation_dir(self, tender: Tender) -> Path:
+        """
+        Retourne le dossier de génération du tender.
+
+        Structure :
+        generated/YYYY/MM/DD/REFERENCE_HH_MM_SS/
+        """
+
+        now = datetime.now()
+
+        folder_name = f"{tender.reference}_{now.strftime('%H_%M_%S')}"
+
+        generation_dir = (
+            self.storage_root
+            / "generated"
+            / now.strftime("%Y")
+            / now.strftime("%m")
+            / now.strftime("%d")
+            / folder_name
+        )
+
+        generation_dir.mkdir(parents=True, exist_ok=True)
+
+        return generation_dir
 
     def _get_tender(self, db: Session, tender_id: UUID) -> Tender:
         """Récupère un appel d'offres ou lève une erreur."""
@@ -107,7 +133,7 @@ class TenderPreparationService:
             if document.status
             != PreparationDocumentStatus.DELETED
         }
-        generated_dir = (self.storage_root / "generated" / "working" / tender.reference)
+        generated_dir = self._get_generation_dir(tender)
         if "ACTE_ENGAGEMENT" not in existing_types:
             output = (generated_dir / "ACTE_ENGAGEMENT.docx")
             self.admin_generator.generate_acte_engagement(db, user_id, tender.id, output)
@@ -173,7 +199,7 @@ class TenderPreparationService:
             if document.document_type in {"RC","CPS"} and not document.is_signed:
                 actions.append(f"SIGN_{document.document_type}")
 
-            if document.document_type == "BDP":
+            if document.document_type == "BORDEREAU_PRIX":
                 if not document.is_filled:
                     actions.append("FILL_BDP")
 
@@ -273,7 +299,7 @@ class TenderPreparationService:
         if not preparation:
             raise ValueError("Préparation inexistante.")
 
-        document = next((item for item in preparation.documents if item.document_type == "BDP" and item.status != PreparationDocumentStatus.DELETED),None)
+        document = next((item for item in preparation.documents if item.document_type == "BORDEREAU_PRIX" and item.status != PreparationDocumentStatus.DELETED),None)
         if not document:
             raise ValueError("BDP introuvable.")
 
@@ -320,24 +346,30 @@ class TenderPreparationService:
         db.commit()
         return {"status": "ready_for_input","document_id": str(document.id),"fields": fields}
 
-    def fill_admin_document(self,db: Session,preparation_document_id: UUID,values: Dict[str, Any]):
-        """
-        Remplit un document administratif avec les valeurs fournies.
-        """
-        document = (db.query(TenderPreparationDocument).filter(TenderPreparationDocument.id == preparation_document_id).first())
+    def fill_admin_document(self, db: Session, preparation_document_id: UUID, values: Dict[str, Any]):
+        """Remplit un document administratif avec les valeurs fournies."""
+        document = db.query(TenderPreparationDocument).filter(TenderPreparationDocument.id == preparation_document_id).first()
 
         if not document:
             raise ValueError("Document administratif introuvable.")
+            
+        preparation = document.preparation
+        tender = self._get_tender(db, preparation.tender_id)
+
+        # CORRECTION : Appel avec "tender" uniquement
+        generation_dir = self._get_generation_dir(tender)    
+            
         source = Path(document.file_path)
-        output = (source.parent / f"{source.stem}_filled{source.suffix}")
+
+        # CORRECTION : On garde uniquement cet output, on supprime l'autre
+        output = generation_dir / f"{source.stem}_filled{source.suffix}"
+        
         if source.suffix.lower() == ".docx":
             filler = DocumentFiller()
-            filler.fill_docx(source,output,values)
-
-        elif source.suffix.lower() in {".xlsx"," .xlsm"}:
+            filler.fill_docx(source, output, values)
+        elif source.suffix.lower() in {".xlsx", ".xlsm"}:
             filler = DocumentFiller()
-            filler.fill_xlsx(source,output,values)
-
+            filler.fill_xlsx(source, output, values)
         else:
             raise ValueError("Le remplissage automatique de ce format nécessite une conversion préalable.")
 
@@ -348,39 +380,47 @@ class TenderPreparationService:
         document.metadata_json = {"fields": values}
         db.add(document)
         db.commit()
-        logger.info("Document administratif rempli | id=%s",preparation_document_id)
-        return {"status": "filled","document_id": str(document.id),"file_path": str(output)}
+        logger.info("Document administratif rempli | id=%s", preparation_document_id)
+        return {"status": "filled", "document_id": str(document.id), "file_path": str(output)}
 
-    def sign_documents(self,db: Session,tender_id: UUID,signer_name: str):
-        """
-        Signe graphiquement les RC et CPS et ajoute la pagination.
-        """
-        preparation = (db.query(TenderPreparation).filter(TenderPreparation.tender_id == tender_id).first())
+    def sign_documents(self, db: Session, tender_id: UUID, signer_name: str):
+        """Signe graphiquement les RC et CPS et ajoute la pagination."""
+        # CORRECTION : Récupération du tender indispensable ici
+        tender = self._get_tender(db, tender_id)
+        preparation = db.query(TenderPreparation).filter(TenderPreparation.tender_id == tender_id).first()
 
         if not preparation:
             raise ValueError("Préparation inexistante.")
 
         signed = []
         for document in preparation.documents:
-            if document.document_type not in {"RC","CPS"}:
+            if document.document_type not in {"RC", "CPS"}:
                 continue
             if document.status == PreparationDocumentStatus.DELETED:
                 continue
+            
             source = Path(document.file_path)
+            
+            # CORRECTION : Appel avec "tender" uniquement
+            generation_dir = self._get_generation_dir(tender)
+
             if source.suffix.lower() != ".pdf":
-                pdf_path = (self.converter.to_pdf(source,source.parent))
+                pdf_path = self.converter.to_pdf(source, generation_dir)
                 source = pdf_path
-            output = (source.parent / f"{source.stem}_signed.pdf")
-            self.signer.sign_pdf(source,output,signer_name)
+
+            output = generation_dir / f"{source.stem}_signed.pdf"
+            self.signer.sign_pdf(source, output, signer_name)
+            
             document.file_path = str(output)
             document.file_name = output.name
             document.is_signed = True
             document.status = PreparationDocumentStatus.SIGNED
             db.add(document)
             signed.append(str(output))
+            
         db.commit()
-        logger.info("Documents signés | tender=%s | count=%s", tender_id,len(signed))
-        return {"status": "signed","files": signed}
+        logger.info("Documents signés | tender=%s | count=%s", tender_id, len(signed))
+        return {"status": "signed", "files": signed}
 
     def finalize(self,db: Session,tender_id: UUID,user_id: UUID):
         """
@@ -406,7 +446,7 @@ class TenderPreparationService:
         if has_invalid:
             preparation.status = (PreparationStatus.REVIEW)
         else:
-            preparation.status = (PreparationStatus.READY_FOR_FILLING)
+            preparation.status = (PreparationStatus.READY)
 
         db.add(preparation)
         db.commit()

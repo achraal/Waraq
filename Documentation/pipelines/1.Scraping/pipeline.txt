@@ -1,0 +1,5 @@
+[routes.py] ────(Déclenche)────► [scraper.py]
+                                       │
+                                (Télécharge le HTML)
+                                       ▼
+[utils.py]  ◄────(Enregistre)─── [parser.py] (Extrait les JSON)

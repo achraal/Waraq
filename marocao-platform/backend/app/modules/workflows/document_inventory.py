@@ -42,7 +42,7 @@ DOCUMENT_TYPE_ALIASES = {
 
 class DocumentInventoryService:
     """Recherche et normalisation des pièces d'un appel d'offres."""
-    REQUIRED_TYPES = {"RC","CPS","BDP","ACTE_ENGAGEMENT","DECLARATION_HONNEUR"}
+    REQUIRED_TYPES = {"RC","CPS","BORDEREAU_PRIX","ACTE_ENGAGEMENT","DECLARATION_HONNEUR"}
     def __init__(self, storage_root: Path):
         self.storage_root = storage_root
 
