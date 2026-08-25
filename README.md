@@ -1,7 +1,7 @@
-# MarocAO Platform 🇲🇦🤖
+# WARAQ Platform 
 > **Intelligent Public Procurement Bid Assistant for Moroccan Appels d'Offres (AO)**
 
-MarocAO is an end-to-end, locally hosted Intelligent Document Processing (IDP) and Retrieval-Augmented Generation (RAG) platform designed to automate the lifecycle of public procurement bid preparation in Morocco. By combining local Large Language Models (LLMs), OCR vision engines, vector databases, and automated document generation pipelines, the platform simplifies the complex task of organizing, analyzing, filling, signing, and packaging bid submission folders (*Dossier d'Appel d'Offres* - DAO).
+Waraq is an end-to-end, locally hosted Intelligent Document Processing (IDP) and Retrieval-Augmented Generation (RAG) platform designed to automate the lifecycle of public procurement bid preparation in Morocco. By combining local Large Language Models (LLMs), OCR vision engines, vector databases, and automated document generation pipelines, the platform simplifies the complex task of organizing, analyzing, filling, signing, and packaging bid submission folders (*Dossier d'Appel d'Offres* - DAO).
 
 ---
 
