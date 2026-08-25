@@ -1,7 +1,6 @@
 import logging
 from pathlib import Path
 from typing import Any, Dict
-
 from backend.app.modules.ai_processor.ocr_engine import extraire_texte_integral
 
 logger = logging.getLogger(__name__)

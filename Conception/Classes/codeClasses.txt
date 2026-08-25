@@ -3,6 +3,10 @@ skinparam handwritten false
 skinparam classAttributeIconSize 0
 allowmixing
 
+' =========================================================
+' ENUMS
+' =========================================================
+
 enum StructureType {
     INDIVIDUAL_PROPER
     AUTO_ENTREPRENEUR
@@ -23,6 +27,10 @@ enum ScrapingStatus {
     SELENIUM_ERROR
     DOWNLOAD_ERROR
 }
+
+' =========================================================
+' UTILISATEURS & PROFILS
+' =========================================================
 
 class User {
     - id: UUID
@@ -72,6 +80,10 @@ class LegalPersonProfile {
     - legal_authorization_text: String
 }
 
+' =========================================================
+' APPELS D'OFFRES & DOCUMENTS (SCRAPING)
+' =========================================================
+
 class Tender {
     - id: UUID
     - reference: String
@@ -80,7 +92,7 @@ class Tender {
     - type_annonce: String
     - procedure: String
     - categorie: String
-    - allotment: String
+    - allotissement: String
     - lieu_execution: String
     - estimated_budget: String
     - reserve_pme: String
@@ -130,6 +142,342 @@ class TenderLot {
     - reserve_pme: String
 }
 
+class TenderDocument {
+    - id: UUID
+    - tender_id: UUID
+    - file_name: String
+    - file_type: String
+    - file_path: String
+    - extracted_text: String
+    - is_classified: Boolean
+    - rag_processed: Boolean
+    - classification_reason: Text
+    - classification_description: Text
+    - classified_at: DateTime
+    - classified_file_path: Text
+    - response_time: Float
+    - page_count: Integer
+    - word_count: Integer
+    - file_size_mb: Float
+    - ocr_duration_sec: Float
+    - analysis_metadata: JSON
+    - is_validated: Boolean
+    - validation_status: String
+    - administrative_zones: JSONB
+}
+
+class DocumentWorkflow {
+    + generate_engagement_act(profile: CompanyProfile, tender: Tender): String
+    + generate_honor_declaration(profile: CompanyProfile, tender: Tender): String
+}
+
+package "RAG & Génération" {
+
+package "RAG Engine" {
+
+class RAGAnalysisResult {
+    - id: UUID
+    - document_id: UUID
+    - status: RAGStatus
+    - error_message: Text
+    - extracted_text: Text
+    - rag_analysis: JSONB
+    - chunk_count: Integer
+    - indexing_duration_sec: Float
+    - retrieval_duration_sec: Float
+    - generation_duration_sec: Float
+    - total_rag_duration_sec: Float
+    - embedding_duration_sec: Float
+    - llm_extraction_duration_sec: Float
+    - model_used: String
+    - embedding_model_used: String
+    - chroma_collection_name: String
+    - summary: JSON
+    - created_at: DateTime
+    - updated_at: DateTime
+}
+
+class RAGLog {
+    - id: UUID
+    - document_id: UUID
+    - tender_id: UUID
+    - level: String
+    - stage: String
+    - event: String
+    - message: Text
+    - details: JSONB
+    - duration_sec: Float
+    - created_at: DateTime
+}
+
+enum RAGStatus {
+    PENDING
+    INDEXING
+    ANALYZING
+    COMPLETED
+    FAILED
+}
+}
+
+package "Preparation service" {
+
+class GeneratedDocument {
+    - id: UUID
+    - user_id: UUID
+    - tender_id: UUID
+    - source_document_id: UUID
+    - doc_type: GeneratedDocType
+    - file_name: String
+    - file_path: Text
+    - is_custom_template: Boolean
+    - is_fallback_used: Boolean
+    - generation_metadata: JSONB
+    - created_at: DateTime
+}
+
+class TenderPreparation {
+    - id: UUID
+    - tender_id: UUID
+    - user_id: UUID
+    - status: PreparationStatus
+    - can_finalize: Boolean
+    - validation_errors: JSONB
+    - created_at: DateTime
+    - updated_at: DateTime
+}
+
+class TenderPreparationDocument {
+    - id: UUID
+    - preparation_id: UUID
+    - document_id: UUID
+    - generated_document_id: UUID
+    - document_type: String
+    - file_name: String
+    - file_path: Text
+    - status: PreparationDocumentStatus
+    - is_required: Boolean
+    - is_user_provided: Boolean
+    - is_generated: Boolean
+    - is_signed: Boolean
+    - is_filled: Boolean
+    - validation_message: Text
+    - metadata_json: JSONB
+    - created_at: DateTime
+    - updated_at: DateTime
+}
+
+enum GeneratedDocType {
+    ACTE_ENGAGEMENT
+    DECLARATION_HONNEUR
+    BDP_COMPLETED
+    SYNTHESE_CONFORMITE
+}
+
+enum PreparationDocumentStatus {
+    DETECTED
+    VALID
+    INVALID
+    DELETED
+    GENERATED
+    FILLED
+    SIGNED
+    READY
+}
+
+enum PreparationStatus {
+    PENDING
+    SCANNING
+    REVIEW
+    READY
+    FINALIZED
+    FAILED
+}
+
+class TenderPreparationService <<Service>> {
+        - storage_root : Path
+        - inventory : DocumentInventoryService
+        - validation : DocumentValidationService
+        - admin_generator : AdminDocGeneratorService
+        - admin_fields : AdminFieldsExtractor
+        - bdp : BDPProcessor
+        - signer : DocumentSigner
+        - converter : DocumentConverter
+        - finalizer : TenderFinalizer
+        - ocr : WorkflowOCRService
+        + scan_tender(db : Session, tender_id : UUID, user_id : UUID) : Dict
+        + get_preparation(db : Session, tender_id : UUID) : Dict
+        + validate_document(db : Session, preparation_document_id : UUID, valid : Boolean, message : String)
+        + delete_document(db : Session, preparation_document_id : UUID)
+        + analyze_bdp(db : Session, tender_id : UUID)
+        + fill_bdp(db : Session, preparation_document_id : UUID, values : List)
+        + extract_admin_fields(db : Session, preparation_document_id : UUID)
+        + fill_admin_document(db : Session, preparation_document_id : UUID, values : Dict)
+        + sign_documents(db : Session, tender_id : UUID, signer_name : String)
+        + finalize(db : Session, tender_id : UUID, user_id : UUID)
+        - _get_generation_dir(tender : Tender) : Path
+        - _get_tender(db : Session, tender_id : UUID) : Tender
+        - _get_or_create_preparation(db : Session, tender : Tender, user_id : UUID) : TenderPreparation
+        - _create_missing_admin_documents(db : Session, preparation : TenderPreparation, tender : Tender, user_id : UUID)
+        - _refresh_status(db : Session, preparation : TenderPreparation)
+    }
+
+    class AdminDocGeneratorService <<Service>> {
+        - templates_dir : Path
+        + generate_acte_engagement(db : Session, user_id : UUID, tender_id : UUID, output_path : Path) : Path
+        + generate_declaration_honneur(db : Session, user_id : UUID, tender_id : UUID, output_path : Path) : Path
+        - _get_context(profile : CompanyProfile, tender : Tender) : Dict
+        - _replace_document(document : Document, values : Dict)
+        - _replace_paragraph(paragraph, values : Dict)
+        - _generate(db : Session, user_id : UUID, tender_id : UUID, template_name : String, output_path : Path) : Path
+    }
+
+    class AdminFieldsExtractor <<Service>> {
+        + normalize_text(text : String) : String
+        + classify_field(label : String) : String
+        + extract_from_text(text : String) : List
+        + extract_from_file(file_path : Path, ocr_service : WorkflowOCRService) : Dict
+        + resolve_profile_values(fields : List, profile : CompanyProfile) : List
+        - _is_valid_field_label(label : String) : Boolean
+        - _build_field(label : String, value : String, line_number : Integer) : Dict
+    }
+
+    class BDPProcessor <<Service>> {
+        + parse_bdp_text(text_content : String) : List
+        + parse_excel(file_path : Path) : List
+        + extract_structure(file_path: Path, ocr_service : WorkflowOCRService) : Dict
+        + get_fields_to_fill(items : List) : List
+        + calculate_totals(items: List, tva_rate : Float) : Dict
+        + fill_items(items: List, values : List) : Dict
+        - _normalize(value : Any) : String
+        - _parse_number(value : Any) : Float
+        - _detect_excel_columns(headers : List) : Dict
+    }
+
+
+    class DocumentGenerator <<Service>> {
+        + generate_summary_report(document_info : Dict, bdp_data : Dict) : Dict
+    }
+
+    class DocumentConverter <<Service>> {
+        - libreoffice_path : String
+        + to_pdf(input_path : Path, output_dir : Path) : Path
+    }
+
+
+    class DocumentFiller <<Service>> {
+        + fill_docx(input_path : Path, output_path : Path, values : Dict) : Path
+        + fill_xlsx(input_path : Path, output_path : Path, values : Dict) : Path
+        - _replace_docx_paragraphs(document : Document, values : Dict)
+        - _replace_paragraph(paragraph, values : Dict)
+    }
+
+    class DocumentInventoryService <<Service>> {
+        - storage_root : Path
+        + normalize_document_type(filename : String, text : String) : String
+        + collect_files(tender : Tender) : List
+        + group_by_type(files : List) : Dict
+        - _candidate_tender_paths(tender : Tender) : List
+        - _scan_directory(directory : Path) : List
+    }
+
+    class WorkflowOCRService <<Service>> {
+        + extract(file_path : Path) : Dict
+        + extract_text(file_path : Path) : String
+        + is_scanned(file_path : Path) : Boolean
+        + get_pages(file_path : Path) : List
+    }
+
+    class DocumentSigner <<Service>> {
+        + sign_pdf(input_path : Path, output_path : Path, signer_name : String, administrative_zones : List) : Path
+        - _normalize_text(value : Any) : String
+        - _get_signature_zones(administrative_zones : List, page_number : Integer) : List
+        - _get_lu_accepte_zones(administrative_zones : List, page_number : Integer) : List
+        - _valid_bbox(bbox : Any) : Boolean
+        - _select_best_zone(zones : List,            page_width : Float, page_height : Float) : Dict
+        - _create_signature_overlay(page_width : Float, page_height : Float, bbox : List, signer_name : String, lu_accepte : Boolean)
+    }
+
+    class DocumentValidationService <<Service>> {
+        + validate_file(file_path : String, expected_type : String) : Dict
+        + validate_preparation_document(db : Session, preparation_document : TenderPreparationDocument) : Dict
+        + delete_document(db : Session, preparation_document : TenderPreparationDocument) : void
+    }
+
+    class TenderFinalizer <<Service>> {
+        - generated_root : Path
+        - converter : DocumentConverter
+        + get_output_directory(reference : String) : Path
+        + check_ready(preparation : TenderPreparation) : Tuple
+        + finalize(db : Session, preparation : TenderPreparation, user_id : UUID, tender : Tender)
+        - _map_doc_type(document_type : String) : GeneratedDocType   
+	}
+
+    TenderPreparationService *-- "1" DocumentInventoryService : possède
+    TenderPreparationService *-- "1" DocumentValidationService : possède
+    TenderPreparationService *-- "1" AdminDocGeneratorService : possède
+    TenderPreparationService *-- "1" AdminFieldsExtractor : possède
+    TenderPreparationService *-- "1" BDPProcessor : possède
+    TenderPreparationService *-- "1" DocumentSigner : possède
+    TenderPreparationService *-- "1" DocumentConverter : possède
+    TenderPreparationService *-- "1" TenderFinalizer : possède
+    TenderPreparationService *-- "1" WorkflowOCRService : utilise
+
+    TenderFinalizer --> "1" DocumentConverter : utilise
+	
+	%% =========================
+	%% DEPENDANCES INTERNES
+	%% =========================
+
+	TenderFinalizer "1" --> "1" DocumentConverter : utilise
+
+
+	%% =========================
+	%% DEPENDANCES VERS LES MODELES
+	%% =========================
+
+	TenderPreparationService ..> Tender : consulte
+	TenderPreparationService ..> TenderPreparation : gère
+	TenderPreparationService ..> TenderPreparationDocument : gère
+	TenderPreparationService ..> GeneratedDocument : génère
+
+	AdminDocGeneratorService ..> CompanyProfile : utilise
+	AdminDocGeneratorService ..> Tender : utilise
+
+	AdminFieldsExtractor ..> CompanyProfile : résout les valeurs
+
+	DocumentInventoryService ..> Tender : analyse
+	DocumentInventoryService ..> TenderDocument : inventorie
+
+	BDPProcessor ..> TenderDocument : analyse
+
+	DocumentValidationService ..> TenderPreparationDocument : valide
+
+	DocumentSigner ..> TenderDocument : signe
+	DocumentSigner ..> TenderPreparationDocument : traite
+
+	TenderFinalizer ..> TenderPreparation : finalise
+	TenderFinalizer ..> TenderPreparationDocument : vérifie
+	TenderFinalizer ..> GeneratedDocument : produit
+
+	WorkflowOCRService ..> TenderDocument : extrait
+}
+
+}
+
+' =========================================================
+' LOGS, METRICS ET AUDIT
+' =========================================================
+
+class WorkflowLog {
+    - id: UUID
+    - workflow_name: String
+    - step_name: String
+    - status: String
+    - file_path: Text
+    - message: Text
+    - created_at: DateTime
+}
+
 class EmailNotification {
     - id: Integer
     - mail_uid: String
@@ -150,35 +498,36 @@ class SystemMetric {
     - ai_and_pipeline: JSONB
 }
 
-class TenderDocument {
-    - id: UUID
-    - tender_id: UUID
-    - file_name: String
-    - file_type: String
-    - file_path: String
-    - extracted_text: String
-    - is_classified: Boolean
-    - classification_reason: Text
-    - classification_description: Text
-    - classified_at: DateTime
-    - classified_file_path: Text
-    - response_time: Float
-    - page_count: Integer
-    - word_count: Integer
-    - file_size_mb: Float
-    - ocr_duration_sec: Float
-    - analysis_metadata: JSON
-    - is_validated: Boolean
+class ClassificationAuditLog {
+	- id: UUID
+    - document_id: UUID
+    - predicted_type: String
+    - classification_reason: String
+    - confidence_score: Integer
+    - detected_language: String
+    - extracted_keywords: JSON
+    - model_used: String
+    - execution_duration_sec: Float
+    - ollama_total_duration: Float
+    - prompt_tokens: Integer
+    - generated_tokens: Integer
+    - text_length_chars: Integer
+    - text_word_count: Integer
+    - has_uncertainty_keywords: Boolean
     - validation_status: String
+    - is_correct: Boolean
+    - is_scanned: Boolean
+    - inspection_method: String
+    - corrected_type: String
+    - created_at: DateTime
 }
 
-class DocumentWorkflow {
-    + generate_engagement_act(profile: CompanyProfile, tender: Tender): String
-    + generate_honor_declaration(profile: CompanyProfile, tender: Tender): String
-}
+' =========================================================
+' SYSTEMES ET SERVICES (PACKAGES)
+' =========================================================
 
-' --- ACTEUR & ROUTE D'API DE SCRAPING ---
 actor "Client / User" as Client
+
 class ScraperRoutes <<control>> {
     - scraper_status: dict
     + trigger_sync(db: Session): dict
@@ -188,7 +537,6 @@ class ScraperRoutes <<control>> {
     + run_full_pipeline(background_tasks: BackgroundTasks, db: Session): dict
 }
 
-' --- BLOC CONFIGURÉ : SCRAPING ENGINE ---
 package "Scraping Engine" {
     class Scraper {
         - config_path : String
@@ -200,7 +548,6 @@ package "Scraping Engine" {
         - tender_manager : TenderManager
         - processed : int
         - current_page_index : int
-        --
         + run_scraper() : void
         - _load_config() : Map
         - _init_driver() : void
@@ -235,10 +582,6 @@ package "Scraping Engine" {
         {static} + apply_professional_style(ws: Worksheet): void
     }
 }
-
-'=========================================================
-'          AI PROCESSOR (IDP)
-'=========================================================
 
 package "AI Processor (IDP)" {
 
@@ -289,7 +632,7 @@ package "AI Processor (IDP)" {
         + est_une_page_sommaire(page_text: String): Boolean
         + filtrer_segments_parasites(raw_segments: List, min_pages: Integer = 2): List
         + contient_structure_tableau(texte_apres_titre: String): Boolean
-        - normaliser_ocr(texte: String ): String
+        - normaliser_ocr(texte: String): String
         - est_un_titre(ligne: String): Boolean
     }
 
@@ -303,50 +646,49 @@ package "AI Processor (IDP)" {
         + exporter_dataset_jsonl(db: Session, dossier_export: String = "exports"): String
         + executer_fine_tuning_local_mock(): Dict<String, Any>
         + creer_extrait_representatif(texte: str, max_chars: int = 8000)
-    
-    }
-
-    class ClassificationAuditLog {
-        - predicted_type: String
-        - classification_reason: String
-        - confidence_score: Integer
-        - detected_language: String
-        - extracted_keywords: JSON
-        - model_used: String
-        - execution_duration_sec: Float
-        - ollama_total_duration: Float
-        - prompt_tokens: Integer
-        - generated_tokens: Integer
-        - text_length_chars: Integer
-        - text_word_count: Integer
-        - has_uncertainty_keywords: Boolean
-        - validation_status: String
-        - is_correct: Boolean
-        - is_scanned: Boolean
-        - inspection_method: String
-        - corrected_type: String
-        - created_at: DateTime
     }
 }
 
-' Relations d'héritage & Typage
+' =========================================================
+' RELATIONS & HÉRITAGE
+' =========================================================
+
+' Héritage & Typage
 CompanyProfile <|-- PhysicalPersonProfile
 CompanyProfile <|-- LegalPersonProfile
 CompanyProfile "1" o-- "1" StructureType : typé par >
 User "1" o-- "1" UserRole : possède >
 
-' Associations et Compositions
+' Associations utilisateurs
 User "1" -- "0..1" CompanyProfile : gère >
+User "1" -- "0..*" GeneratedDocument : crée >
+User "1" -- "0..*" TenderPreparation : prépare >
+
+' Associations Appels d'offres
 Tender *-- "0..*" TenderLot : comporte >
 Tender *-- "0..*" TenderDocument : contient >
 Tender "1" o-- "1" ScrapingStatus : statut >
+Tender "1" -- "0..*" RAGLog : journalise >
+Tender "1" -- "0..*" GeneratedDocument : inclut >
+Tender "1" -- "0..1" TenderPreparation : concerne >
+
+' Associations Documents & RAG
+TenderDocument "1" *-- "0..*" ClassificationAuditLog : audit >
+TenderDocument "1" -- "0..1" RAGAnalysisResult : possède >
+TenderDocument "1" -- "0..*" RAGLog : journalise >
+TenderDocument "0..1" -- "0..*" GeneratedDocument : source pour >
+
+' Associations Préparation
+TenderPreparation "1" *-- "0..*" TenderPreparationDocument : contient >
+TenderDocument "0..1" -- "0..*" TenderPreparationDocument : référence >
+GeneratedDocument "0..1" -- "0..*" TenderPreparationDocument : utilise >
 
 ' Dépendances transverses
 SecurityManager ..> User : sécurise >
 DocumentWorkflow ..> CompanyProfile : lit >
 DocumentWorkflow ..> Tender : lit >
 
-' --- INVOCATIONS DE L'ARCHITECTURE SCRAPER ---
+' INVOCATIONS DE L'ARCHITECTURE SCRAPER
 Client ..> ScraperRoutes : appelle endpoint HTTP >
 ScraperRoutes ..> Scraper : instancie & démarre >
 ScraperRoutes ..> PipelineUtils : appelle pour exports & synchro DB >
@@ -362,10 +704,7 @@ PipelineUtils ..> TenderLot : mappe & écrit >
 PipelineUtils ..> TenderDocument : mappe & écrit >
 PipelineUtils ..> Parser : utilise la structure de données >
 
-'=========================================================
-'     NOUVELLES DEPENDANCES IA
-'=========================================================
-
+' DEPENDANCES IA
 ClassificationService ..> OCREngine : extraction texte >
 ClassificationService ..> RulesEngine : règles primitives >
 ClassificationService ..> LLMAnalyzer : classification IA >
@@ -385,7 +724,5 @@ SystemMetric ..> TenderDocument : lit >
 SystemMetric ..> ClassificationAuditLog : lit >
 SystemMetric ..> EmailNotification : lit >
 SystemMetric ..> ScrapingStatus : lit >
-
-TenderDocument "1" *-- "0..*" ClassificationAuditLog : audit >
 
 @enduml

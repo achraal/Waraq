@@ -13,7 +13,6 @@ from backend.app.config import settings
 from backend.app.modules.workflows.document_ocr import WorkflowOCRService
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
 # INITIALISATION DES SERVICES
@@ -23,7 +22,6 @@ GENERATED_DIR: Path = settings.GENERATED_DIR
 TEMPLATES_DIR: Path = settings.TEMPLATES_DIR
  
 ocr_service = WorkflowOCRService()
-
 preparation_service = TenderPreparationService(
     storage_root=STORAGE_ROOT,
     templates_dir=TEMPLATES_DIR,
@@ -51,7 +49,6 @@ def get_preparation(tender_id: UUID,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404,detail=str(exc))
 
 # VALIDATION / SUPPRESSION
-
 @router.post("/preparation/documents/{document_id}/validate")
 def validate_document(document_id: UUID,payload: DocumentValidationRequest,db: Session = Depends(get_db)):
     """Valide ou invalide manuellement une pièce."""
@@ -72,7 +69,6 @@ def delete_document(document_id: UUID,db: Session = Depends(get_db)):
         raise HTTPException(status_code=404,detail=str(exc))
 
 # BDP
-
 @router.post("/tenders/{tender_id}/bdp/analyze")
 def analyze_bdp(tender_id: UUID,db: Session = Depends(get_db)):
     """Analyse le BDP et retourne les champs à remplir."""
@@ -97,7 +93,6 @@ def fill_bdp(document_id: UUID,payload: BDPFillRequest,db: Session = Depends(get
         raise HTTPException(status_code=500,detail=str(exc))
 
 # ACTE / DÉCLARATION
-
 @router.post("/preparation/documents/{document_id}/admin/extract-fields")
 def extract_admin_fields(document_id: UUID,db: Session = Depends(get_db)):
     """Extrait les champs d'un acte ou d'une déclaration."""
@@ -121,7 +116,6 @@ def fill_admin_document(document_id: UUID,payload: AdminFieldsFillRequest,db: Se
         raise HTTPException(status_code=500,detail=str(exc))
 
 # SIGNATURE RC / CPS
-
 @router.post("/tenders/{tender_id}/sign")
 def sign_documents(tender_id: UUID,signer_name: str = Body(..., embed=True),db: Session = Depends(get_db)):
     """
@@ -183,7 +177,6 @@ def sign_document(
         raise HTTPException(status_code=500,detail=f"Erreur pendant la signature : {exc}",)
 
 # FINALISATION
-
 @router.post("/tenders/{tender_id}/finalize")
 def finalize_tender(tender_id: UUID,user_id: UUID = Body(..., embed=True),db: Session = Depends(get_db)):
     """

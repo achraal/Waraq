@@ -23,6 +23,11 @@ import TenderDocumentClassifier from './components/classifier/TenderDocumentClas
 import AdminIntelligenceEngine from './components/admin/AdminIntelligenceEngine';
 import DocumentValidator from './components/classifier/DocumentValidator';
 import GlobalClassificationRunner from './components/classifier/GlobalClassificationRunner';
+import RagViewer from './components/rag/RagViewer';
+import TenderRagRunner from './components/rag/TenderRagRunner';
+import DocumentRagRunner from './components/rag/DocumentRagRunner';
+import GlobalRagManager from './components/rag/GlobalRagManager';
+import WorkflowManager from './components/workflow/WorkflowManager';
 
 function App() {
   const navigate = useNavigate();
@@ -92,6 +97,11 @@ function App() {
         <Route path="/admin/intelligence" element={<AdminIntelligenceEngine />} />
         <Route path="/tenders/:tenderId/document/:documentId/validate" element={<DocumentValidator />} />
         <Route path="/runner" element={<GlobalClassificationRunner />} />
+        <Route path="/rag/viewer" element={<RagViewer />} />
+        <Route path="/rag/manager" element={<GlobalRagManager />} />
+        <Route path="/rag/tender/:tenderId" element={<TenderRagRunner />} />
+        <Route path="/rag/document/:docId" element={<DocumentRagRunner />} />
+        <Route path="/workflow" element={<WorkflowManager />} />
       </Route>
     </Routes>
   );

@@ -1,12 +1,12 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, status, Query
-import os, shutil, math, logging
+from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks, Depends, status, Query, WebSocket, WebSocketDisconnect
+import os, shutil, math, logging, asyncio
 from typing import Dict, Any, Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from uuid import UUID
 from backend.app.database.connection import get_db, SessionLocal
 from backend.app.database.models import TenderDocument, RAGAnalysisResult, RAGStatus, Tender, RAGLog
-from backend.app.modules.rag_engine.rag_service import rag_pipeline_service
+from backend.app.modules.rag_engine.rag_service import rag_pipeline_service, ws_handler
 from backend.app.modules.rag_engine.vector_store import chroma_manager
 from backend.app.modules.rag_engine.schemas import TenderRAGAnalysisResult, TenderRAGSummary, RAGLogResponse, RAGLogsPaginatedResponse, RAGStatsResponse, VectorPoint3D, Visualization3DResponse
 from pydantic import ValidationError
@@ -586,3 +586,42 @@ async def lookup_documents(
             for d in docs
         ]
     }
+
+# --- GESTIONNAIRE WEBSOCKET POUR LES LOGS RAG ---
+class RagConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            try:
+                await connection.send_text(message)
+            except Exception:
+                pass
+
+rag_ws_manager = RagConnectionManager()
+ws_handler.ws_manager = rag_ws_manager
+
+@router_rag.websocket("/ws/logs/{target_id}")
+async def websocket_rag_logs(websocket: WebSocket, target_id: str):
+    """
+    Connexion WebSocket pour streamer les logs de l'analyse RAG en direct vers l'Iframe React.
+    target_id peut être un tender_id, un document_id, ou 'global'.
+    """
+    await rag_ws_manager.connect(websocket)
+    try:
+        # Envoie un message de bienvenue
+        await websocket.send_text(f"[Système] Connecté au canal de logs RAG ({target_id}). En attente du traitement...")
+        while True:
+            # Maintient la connexion ouverte
+            data = await websocket.receive_text()
+    except WebSocketDisconnect:
+        rag_ws_manager.disconnect(websocket)

@@ -245,13 +245,7 @@ class DocumentSigner:
         return overlay_page
 
     # SIGNATURE DU PDF
-    def sign_pdf(
-        self,
-        input_path: str | Path,
-        output_path: str | Path,
-        signer_name: str,
-        administrative_zones: Optional[List[Dict[str, Any]]] = None,
-    ) -> Path:
+    def sign_pdf(self, input_path: str | Path, output_path: str | Path, signer_name: str,administrative_zones: Optional[List[Dict[str, Any]]] = None) -> Path:
         """
         Signe visuellement les zones détectées du PDF.
         Règles :

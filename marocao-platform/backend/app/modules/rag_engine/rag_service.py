@@ -1,5 +1,5 @@
 from backend.app.modules.rag_engine import rag_document_extractor
-import time, logging, httpx, json, os, fitz, re, requests
+import time, logging, httpx, json, os, fitz, re, requests, asyncio
 from typing import Dict, Any, List
 from pathlib import Path
 from datetime import datetime, timezone
@@ -12,10 +12,38 @@ from backend.app.modules.rag_engine.rag_document_extractor import traiter_extrac
 from backend.app.config import settings
 from pydantic import ValidationError
 from .schemas import TenderRAGAnalysisResult, TenderRAGSummary
-from .prompts import  GLM_OCR_PROMPT, build_granite_extraction_prompt, build_granite_summary_prompt
+from .prompts import GLM_OCR_PROMPT, build_granite_extraction_prompt, build_granite_summary_prompt
 
 logger = logging.getLogger("waraq.rag.orchestrator")
 BASE_STORAGE_DIR = Path(r"C:\Users\achra\Desktop\Intern\Project\marocao-platform\data_storage")
+
+# --- DEBUT DU NOUVEAU CODE : Intercepteur de logs pour WebSocket ---
+class AsyncWebSocketLogHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self.ws_manager = None  # Sera injecté depuis le routeur pour éviter les imports circulaires
+
+    def emit(self, record):
+        if not self.ws_manager:
+            return
+        try:
+            # Formate le log (ex: "[17:41:37] [RAG][INDEXING] ...")
+            msg = self.format(record)
+            
+            # Récupère l'event loop de FastAPI
+            loop = asyncio.get_event_loop()
+            
+            # Lance l'envoi WebSocket en tâche de fond pour ne pas bloquer le RAG
+            if loop.is_running():
+                loop.create_task(self.ws_manager.broadcast(msg))
+        except Exception:
+            pass
+
+# Instanciation et configuration du format pour l'Iframe
+ws_handler = AsyncWebSocketLogHandler()
+ws_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s', datefmt='%H:%M:%S'))
+# On ajoute notre "espion" au logger existant
+logger.addHandler(ws_handler)
 
 class RAGPipelineService:
     def __init__(self):
@@ -24,18 +52,13 @@ class RAGPipelineService:
     @staticmethod
     def construire_query_metier(doc_type: str, detected_types: List[str] = None) -> str:
         """
-        Construit une requête RAG globale.
-
-        IMPORTANT :
-        Un même fichier peut contenir plusieurs modèles :
-        CPS + RC + BDP + ACTE_ENGAGEMENT.
+        Construit une requête RAG globale. IMPORTANT :
+        Un même fichier peut contenir plusieurs modèles : CPS + RC + BDP + ACTE_ENGAGEMENT.
         La recherche ne doit donc pas être limitée à doc_type.
         """
 
         detected_types = detected_types or []
-
         types = list(dict.fromkeys([doc_type] + detected_types))
-
         return """
         Rechercher dans le document toutes les informations métier
         explicitement présentes et utiles à l'analyse d'un marché public marocain.
@@ -68,18 +91,11 @@ class RAGPipelineService:
         Types détectés :
         """ + ", ".join(types) + """
 
-        Retourner les passages les plus directement associés
-        à ces informations.
+        Retourner les passages les plus directement associés à ces informations.
         """
 
-    async def recuperer_contexte_metier(
-        self,
-        tender_ref: str,
-        document_id: str,
-        detected_types: List[str],
-        chunks: List[str],
+    async def recuperer_contexte_metier(self, tender_ref: str, document_id: str, detected_types: List[str], chunks: List[str],
     ) -> str:
-
         queries = [
             (
                 "IDENTITE",
@@ -131,19 +147,10 @@ class RAGPipelineService:
 
         # Pour un petit document :
         if len(chunks) <= 12:
-
-            logger.info(
-                "[RAG][RETRIEVAL] Petit document : "
-                "contexte complet utilisé (%d chunks).",
-                len(chunks)
-            )
-
+            logger.info("[RAG][RETRIEVAL] Petit document : " "contexte complet utilisé (%d chunks).", len(chunks))
             return "\n\n--- CHUNK ---\n\n".join(chunks)
-
         retrieved = []
-
         for category, query in queries:
-
             query_full = f"""
             Document de marché public marocain.
 
@@ -157,35 +164,19 @@ class RAGPipelineService:
             réellement ces informations.
             """
 
-            embedding = (
-                await embedding_service.generate_embeddings(
-                    [query_full]
-                )
-            )[0]
-
+            embedding = (await embedding_service.generate_embeddings([query_full]))[0]
             results = chroma_manager.query_tender_context(
                 tender_reference=tender_ref,
                 query_embedding=embedding,
                 top_k=5,
                 document_id=document_id
             )
-
-            logger.info(
-                "[RAG][RETRIEVAL][%s] %d passages récupérés",
-                category,
-                len(results)
-            )
-
+            logger.info("[RAG][RETRIEVAL][%s] %d passages récupérés", category, len(results))
             retrieved.extend(results)
 
         # Déduplication
         unique_results = list(dict.fromkeys(retrieved))
-
-        logger.info(
-            "[RAG][RETRIEVAL] %d passages uniques après fusion",
-            len(unique_results)
-        )
-
+        logger.info("[RAG][RETRIEVAL] %d passages uniques après fusion", len(unique_results))
         return "\n\n--- PASSAGE ---\n\n".join(unique_results)
 
     async def _call_glm_ocr(self, file_path: str, raw_text: str = "") -> str:
@@ -236,120 +227,56 @@ class RAGPipelineService:
             return raw_text
 
     @staticmethod
-    def nettoyer_resultat_granite(
-        result: TenderRAGAnalysisResult,
-        context: str
-    ) -> TenderRAGAnalysisResult:
+    def nettoyer_resultat_granite(result: TenderRAGAnalysisResult,context: str) -> TenderRAGAnalysisResult:
 
         context_lower = context.lower()
 
-        # --------------------------------------------------------
         # DATE : rejeter les dates incomplètes
-        # --------------------------------------------------------
-
         dates = result.dates_importantes
-
-        for field_name in [
-            "date_limite_depot",
-            "date_visite_lieux",
-            "date_ouverture_plis",
-        ]:
-
+        for field_name in ["date_limite_depot","date_visite_lieux","date_ouverture_plis"]:
             value = getattr(dates, field_name)
-
             if not value:
                 continue
-
             value = str(value).strip()
 
             # Date manifestement incomplète
-            if (
-                "..." in value
-                or ".." in value
-                or "xx" in value.lower()
-                or "__" in value
-            ):
-                logger.warning(
-                    "[RAG][GUARD] %s=%r -> date incomplète -> null",
-                    field_name,
-                    value
-                )
+            if "..." in value or ".." in value or "xx" in value.lower() or "__" in value:
+                logger.warning("[RAG][GUARD] %s=%r -> date incomplète -> null", field_name, value)
                 setattr(dates, field_name, None)
                 continue
 
             # La valeur doit exister dans le contexte
             if value.lower() not in context_lower:
-                logger.warning(
-                    "[RAG][GUARD] %s=%r absent du contexte -> null",
-                    field_name,
-                    value
-                )
+                logger.warning("[RAG][GUARD] %s=%r absent du contexte -> null", field_name, value)
                 setattr(dates, field_name, None)
 
-        # --------------------------------------------------------
         # REFERENCE
-        # --------------------------------------------------------
-
         if result.numero_reference:
-
             ref = str(result.numero_reference).strip()
-
-            if (
-                "..." in ref
-                or ".." in ref
-                or len(ref) < 4
-                or ref.lower() not in context_lower
-            ):
-                logger.warning(
-                    "[RAG][GUARD] Référence suspecte=%r -> null",
-                    ref
-                )
+            if "..." in ref or ".." in ref or len(ref) < 4 or ref.lower() not in context_lower:
+                logger.warning("[RAG][GUARD] Référence suspecte=%r -> null", ref)
                 result.numero_reference = None
 
-        # --------------------------------------------------------
         # DELAI EXECUTION
-        # --------------------------------------------------------
-
         if result.delai_execution:
-
             value = str(result.delai_execution).strip()
-
             value_lower = value.lower()
-
-            termes_interdits = [
-                "appel d'offres",
-                "décret",
-                "article",
-                "arrêté",
-                "dématérialisation",
-                "procédure",
-            ]
-
+            termes_interdits = ["appel d'offres", "décret","article","arrêté","dématérialisation","procédure"]   
             if any(term in value_lower for term in termes_interdits):
-
-                logger.warning(
-                    "[RAG][GUARD] delai_execution suspect=%r -> null",
-                    value
-                )
-
+                logger.warning("[RAG][GUARD] delai_execution suspect=%r -> null", value)
                 result.delai_execution = None
-
         return result
 
     async def _call_granite_model(self, context: str, doc_type: str) -> TenderRAGAnalysisResult:
         """
         Appelle Granite avec le schéma métier unique TenderRAGAnalysisResult.
-
         La réponse est :
         1. produite par Granite ;
         2. contrainte par JSON Schema ;
         3. validée par Pydantic.
         """
-
         prompt = build_granite_extraction_prompt(enriched_text=context,doc_type=doc_type)
-
         schema = TenderRAGAnalysisResult.model_json_schema()
-
         payload = {
             "model": settings.MODEL_RAG_ANALYSIS,
             "prompt": prompt,
@@ -358,7 +285,6 @@ class RAGPipelineService:
             "options": {"temperature": 0},
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
         }
-
         logger.info("[RAG][GRANITE] Appel Granite | model=%s | doc_type=%s",settings.MODEL_RAG_ANALYSIS,doc_type)
 
         try:
@@ -394,25 +320,13 @@ class RAGPipelineService:
             raise
 
     @staticmethod
-    def enregistrer_log(
-        db: Session,
-        document: TenderDocument,
-        level: str,
-        stage: str,
-        event: str,
-        message: str,
-        details: Dict[str, Any] = None,
-        duration_sec: float = None
-    ):
+    def enregistrer_log(db: Session, document: TenderDocument,
+        level: str, stage: str, event: str, message: str, details: Dict[str, Any] = None, duration_sec: float = None):
         """
         Persiste un événement RAG en base.
-
-        Cette méthode ne doit jamais interrompre le pipeline
-        si l'écriture du log échoue.
+        Cette méthode ne doit jamais interrompre le pipeline si l'écriture du log échoue.
         """
-
         try:
-
             log = RAGLog(
                 document_id=document.id,
                 tender_id=document.tender_id,
@@ -423,33 +337,16 @@ class RAGPipelineService:
                 details=details,
                 duration_sec=duration_sec
             )
-
             db.add(log)
             db.commit()
 
         except Exception as exc:
-
             db.rollback()
-
-            logger.error(
-                "[RAG][LOGGING] Impossible de persister le log : %s",
-                exc,
-                exc_info=True
-            )
+            logger.error("[RAG][LOGGING] Impossible de persister le log : %s",exc,exc_info=True)
             
-    async def _call_granite_summary(
-        self,
-        structured_data: dict,
-        context: str,
-        doc_type: str
-    ) -> TenderRAGSummary:
+    async def _call_granite_summary(self,structured_data: dict,context: str,doc_type: str) -> TenderRAGSummary:
 
-        prompt = build_granite_summary_prompt(
-            structured_data=structured_data,
-            context=context,
-            doc_type=doc_type
-        )
-
+        prompt = build_granite_summary_prompt(structured_data=structured_data,context=context,doc_type=doc_type)
         schema = TenderRAGSummary.model_json_schema()
 
         payload = {
@@ -457,63 +354,30 @@ class RAGPipelineService:
             "prompt": prompt,
             "stream": False,
             "format": schema,
-            "options": {
-                "temperature": 0
-            },
+            "options": {"temperature": 0},
             "keep_alive": settings.OLLAMA_KEEP_ALIVE,
         }
 
-        logger.info(
-            "[RAG][SUMMARY] Génération du résumé | model=%s",
-            settings.MODEL_RAG_ANALYSIS
-        )
+        logger.info("[RAG][SUMMARY] Génération du résumé | model=%s",settings.MODEL_RAG_ANALYSIS)
 
         try:
-
             async with httpx.AsyncClient(timeout=None) as client:
-
-                response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
-                    json=payload
-                )
-
+                response = await client.post(f"{settings.OLLAMA_BASE_URL}/api/generate",json=payload)
                 response.raise_for_status()
-
             data = response.json()
-
             raw_content = data.get("response", "")
-
             if not raw_content.strip():
-                raise ValueError(
-                    "Granite a retourné un résumé vide."
-                )
-
-            summary = TenderRAGSummary.model_validate_json(
-                raw_content
-            )
-
-            logger.info(
-                "[RAG][SUMMARY] Résumé validé avec succès"
-            )
-
+                raise ValueError("Granite a retourné un résumé vide.")
+            summary = TenderRAGSummary.model_validate_json(raw_content)
+            logger.info("[RAG][SUMMARY] Résumé validé avec succès")
             return summary
 
         except ValidationError as exc:
-
-            logger.error(
-                "[RAG][SUMMARY] JSON invalide selon Pydantic : %s",
-                exc.errors()
-            )
-
+            logger.error("[RAG][SUMMARY] JSON invalide selon Pydantic : %s",exc.errors())
             raise
 
         except httpx.HTTPError as exc:
-
-            logger.error(
-                "[RAG][SUMMARY] Erreur Ollama : %s",
-                exc
-            )
-
+            logger.error("[RAG][SUMMARY] Erreur Ollama : %s",exc)
             raise
 
     async def execute_rag_pipeline(self, db: Session, document_id: str):
@@ -533,11 +397,7 @@ class RAGPipelineService:
             stage="PIPELINE",
             event="RAG_STARTED",
             message="Pipeline RAG démarré.",
-            details={
-                "document_id": str(doc.id),
-                "file_name": doc.file_name,
-                "file_type": doc.file_type
-            }
+            details={"document_id": str(doc.id),"file_name": doc.file_name,"file_type": doc.file_type}
         )
 
         # 2. Récupération de l'analyse RAG existante
@@ -561,9 +421,7 @@ class RAGPipelineService:
 
         try:            
             rag_extract_start = time.time()
-
             source_path = (doc.classified_file_path or doc.file_path)
-
             if not source_path or not os.path.exists(source_path):
                 raise FileNotFoundError(f"[RAG] Source documentaire introuvable : {source_path}")
 
@@ -598,15 +456,8 @@ class RAGPipelineService:
                 detected_types
             )
 
-            analysis_types = list(dict.fromkeys(
-                [doc.file_type] + detected_types
-            ))
-
-            logger.info(
-                "[RAG][TYPES] Types utilisés pour l'analyse métier : %s",
-                analysis_types
-            )
-
+            analysis_types = list(dict.fromkeys([doc.file_type] + detected_types))
+            logger.info("[RAG][TYPES] Types utilisés pour l'analyse métier : %s",analysis_types)
             logger.info("[RAG][ZONES] Document=%s | zones=%d",document_id,len(administrative_zones))
 
             for zone in administrative_zones:
@@ -635,9 +486,7 @@ class RAGPipelineService:
                 details={
                     "characters": len(rag_text),
                     "detected_types": detected_types,
-                    "administrative_zones": len(
-                        administrative_zones
-                    )
+                    "administrative_zones": len(administrative_zones)
                 },
                 duration_sec=rag_extract_duration
             )
@@ -668,19 +517,13 @@ class RAGPipelineService:
             logger.info("[RAG] Texte RAG sauvegardé : %s caractères", len(enhanced_text))
 
             # 3. Chunking
-            chunk_objects = self.chunker.create_chunks(
-                text=enhanced_text
-            )
+            chunk_objects = self.chunker.create_chunks(text=enhanced_text)
 
             if not chunk_objects:
                 raise ValueError("Aucun chunk n'a été généré à partir du texte enrichi.")
 
-            chunks = [
-                chunk["content"]
-                for chunk in chunk_objects
-            ]
-
-            logger.info( "Document %s : %d chunks générés.", document_id, len(chunk_objects))
+            chunks = [chunk["content"] for chunk in chunk_objects]
+            logger.info("Document %s : %d chunks générés.", document_id, len(chunk_objects))
 
             self.enregistrer_log(
                 db=db,
@@ -734,9 +577,7 @@ class RAGPipelineService:
                 details={
                     "chunk_count": len(chunks),
                     "embedding_model": settings.MODEL_EMBEDDINGS,
-                    "collection": chroma_manager._sanitize_collection_name(
-                        tender_ref
-                    )
+                    "collection": chroma_manager._sanitize_collection_name(tender_ref)
                 },
                 duration_sec=indexing_duration
             )
@@ -752,13 +593,10 @@ class RAGPipelineService:
             retrieval_start = time.time()
             
             # RETRIEVAL RAG — CONTEXTE ADAPTATIF
-
             retrieval_start = time.time()
 
             if len(chunks) <= 12:
-
-                # Petit document :
-                # Granite reçoit l'intégralité du document.
+                # Petit document : Granite reçoit l'intégralité du document.
                 context = "\n\n--- CHUNK DOCUMENTAIRE ---\n\n".join(chunks)
                 relevant_chunks = chunks
 
@@ -776,15 +614,9 @@ class RAGPipelineService:
                 )
 
                 relevant_chunks = context.split("\n\n--- PASSAGE ---\n\n")
-
-                logger.info(
-                    "[RAG][RETRIEVAL] Grand document : "
-                    "%d chunks -> retrieval métier utilisé.",
-                    len(chunks)
-                )
+                logger.info("[RAG][RETRIEVAL] Grand document : %d chunks -> retrieval métier utilisé.",len(chunks))
 
             retrieval_duration = time.time() - retrieval_start
-
             self.enregistrer_log(
                 db=db,
                 document=doc,
@@ -809,40 +641,20 @@ class RAGPipelineService:
                 len(context),
                 retrieval_duration
             )
-
-            logger.info(
-                "[RAG][RETRIEVAL] Context preview:\n%s",
-                context[:5000]
-            )
+            logger.info("[RAG][RETRIEVAL] Context preview:\n%s",context[:5000])
 
             # 6. Analyse Métier via Granite 4.1:3B
             rag_entry.status = RAGStatus.ANALYZING
             db.commit()
-            
             generation_start = time.time()
             extracted_json = await self._call_granite_model(context, doc.file_type)
-            
-            logger.info(
-                "[RAG][GRANITE][OUTPUT] %s",
-                extracted_json.model_dump_json(indent=2)
-            )
-            # ------------------------------------------------------------
+            logger.info("[RAG][GRANITE][OUTPUT] %s",extracted_json.model_dump_json(indent=2))
             # POST-VALIDATION ANTI-HALLUCINATION
-            # ------------------------------------------------------------
-
-            extracted_json = self.nettoyer_resultat_granite(
-                result=extracted_json,
-                context=context
-            )
-            
+            extracted_json = self.nettoyer_resultat_granite(result=extracted_json,context=context)
             extracted_json_dict = extracted_json.model_dump()
             
-            # ------------------------------------------------------------
             # 7. GÉNÉRATION DU VRAI RÉSUMÉ MÉTIER
-            # ------------------------------------------------------------
-
             summary_start = time.time()
-
             summary_result = await self._call_granite_summary(
                 structured_data=extracted_json_dict,
                 context=context,
@@ -850,14 +662,9 @@ class RAGPipelineService:
             )
 
             summary_duration = time.time() - summary_start
-
             summary_dict = summary_result.model_dump()
 
-            logger.info(
-                "[RAG][SUMMARY][OUTPUT] %s",
-                summary_result.model_dump_json(indent=2)
-            )
-
+            logger.info("[RAG][SUMMARY][OUTPUT] %s",summary_result.model_dump_json(indent=2))
             logger.info("[RAG][GRANITE][INPUT] doc_type=%s | context_chars=%d | context_words=%d",doc.file_type, len(context),len(context.split()))
             logger.info("[RAG][GRANITE][INPUT] context_preview=%s",context[:3000].replace("\n", " "))
             #llm_duration = time.time() - llm_start

@@ -48,6 +48,9 @@ export default function Sidebar() {
     { path: '/classifier', label: 'Moteur IA (IDP)', icon: 'smart_toy' },
     { path: '/admin/intelligence', label: 'Moteur IA (FT)', icon: 'memory' },
     { path: '/runner', label: 'Exécution IA Globale', icon: 'play_circle' },
+    { path: '/rag/viewer', label: 'Dashboard RAG', icon: 'auto_awesome_mosaic' },
+    { path: '/rag/manager', label: 'Exécution RAG', icon: 'bolt' },
+    { path: '/workflow', label: 'Génération Dossier', icon: 'create_new_folder' },
   ];
 
   const candidateLinks = [
@@ -56,7 +59,9 @@ export default function Sidebar() {
     { path: '/scraper', label: 'Gestion Scraper', icon: 'web' },
     { path: '/classifier', label: 'Moteur IA (IDP)', icon: 'smart_toy' },
     { path: '/runner', label: 'Exécution IA Globale', icon: 'play_circle' },
-    
+    { path: '/rag/viewer', label: 'Dashboard RAG', icon: 'auto_awesome_mosaic' },
+    { path: '/rag/manager', label: 'Exécution RAG', icon: 'bolt' },
+    { path: '/workflow', label: 'Génération Dossier', icon: 'create_new_folder' },    
   ];
 
   const navItems = userRole === 'ADMIN' ? adminLinks : candidateLinks;

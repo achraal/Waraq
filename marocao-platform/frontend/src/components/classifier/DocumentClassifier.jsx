@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function DocumentClassifier() {
   const { fetchWithAuth } = useAuth();
+  const navigate = useNavigate();
   
   // États des données globales
   const [metrics, setMetrics] = useState(null);
@@ -250,7 +252,7 @@ export default function DocumentClassifier() {
       {/* 3. LISTE COMPLÈTE DES DOCUMENTS (Avec Pagination Dynamique) */}
       <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-sm overflow-hidden flex flex-col">
         <div className="p-4 border-b border-outline-variant/20 bg-surface-container-low flex justify-between items-center">
-          <span className="font-bold text-on-surface">Base de données globale ({allDocs.length} documents)</span>
+          <span className="font-bold text-on-surface">({allDocs.length} documents)</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -356,9 +358,18 @@ export default function DocumentClassifier() {
                   Détails intégraux du Document
                 </h3>
               </div>
-              <button onClick={() => setSelectedDocForDetails(null)} className="text-on-surface-variant hover:text-error bg-surface-container p-1 rounded-full transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
+              <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate(`/rag/document/${selectedDocForDetails.id}`)}
+              className="flex items-center gap-2 bg-secondary text-on-secondary px-4 py-1.5 rounded-lg text-sm font-bold shadow-sm hover:opacity-90 transition-opacity"
+            >
+              <span className="material-symbols-outlined text-[18px]">memory</span>
+              Lancer RAG
+            </button>
+            <button onClick={() => setSelectedDocForDetails(null)} className="text-on-surface-variant hover:text-error bg-surface-container p-1 rounded-full transition-colors">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">

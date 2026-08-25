@@ -100,6 +100,13 @@ export default function TenderDetail() {
       <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
       Gérer l'IA des Documents
     </button>
+    <button 
+  onClick={() => navigate(`/rag/tender/${id}`)}
+  className="px-3 py-1.5 bg-secondary text-on-secondary border border-secondary/30 rounded-lg text-sm flex items-center gap-2 hover:bg-secondary/90 font-medium shadow-sm transition-colors"
+>
+  <span className="material-symbols-outlined text-[18px]">memory</span>
+  Analyse RAG Globale
+</button>
           {isAdmin && (
             <button onClick={() => setEditing(!editing)} className="px-4 py-2 bg-surface-container border border-outline-variant/30 rounded-lg text-sm font-semibold hover:bg-surface-container-high">
               {editing ? 'Annuler l\'édition' : 'Modifier les métadonnées'}

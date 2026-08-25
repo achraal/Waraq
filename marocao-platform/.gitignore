@@ -17,6 +17,7 @@ wheels/
 **temp_files/
 **data_storage/archives/
 **data_storage/extracted/
+**data_storage/rag_extracted/
 **data_storage/metadata/
 **data_storage/classified/
 **data_storage/generated/
